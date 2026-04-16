@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "MonitoraCult",
+    "slug": "snack-76330891-d725-4703-84bd-f58504f3c860",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {}
+  }
+}
