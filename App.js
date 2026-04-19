@@ -4,48 +4,116 @@ import { createStackNavigator } from "@react-navigation/stack";
 
 import TelaInicio from "./screens/TelaInicio";
 import TelaBusca from "./screens/TelaBusca";
-import perfilLogin from "./screens/perfilLogin";
-import perfilCadastro from "./screens/perfilCadastro";
-import perfilConfirmarEmail from "./screens/perfilConfirmarEmail";
-import perfilRedefinirSenha from "./screens/perfilRedefinirSenha";
-import perfilMenu from "./screens/perfilMenu";
-import admMenu from "./screens/admMenu";
+import PerfilLogin from "./screens/PerfilLogin";
+import PerfilCadastro from "./screens/PerfilCadastro";
+import PerfilConfirmarEmail from "./screens/PerfilConfirmarEmail";
+import PerfilRedefinirSenha from "./screens/PerfilRedefinirSenha";
+import PerfilMenu from "./screens/PerfilMenu";
+import AdmMenu from "./screens/AdmMenu";
 import TelaFeed from "./screens/TelaFeed";
-import admEvento from "./screens/admEvento";
-import admCadastroEvento from "./screens/admCadastroEvento";
-import admEventoMetrica from "./screens/admEventoMetrica";
-import perfilEventos from "./screens/perfilEventos";
-import eventoAvaliacao from "./screens/eventoAvaliacao";
-import perfilOcorrencia from "./screens/perfilOcorrencia";
-import perfilDeclararOcorrencia from "./screens/perfilDeclararOcorrencia";
-import eventoProximo from "./screens/eventoProximo";
-import perfilGeral from "./screens/perfilGeral";
+import AdmEvento from "./screens/AdmEvento";
+import AdmCadastroEvento from "./screens/AdmCadastroEvento";
+import AdmEventoMetrica from "./screens/AdmEventoMetrica";
+import EventoDetalhes from "./screens/EventoDetalhes";
+import EventoAvaliacao from "./screens/EventoAvaliacao";
+import PerfilOcorrencia from "./screens/PerfilOcorrencia";
+import PerfilDeclararOcorrencia from "./screens/PerfilDeclararOcorrencia";
+import EventoProximo from "./screens/EventoProximo";
+import PerfilGeral from "./screens/PerfilGeral";
 
 const Stack = createStackNavigator();
 
 export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="perfilLogin">
-        <Stack.Screen name="Inicio" component={TelaInicio} options={{ headerShown: false }}/>
-        <Stack.Screen name="Busca" component={TelaBusca} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilLogin" component={perfilLogin} options={{ headerShown: false }}/>
-        <Stack.Screen name="perfilCadastro" component={perfilCadastro} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilConfirmarEmail" component={perfilConfirmarEmail} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilRedefinirSenha" component={perfilRedefinirSenha} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilMenu" component={perfilMenu} options={{ headerShown: false }} />
-        <Stack.Screen name="admMenu" component={admMenu} options={{ headerShown: false }} />
-        <Stack.Screen name="Feed" component={TelaFeed} options={{ headerShown: false }} />
-        <Stack.Screen name="admEvento" component={admEvento} />
-        <Stack.Screen name="admCadastroEvento" component={admCadastroEvento} options={{ headerShown: false }} />
-        <Stack.Screen name="admEventoMetrica" component={admEventoMetrica} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilEventos" component={perfilEventos} options={{ headerShown: false }} />
-        <Stack.Screen name="eventoAvaliacao" component={eventoAvaliacao} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilOcorrencia" component={perfilOcorrencia} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilDeclararOcorrencia" component={perfilDeclararOcorrencia} options={{ headerShown: false }} />
-        <Stack.Screen name="eventoProximo" component={eventoProximo} options={{ headerShown: false }} />
-        <Stack.Screen name="perfilGeral" component={perfilGeral} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+	return (
+		<NavigationContainer>
+			<Stack.Navigator initialRouteName="PerfilDeclararOcorrencia">
+				<Stack.Screen
+					name="Inicio"
+					component={TelaInicio}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="Busca"
+					component={TelaBusca}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilLogin"
+					component={PerfilLogin}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilCadastro"
+					component={PerfilCadastro}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilConfirmarEmail"
+					component={PerfilConfirmarEmail}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilRedefinirSenha"
+					component={PerfilRedefinirSenha}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilMenu"
+					component={PerfilMenu}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="AdmMenu"
+					component={AdmMenu}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="Feed"
+					component={TelaFeed}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen name="AdmEvento" component={AdmEvento} />
+				<Stack.Screen
+					name="AdmCadastroEvento"
+					component={AdmCadastroEvento}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="AdmEventoMetrica"
+					component={AdmEventoMetrica}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="EventoDetalhes"
+					component={EventoDetalhes}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="AventoAvaliacao"
+					component={EventoAvaliacao}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilOcorrencia"
+					component={PerfilOcorrencia}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilDeclararOcorrencia"
+					component={PerfilDeclararOcorrencia}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="EventosProximo"
+					component={EventoProximo}
+					options={{ headerShown: false }}
+				/>
+				<Stack.Screen
+					name="PerfilGeral"
+					component={PerfilGeral}
+					options={{ headerShown: false }}
+				/>
+			</Stack.Navigator>
+		</NavigationContainer>
+	);
 }
