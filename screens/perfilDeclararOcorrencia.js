@@ -10,7 +10,7 @@ export default function PerfilDeclararOcorrencia({ navigation }) {
 		<View style={styles.container}>
       <TouchableOpacity 
         style={styles.back_button}
-        onPress={() => navigation.navigate("EventoDetalhes")}>
+        onPress={() => navigation.navigate("Evento")}>
         <Text style={styles.arrow_back}>{"<"}</Text>
       </TouchableOpacity>
 
