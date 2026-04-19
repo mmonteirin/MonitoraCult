@@ -1,11 +1,39 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, Button, TouchableOpacity } from 'react-native';
+import styles from '../styles/Styles_declararOcorrencia';
 
 export default function perfilDeclararOcorrencia({navigation}) {
-
+  const [text_ocorrencia, setText_ocorrencia] = useState('');
+  const [text_local, setText_local] = useState('Teatro josé de alencar');
+//não sei como faz para pegar o texto do local já que essa parte não tá pronta, mas é uma modificação fácil
   return (
-    <View>
-      <Text>Hello World!</Text>
+    
+  <View style={styles.container}>
+      
+      
+      <Text style={styles.title}>Declaração de{'\n'}Ocorrência</Text>
+      
+      <View style={styles.input_wrapper}>
+        <Text style={styles.label}>Local: </Text>
+        <Text style={styles.location}>{text_local}</Text>
+        <Text style={styles.label_instruction}>Descreva sua ocorrência/feedback: </Text>
+        
+        <TextInput
+          style={styles.input}
+          value={text_ocorrencia}
+          onChangeText={setText_ocorrencia}
+          placeholder="Descreva o que aconteceu..."
+          placeholderTextColor='white'
+          multiline={true}
+        />
+      </View>
+
+      <View style={styles.buttons}>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("TelaInicio")}>
+          <Text style={styles.button_text}>Enviar</Text>
+        </TouchableOpacity>
+      </View>
+      
     </View>
   );
 }
