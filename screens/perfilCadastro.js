@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, TextInput, Text, TouchableOpacity } from "react-native";
 import styles from "../styles/Styles_cadastro";
 
-export default function perfilCadastro({ navigation }) {
+export default function PerfilCadastro({ navigation }) {
 	const [user, setUser] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
@@ -18,7 +18,7 @@ export default function perfilCadastro({ navigation }) {
 
 		if (!emptyField) {
 			// Provisório. Depois vai puxar uma função envolvendo API e banco de dados
-			navigation.navigate("perfilLogin");
+			navigation.navigate("PerfilLogin");
 		}
 	};
 
@@ -45,13 +45,13 @@ export default function perfilCadastro({ navigation }) {
 			</View>
 
 			<View style={styles.input_wrapper}>
-				<Text style={styles.label}>Senha:</Text>
-				<TextInput
-					style={[styles.input, { marginBottom: "0.5rem" }]}
-					value={password}
-					onChangeText={setPassword}
-					placeholder="Seu senha ..."
-				/>
+				<Text style={styles.label}>Senha:</Text> 
+        <TextInput
+          style={[styles.input, { marginBottom: 8 }]}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Sua senha ..."
+        />
 				<TextInput
 					style={styles.input}
 					value={confirmPassword}

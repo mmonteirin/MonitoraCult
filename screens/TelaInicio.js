@@ -1,11 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, FlatList, Image } from "react-native";
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from "react-native";
 
 import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
-import CategoryCard from "../components/CardCategorias";
-import EventCard from "../components/cardEventos";
 
 export default function TelaInicio() {
   const navigation = useNavigation();
@@ -13,21 +10,27 @@ export default function TelaInicio() {
   const categorias = [
     {
       nome: "Teatro",
-      icon: <MaterialCommunityIcons name="drama-masks" size={24} />,
+      icon: <MaterialCommunityIcons name="drama-masks" size={24} color="#fff" />,
     },
-    { nome: "Museus", icon: <MaterialCommunityIcons name="bank" size={24} /> },
+    {
+      nome: "Museus",
+      icon: <MaterialCommunityIcons name="bank" size={24} color="#fff" />,
+    },
     {
       nome: "Shows",
-      icon: <MaterialCommunityIcons name="microphone" size={24} />,
+      icon: <MaterialCommunityIcons name="microphone" size={24} color="#fff" />,
     },
     {
       nome: "Livros",
-      icon: <MaterialCommunityIcons name="book-open" size={24} />,
+      icon: <MaterialCommunityIcons name="book-open" size={24} color="#fff" />,
     },
-    { nome: "Cinema", icon: <MaterialCommunityIcons name="movie" size={24} /> },
+    {
+      nome: "Cinema",
+      icon: <MaterialCommunityIcons name="movie" size={24} color="#fff" />,
+    },
     {
       nome: "Festas",
-      icon: <MaterialCommunityIcons name="party-popper" size={24} />,
+      icon: <MaterialCommunityIcons name="party-popper" size={24} color="#fff" />,
     },
   ];
 
@@ -42,9 +45,9 @@ export default function TelaInicio() {
     <FlatList
       style={styles.container}
       ListHeaderComponent={
-        <>
+        <View>
           {/* Header */}
-          <Text style={styles.title}>Olá, Marcos</Text>
+          <Text style={styles.title}>Olá, Marcos 👋</Text>
           <Text style={styles.subtitle}>O que vamos curtir hoje?</Text>
 
           {/* Categorias */}
@@ -53,12 +56,15 @@ export default function TelaInicio() {
             numColumns={2}
             keyExtractor={(item, index) => index.toString()}
             renderItem={({ item }) => (
-              <CategoryCard
-                item={item}
+              <TouchableOpacity
+                style={styles.categoryCard}
                 onPress={() =>
                   navigation.navigate("Busca", { tipo: item.nome })
                 }
-              />
+              >
+                {item.icon}
+                <Text style={styles.categoryText}>{item.nome}</Text>
+              </TouchableOpacity>
             )}
             columnWrapperStyle={{ justifyContent: "space-between" }}
           />
@@ -88,16 +94,18 @@ export default function TelaInicio() {
 
           {/* Eventos */}
           <Text style={styles.section}>Eventos perto de você...</Text>
-        </>
+        </View>
       }
       data={eventos}
       numColumns={2}
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
-        <EventCard
-          image={item.image}
+        <TouchableOpacity
+          style={styles.eventCard}
           onPress={() => navigation.navigate("Feed")}
-        />
+        >
+          <Image source={{ uri: item.image }} style={styles.eventImage} />
+        </TouchableOpacity>
       )}
       columnWrapperStyle={{ justifyContent: "space-between" }}
     />
@@ -137,6 +145,29 @@ const styles = StyleSheet.create({
   smallImg: {
     width: "32%",
     height: 80,
+    borderRadius: 10,
+  },
+
+  // 🔹 NOVOS estilos
+  categoryCard: {
+    width: "48%",
+    backgroundColor: "#222",
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  categoryText: {
+    color: "#fff",
+    marginTop: 5,
+  },
+  eventCard: {
+    width: "48%",
+    marginBottom: 10,
+  },
+  eventImage: {
+    width: "100%",
+    height: 120,
     borderRadius: 10,
   },
 });

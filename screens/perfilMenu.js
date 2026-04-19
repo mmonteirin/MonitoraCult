@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, Button, TouchableOpacity } from 'react-native';
 
-export default function perfilMenu({navigation}) {
+export default function PerfilMenu({navigation}) {
 
   return (
     <View>
