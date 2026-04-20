@@ -8,11 +8,12 @@ export default function PerfilDeclararOcorrencia({ navigation }) {
 	// text_local provisório, posteriormente será passado de componente para componente essa informação
 	return (
 		<View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.back_button}
-        onPress={() => navigation.navigate("Evento")}>
-        <Text style={styles.arrow_back}>{"<"}</Text>
-      </TouchableOpacity>
+			<TouchableOpacity
+				style={styles.back_button}
+				onPress={() => navigation.navigate("Evento")}
+			>
+				<Text style={styles.arrow_back}>{"<"}</Text>
+			</TouchableOpacity>
 
 			<Text style={styles.title}>Declaração de{"\n"}Ocorrência</Text>
 
@@ -34,9 +35,7 @@ export default function PerfilDeclararOcorrencia({ navigation }) {
 			</View>
 
 			<View style={styles.buttons}>
-				<TouchableOpacity
-					style={styles.button}
-				>
+				<TouchableOpacity style={styles.button}>
 					<Text style={styles.button_text}>Enviar</Text>
 				</TouchableOpacity>
 			</View>
