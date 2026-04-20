@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { View, TextInput, Text, Button, TouchableOpacity } from 'react-native';
+import React, { useState } from "react";
+import { View, TextInput, Text, Button, TouchableOpacity } from "react-native";
 
-export default function perfilGeral({navigation}) {
-
-  return (
-    <View>
-      <Text>Hello World!</Text>
-    </View>
-  );
+export default function PerfilGeral({ navigation }) {
+	return (
+		<View>
+			<Text>Hello World!</Text>
+		</View>
+	);
 }
