@@ -7,11 +7,11 @@ import PerfilConfirmarEmail from "../screens/PerfilConfirmarEmail";
 const Stack = createStackNavigator();
 
 export default function AuthNavigator() {
-	return (
-		<Stack.Navigator screenOptions={{ headerShown: false }}>
-			<Stack.Screen name="Login" component={PerfilLogin} />
-			<Stack.Screen name="Cadastro" component={PerfilCadastro} />
-			<Stack.Screen name="ConfirmarEmail" component={PerfilConfirmarEmail} />
-		</Stack.Navigator>
-	);
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={PerfilLogin} />
+      <Stack.Screen name="Cadastro" component={PerfilCadastro} />
+      <Stack.Screen name="ConfirmarEmail" component={PerfilConfirmarEmail} />
+    </Stack.Navigator>
+  );
 }
