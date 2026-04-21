@@ -3,8 +3,8 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import TabNavigator from "./TabNavigator";
 import CustomDrawerContent from "./CustomDrawerNavigator";
 import TelaFeed from "../screens/TelaFeed";
-import PerfilOcorrencia from "../screens/perfilOcorrencia";
-import perfilMenu from "../screens/perfilMenu";
+import PerfilOcorrencia from "../screens/PerfilOcorrencia";
+import PerfilMenu from "../screens/PerfilMenu";
 import Suporte from "../screens/TelaSuporte";
 
 const Drawer = createDrawerNavigator();
@@ -22,7 +22,7 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="Tela Inicial" component={TabNavigator} />
       <Drawer.Screen name="Feed" component={TelaFeed} />
       <Drawer.Screen name="Suas Avaliações" component={PerfilOcorrencia} />
-      <Drawer.Screen name="Perfil" component={perfilMenu} />
+      <Drawer.Screen name="Perfil" component={PerfilMenu} />
       <Drawer.Screen name="Suporte Técnico" component={Suporte} />
     </Drawer.Navigator>
   );
