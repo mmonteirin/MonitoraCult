@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { View, TextInput, Text, Button, TouchableOpacity } from "react-native";
+import React from "react";
+import { View, Text } from "react-native";
 
-export default function EventoProximo({ navigation }) {
-	return (
-		<View>
-			<Text>Hello World!</Text>
-		</View>
-	);
+export default function EventoProximo() {
+  return (
+    <View>
+      <Text>Meus Ingressos</Text>
+    </View>
+  );
 }
