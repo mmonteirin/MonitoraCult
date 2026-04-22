@@ -4,34 +4,12 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import TelaInicio from "../screens/TelaInicio";
 import TelaBusca from "../screens/TelaBusca";
 import TelaFeed from "../screens/TelaFeed";
-import PerfilGeral from "../screens/PerfilGeral";
+import PerfilGeral from "../screens/TelaPerfil";
 import EventoProximo from "../screens/EventoProximo";
+
 import AnimatedTabIcon from "./AnimatedTabIcon";
 
 const Tab = createBottomTabNavigator();
-
-const icons = {
-  Inicio: {
-    focused: "home",
-    unfocused: "home-outline",
-  },
-  Busca: {
-    focused: "magnify",
-    unfocused: "magnify",
-  },
-  Feed: {
-    focused: "view-grid",
-    unfocused: "view-grid-outline",
-  },
-  Ingressos: {
-    focused: "ticket",
-    unfocused: "ticket-outline",
-  },
-  Perfil: {
-    focused: "account",
-    unfocused: "account-outline",
-  },
-};
 
 export default function TabNavigator() {
   return (
@@ -40,10 +18,19 @@ export default function TabNavigator() {
         headerShown: false,
 
         tabBarIcon: ({ color, size, focused }) => {
-          const icon = icons[route.name];
-          if (!icon) return null;
+          let iconName;
 
-          const iconName = focused ? icon.focused : icon.unfocused;
+          if (route.name === "Inicio") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Busca") {
+            iconName = "magnify";
+          } else if (route.name === "Feed") {
+            iconName = focused ? "rss" : "rss";
+          } else if (route.name === "Ingressos"){
+              iconName = focused ? "ticket" : "ticket-outline";
+          } else if (route.name === "Perfil") {
+            iconName = focused ? "account" : "account-outline";
+          }
 
           return (
             <AnimatedTabIcon
@@ -59,18 +46,34 @@ export default function TabNavigator() {
         tabBarInactiveTintColor: "gray",
 
         tabBarStyle: {
-          backgroundColor: "#111",
-          borderTopWidth: 0,
-          height: 60,
+          backgroundColor: "#fff",
+          height: 75,
+          paddingTop: 8,
+          paddingBottom: 10,
+          borderTopWidth: 0.5,
+         },
+        
+        tabBarItemStyle: {
+         justifyContent: "center",
+         alignItems: "center",
         },
 
-        tabBarShowLabel: false,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          marginBottom: 4,
+        },
+        
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
+
+        tabBarShowLabel: true,
       })}
     >
       <Tab.Screen name="Inicio" component={TelaInicio} />
       <Tab.Screen name="Busca" component={TelaBusca} />
       <Tab.Screen name="Feed" component={TelaFeed} />
-      <Tab.Screen name="Ingressos" component={EventoProximo} /> {/* 🔥 NOVO */}
+      <Tab.Screen name="Ingressos" component={EventoProximo} />
       <Tab.Screen name="Perfil" component={PerfilGeral} />
     </Tab.Navigator>
   );

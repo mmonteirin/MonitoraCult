@@ -9,8 +9,9 @@ export default function AnimatedTabIcon({ name, color, size, focused }) {
     Animated.spring(scale, {
       toValue: focused ? 1.2 : 1,
       useNativeDriver: true,
+      friction: 4,
     }).start();
-  }, [focused]);
+  }, [focused, scale]);
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>

@@ -18,7 +18,7 @@ export default function PerfilCadastro({ navigation }) {
 
 		if (!emptyField) {
 			// Provisório. Depois vai puxar uma função envolvendo API e banco de dados
-			navigation.navigate("Login");
+			navigation.navigate("PerfilLogin");
 		}
 	};
 
@@ -45,13 +45,13 @@ export default function PerfilCadastro({ navigation }) {
 			</View>
 
 			<View style={styles.input_wrapper}>
-				<Text style={styles.label}>Senha:</Text>
-				<TextInput
-					style={[styles.input, { marginBottom: 8 }]}
-					value={password}
-					onChangeText={setPassword}
-					placeholder="Sua senha ..."
-				/>
+				<Text style={styles.label}>Senha:</Text> 
+        <TextInput
+          style={[styles.input, { marginBottom: 8 }]}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Sua senha ..."
+        />
 				<TextInput
 					style={styles.input}
 					value={confirmPassword}
