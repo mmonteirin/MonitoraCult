@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, TextInput, Text, TouchableOpacity } from "react-native";
-import styles from "../styles/Styles_cadastro";
+import { Feather } from '@expo/vector-icons';
+import styles from "../styles/Styles_Authenticate";
 
 export default function PerfilCadastro({ navigation }) {
 	const [user, setUser] = useState("");
@@ -18,45 +19,51 @@ export default function PerfilCadastro({ navigation }) {
 
 		if (!emptyField) {
 			// Provisório. Depois vai puxar uma função envolvendo API e banco de dados
-			navigation.navigate("PerfilLogin");
+			navigation.navigate("Login");
 		}
 	};
 
 	return (
 		<View style={styles.container}>
-			<View style={styles.input_wrapper}>
+			<View>
+				<TouchableOpacity onPress={() => navigation.goBack()}>
+					<Feather name="chevron-left" size={24} color="white" style={styles.arrowLeft}/>
+				</TouchableOpacity>
+			</View>
+
+			<View>
 				<Text style={styles.label}>Usuário:</Text>
 				<TextInput
 					style={styles.input}
 					value={user}
 					onChangeText={setUser}
-					placeholder="Seu nome de usúario ..."
 				/>
 			</View>
 
-			<View style={styles.input_wrapper}>
-				<Text style={styles.label}>E-mail:</Text>
+			<View>
+				<Text style={styles.label}>Email:</Text>
 				<TextInput
 					style={styles.input}
 					value={email}
 					onChangeText={setEmail}
-					placeholder="Seu email ..."
 				/>
 			</View>
 
-			<View style={styles.input_wrapper}>
-				<Text style={styles.label}>Senha:</Text> 
+			<View>
+				<Text style={[styles.label, {marginTop: '1.2rem'}]}>Senha:</Text> 
         <TextInput
-          style={[styles.input, { marginBottom: 8 }]}
+          style={styles.input}
           value={password}
           onChangeText={setPassword}
-          placeholder="Sua senha ..."
         />
+			</View>
+
+			<View>
+				<Text style={styles.label}>Confirme sua senha:</Text> 
 				<TextInput
 					style={styles.input}
 					value={confirmPassword}
 					onChangeText={setConfirmPassword}
-					placeholder="Confirme sua senha ..."
 				/>
 			</View>
 
@@ -65,8 +72,8 @@ export default function PerfilCadastro({ navigation }) {
 			)}
 
 			<View>
-				<TouchableOpacity style={styles.button} onPress={() => handleSubmit()}>
-					<Text style={styles.buttonText}>Criar Conta</Text>
+				<TouchableOpacity onPress={() => handleSubmit()}>
+					<Text style={styles.button}>Criar Conta</Text>
 				</TouchableOpacity>
 			</View>
 		</View>

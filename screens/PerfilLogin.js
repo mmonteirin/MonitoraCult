@@ -1,42 +1,67 @@
 import React, { useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity } from 'react-native';
-import styles from '../styles/Styles_login';
+import styles from '../styles/Styles_Authenticate';
 
-export default function TelaLogin({navigation}) {
+export default function PerfilLogin({navigation, setIsLogged}) {
   const [text_email, setText_email] = useState('');
   const [text_password, setText_password] = useState('');
 
+  const [hasEmptyField, setHasEmptyField] = useState(false);
+
+  const handleSubmit = () => {
+		const fields = [text_email, text_password];
+		const emptyField = fields.some((field) => field.trim() === "");
+
+		setHasEmptyField(emptyField);
+
+		if (!emptyField) {
+			// verificar se existe usuário no banco de dados...
+			setIsLogged(true);
+		}
+	};
+
   return (
     <View style={styles.container}>
-      <View style={styles.input_wrapper}>
-        <Text style={styles.label}>E-mail:</Text>
+      <View>
+        <Text style={styles.label}>email:</Text>
         <TextInput
           style={styles.input}
           value={text_email}
           onChangeText={setText_email}
-          placeholder="Digite seu email ..."
-          placeholderTextColor = 'white'
-        />
-      </View>
-
-      <View style={styles.input_wrapper}>
-        <Text style={styles.label}>Senha:</Text>
-        <TextInput
-          style={styles.input}
-          value={text_password}
-          onChangeText={setText_password}
-          placeholder="Digite sua senha ..."
-          placeholderTextColor = 'white'
         />
       </View>
 
       <View>
-        <TouchableOpacity style={styles.forget_password} onPress={() => navigation.navigate("perfilConfirmarEmail")}>Esqueci minha senha</TouchableOpacity>
+        <Text style={styles.label}>senha:</Text>
+        <TextInput
+          style={styles.input}
+          value={text_password}
+          onChangeText={setText_password}
+        />
       </View>
 
-      <View style={styles.buttons}>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("TelaInicio")}>Entrar</TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate("perfilCadastro")}>Cadastrar</TouchableOpacity>
+      {hasEmptyField && (
+				<Text style={styles.error}>Todos os campos são obrigatórios</Text>
+			)}
+
+      <View>
+        <TouchableOpacity style={styles.flex} onPress={() => navigation.navigate("ResetPassword")}>
+          <Text style={styles.forget_password}>Esqueci minha senha</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View>
+        <TouchableOpacity onPress={() => handleSubmit()}>
+          <Text style={styles.button}>Entrar</Text>
+        </TouchableOpacity>
+      </View>
+        
+      <View style={styles.row}>
+          <Text style={styles.p}> Não possui uma conta? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Cadastro")}>
+              <Text style={styles.link}>Crie uma conta</Text>
+            </TouchableOpacity>
+          <Text style={styles.p}> agora!</Text>
       </View>
     </View>
   );

@@ -5,7 +5,7 @@ import TabNavigator from './TabNavigator';
 import CustomDrawerContent from './CustomDrawerNavigator'; 
 import TelaFeed from '../screens/TelaFeed';
 import PerfilOcorrencia from '../screens/PerfilOcorrencia';
-import perfilMenu from '../screens/PerfilMenu';
+import PerfilMenu from '../screens/PerfilMenu';
 import Suporte from '../screens/TelaSuporte';
 
 
@@ -45,7 +45,7 @@ export default function DrawerNavigator() {
        <Drawer.Screen name="Tela Inicial" component={TabNavigator} />
        <Drawer.Screen name="Feed" component={TelaFeed} />
        <Drawer.Screen name="Suas Avaliações" component={PerfilOcorrencia} />
-       <Drawer.Screen name="Perfil" component={perfilMenu} />
+       <Drawer.Screen name="Perfil" component={PerfilMenu} />
        <Drawer.Screen name="Suporte Técnico" component={Suporte} />
     </Drawer.Navigator>
   );
