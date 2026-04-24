@@ -97,7 +97,14 @@ const styles = StyleSheet.create({
     position: 'fixed',
     left: '5%',
     top: '10%'
-  }
+  },
+
+  eyeIcon: {
+    position: 'absolute',
+    right: -25,
+    top: 12,
+    zIndex: 1
+  },
 });
 
 export default styles;
