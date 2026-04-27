@@ -7,6 +7,8 @@ import TelaFeed from '../screens/TelaFeed';
 import PerfilOcorrencia from '../screens/PerfilOcorrencia';
 import PerfilMenu from '../screens/PerfilMenu';
 import Suporte from '../screens/TelaSuporte';
+import AdmMenu from '../screens/AdmMenu';
+import AdmEvento from '../screens/AdmEvento';
 
 
 const Drawer = createDrawerNavigator();
@@ -47,6 +49,8 @@ export default function DrawerNavigator() {
        <Drawer.Screen name="Suas Avaliações" component={PerfilOcorrencia} />
        <Drawer.Screen name="Perfil" component={PerfilMenu} />
        <Drawer.Screen name="Suporte Técnico" component={Suporte} />
+       <Drawer.Screen name="AdmMenu" component={AdmMenu} />
+       <Drawer.Screen name="AdmEvento" component={AdmEvento} />
     </Drawer.Navigator>
   );
 }
