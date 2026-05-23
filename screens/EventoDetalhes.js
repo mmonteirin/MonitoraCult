@@ -47,6 +47,8 @@ import { auth, db } from "../firebaseConfig";
 
 import { Colors } from "../styles/Colors";
 
+import ConfirmModal from "../components/ConfirmModal";
+
 import {
 	getUserLikes,
 	toggleEventoLike,
@@ -1384,89 +1386,14 @@ export default function EventoDetalhes({
 			</ScrollView>
 
 			{/* MODAL */}
-
-			<Modal
-				transparent
-				animationType="fade"
-				visible={
-					modalVisible
-				}
-				onRequestClose={() =>
-					setModalVisible(
-						false
-					)
-				}
-			>
-				<View
-					style={
-						styles.modalOverlay
-					}
-				>
-					<View
-						style={
-							styles.modalBox
-						}
-					>
-						<View
-							style={
-								styles.modalIcon
-							}
-						>
-							<MaterialCommunityIcons
-								name="information"
-								size={42}
-								color="#A855F7"
-							/>
-						</View>
-
-						<Text
-							style={
-								styles.modalTitle
-							}
-						>
-							{
-								modalTitle
-							}
-						</Text>
-
-						<Text
-							style={
-								styles.modalMessage
-							}
-						>
-							{
-								modalMessage
-							}
-						</Text>
-
-						<TouchableOpacity
-							onPress={() =>
-								setModalVisible(
-									false
-								)
-							}
-						>
-							<LinearGradient
-								colors={[
-									"#7C3AED",
-									"#A855F7",
-								]}
-								style={
-									styles.modalButton
-								}
-							>
-								<Text
-									style={
-										styles.modalButtonText
-									}
-								>
-									OK
-								</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalTitle}
+				message={modalMessage}
+				type="info"
+				confirmText="OK"
+				onConfirm={() => setModalVisible(false)}
+			/>
 		</View>
 	);
 }
@@ -1891,68 +1818,5 @@ const styles =
 
 		/* MODAL */
 
-		modalOverlay: {
-			flex: 1,
-			backgroundColor:
-				"rgba(0,0,0,0.75)",
-			justifyContent:
-				"center",
-			alignItems:
-				"center",
-			padding: 24,
-		},
 
-		modalBox: {
-			width: "100%",
-			backgroundColor:
-				"#111827",
-			borderRadius: 30,
-			padding: 28,
-			alignItems:
-				"center",
-			borderWidth: 1,
-			borderColor:
-				"rgba(255,255,255,0.06)",
-		},
-
-		modalIcon: {
-			width: 84,
-			height: 84,
-			borderRadius: 28,
-			backgroundColor:
-				"rgba(168,85,247,0.14)",
-			alignItems:
-				"center",
-			justifyContent:
-				"center",
-			marginBottom: 20,
-		},
-
-		modalTitle: {
-			color: "#FFF",
-			fontSize: 22,
-			fontWeight: "900",
-			marginBottom: 10,
-		},
-
-		modalMessage: {
-			color:
-				"rgba(255,255,255,0.72)",
-			fontSize: 15,
-			lineHeight: 24,
-			textAlign: "center",
-		},
-
-		modalButton: {
-			paddingHorizontal: 46,
-			paddingVertical: 15,
-			borderRadius: 18,
-			marginTop: 26,
-		},
-
-		modalButtonText: {
-			color: "#FFF",
-			fontWeight: "800",
-			fontSize: 15,
-		},
 	});

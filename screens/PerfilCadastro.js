@@ -22,6 +22,7 @@ import { MotiView } from "moti";
 
 import { useCadastro } from "../context/CadastroContext";
 import GlobalStyles from "../styles/GlobalStyles";
+import ConfirmModal from "../components/ConfirmModal";
 
 const { colors } = GlobalStyles;
 
@@ -442,92 +443,27 @@ export default function PerfilCadastro({ navigation }) {
       </LinearGradient>
 
       {/* MODAL EMAIL */}
-      <Modal
+      <ConfirmModal
         visible={showCodeModal}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.modal}>
-          <BlurView
-            intensity={80}
-            tint="dark"
-            style={styles.modalCard}
-          >
-            <Text style={styles.modalTitle}>
-              Código enviado!
-            </Text>
-
-            <Text style={styles.modalSubtitle}>
-              Verifique sua caixa de entrada
-              em{"\n"}
-
-              <Text
-                style={{
-                  color: "#fff",
-                  fontWeight: "bold",
-                }}
-              >
-                {form.email}
-              </Text>
-            </Text>
-
-            <TouchableOpacity
-              onPress={() =>
-                setShowCodeModal(false)
-              }
-            >
-              <LinearGradient
-                colors={[
-                  colors.primary,
-                  "#7B5CFF",
-                ]}
-                style={styles.modalBtn}
-              >
-                <Text style={{ color: "#fff" }}>
-                  Entendido
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </Modal>
+        title="Código enviado!"
+        message={`Verifique sua caixa de entrada em\n${form.email}`}
+        type="info"
+        confirmText="Entendido"
+        onConfirm={() => setShowCodeModal(false)}
+      />
 
       {/* MODAL SUCESSO */}
-      <Modal
+      <ConfirmModal
         visible={showSuccessModal}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.modal}>
-          <BlurView
-            intensity={80}
-            tint="dark"
-            style={styles.modalCard}
-          >
-            <Text style={styles.modalTitle}>
-              Conta criada!
-            </Text>
-
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("Login")
-              }
-            >
-              <LinearGradient
-                colors={[
-                  colors.primary,
-                  "#7B5CFF",
-                ]}
-                style={styles.modalBtn}
-              >
-                <Text style={{ color: "#fff" }}>
-                  Ir para Login
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </Modal>
+        title="Conta criada!"
+        message="Sua conta foi criada com sucesso. Faça login para continuar."
+        type="success"
+        confirmText="Ir para Login"
+        onConfirm={() => {
+          setShowSuccessModal(false);
+          navigation.navigate("Login");
+        }}
+      />
     </ImageBackground>
   );
 }
@@ -635,39 +571,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  modal: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
 
-  modalCard: {
-    padding: 20,
-    borderRadius: 20,
-    width: "85%",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-
-  modalTitle: {
-    color: "#fff",
-    fontSize: 18,
-    marginBottom: 10,
-    fontWeight: "bold",
-  },
-
-  modalSubtitle: {
-    color: "rgba(255,255,255,0.65)",
-    textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-
-  modalBtn: {
-    padding: 12,
-    borderRadius: 12,
-    width: 160,
-    alignItems: "center",
-  },
 });

@@ -347,75 +347,72 @@ export default function TelaSuporte({ navigation }) {
         visible={modalVisible}
         transparent
         animationType="fade"
+        statusBarTranslucent
       >
-        <BlurView
-          intensity={40}
-          tint="dark"
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>
-              Escolha uma categoria
-            </Text>
-
-            {categorias.map((item) => {
-              const ativo = categoria === item.id;
-
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    setCategoria(item.id);
-                    setModalVisible(false);
-                  }}
-                  style={[
-                    styles.option,
-                    ativo && styles.optionActive,
-                  ]}
-                >
-                  <View style={styles.optionContent}>
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={20}
-                      color={
-                        ativo
-                          ? "#fff"
-                          : Colors.primary
-                      }
-                    />
-
-                    <Text
-                      style={[
-                        styles.optionText,
-                        ativo &&
-                          styles.optionTextActive,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </View>
-
-                  {ativo && (
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={20}
-                      color="#fff"
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-
-            <TouchableOpacity
-              style={styles.cancel}
-              onPress={() => setModalVisible(false)}
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={50} tint="dark" style={styles.modalCard}>
+            <LinearGradient
+              colors={["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"]}
+              style={styles.modalGradient}
             >
-              <Text style={styles.cancelText}>
-                Cancelar
+              <Text style={styles.modalTitle}>
+                Escolha uma categoria
               </Text>
-            </TouchableOpacity>
-          </View>
-        </BlurView>
+
+              {categorias.map((item) => {
+                const ativo = categoria === item.id;
+
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      setCategoria(item.id);
+                      setModalVisible(false);
+                    }}
+                    style={[
+                      styles.option,
+                      ativo && styles.optionActive,
+                    ]}
+                  >
+                    <View style={styles.optionContent}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={20}
+                        color={ativo ? "#fff" : Colors.primaryLight}
+                      />
+
+                      <Text
+                        style={[
+                          styles.optionText,
+                          ativo && styles.optionTextActive,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
+
+                    {ativo && (
+                      <MaterialCommunityIcons
+                        name="check-circle"
+                        size={20}
+                        color="#fff"
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelText}>
+                  Cancelar
+                </Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </BlurView>
+        </View>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -617,30 +614,38 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
-    padding: 20,
+    paddingHorizontal: 24,
   },
 
-  modalBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: 24,
-    padding: 18,
+  modalCard: {
+    width: "100%",
+    borderRadius: 30,
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  modalGradient: {
+    padding: 24,
   },
 
   modalTitle: {
     color: Colors.textPrimary,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 18,
+    textAlign: "center",
   },
 
   option: {
     padding: 15,
     borderRadius: 16,
     marginBottom: 10,
-    backgroundColor: Colors.background,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -648,6 +653,7 @@ const styles = StyleSheet.create({
 
   optionActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
 
   optionContent: {
@@ -658,6 +664,7 @@ const styles = StyleSheet.create({
   optionText: {
     color: Colors.textPrimary,
     marginLeft: 10,
+    fontSize: 15,
   },
 
   optionTextActive: {
@@ -665,13 +672,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  cancel: {
-    marginTop: 10,
+  cancelBtn: {
+    marginTop: 14,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    justifyContent: "center",
     alignItems: "center",
-    padding: 12,
   },
 
   cancelText: {
-    color: Colors.textSecondary,
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

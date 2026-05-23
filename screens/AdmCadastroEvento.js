@@ -1,5 +1,3 @@
-import React, { useState } from "react";
-
 import {
 	View,
 	Text,
@@ -22,6 +20,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { db, auth } from "../firebaseConfig";
 
+
+
 import { useAuth } from "../context/AuthContext";
 
 import { uploadImagem } from "../services/uploadService";
@@ -31,6 +31,8 @@ import { geocodeAddress } from "../services/geocodingService";
 import { Colors } from "../styles/Colors";
 
 import { BlurView } from "expo-blur";
+
+import ConfirmModal from "../components/ConfirmModal";
 
 /* 🔥 MASKS */
 const maskCEP = (t) =>
@@ -66,76 +68,6 @@ const parseMoney = (value) => {
 const parseInteger = (value) =>
 	Number(String(value || "").replace(/\D/g, "")) || 0;
 
-/* 🔥 MODAL */
-function AppModal({ visible, title, message, type = "info", onConfirm }) {
-	const getIcon = () => {
-		switch (type) {
-			case "success":
-				return {
-					name: "check-circle",
-					color: "#22C55E",
-				};
-
-			case "error":
-				return {
-					name: "close-circle",
-					color: "#EF4444",
-				};
-
-			default:
-				return {
-					name: "information",
-					color: Colors.primary,
-				};
-		}
-	};
-
-	const icon = getIcon();
-
-	return (
-		<Modal visible={visible} transparent animationType="fade">
-			<View style={styles.modalOverlay}>
-				<BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-
-				<View style={styles.modalBox}>
-					<LinearGradient
-						colors={["#111827", "#0F172A"]}
-						style={styles.modalContent}
-					>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor: icon.color + "20",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={icon.name}
-								size={40}
-								color={icon.color}
-							/>
-						</View>
-
-						<Text style={styles.modalTitle}>{title}</Text>
-
-						<Text style={styles.modalMessage}>{message}</Text>
-
-						<TouchableOpacity onPress={onConfirm} activeOpacity={0.85}>
-							<LinearGradient
-								colors={["#7C3AED", "#5B21B6"]}
-								style={styles.modalButton}
-							>
-								<Text style={styles.modalButtonText}>OK</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-					</LinearGradient>
-				</View>
-			</View>
-		</Modal>
-	);
-}
-
 /* 🔥 SELECT */
 const SelectModal = ({ label, value, options, onSelect }) => {
 	const [visible, setVisible] = useState(false);
@@ -160,50 +92,59 @@ const SelectModal = ({ label, value, options, onSelect }) => {
 				/>
 			</TouchableOpacity>
 
-			<Modal visible={visible} transparent animationType="fade">
+			<Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
 				<View style={styles.selectOverlay}>
-					<View style={styles.selectBox}>
-						{options.map((item) => {
-							const ativo = value === item;
+					<BlurView intensity={50} tint="dark" style={styles.selectCard}>
+						<LinearGradient
+							colors={["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"]}
+							style={styles.selectBox}
+						>
+							<Text style={styles.selectTitle}>{label}</Text>
+							{options.map((item) => {
+								const ativo = value === item;
 
-							return (
-								<TouchableOpacity
-									key={item}
-									onPress={() => {
-										onSelect(item);
-
-										setVisible(false);
-									}}
-									style={[
-										styles.selectItem,
-										{
-											backgroundColor: ativo ? Colors.primary : "transparent",
-										},
-									]}
-								>
-									<Text
-										style={{
-											color: ativo ? Colors.background : Colors.textPrimary,
+								return (
+									<TouchableOpacity
+										key={item}
+										onPress={() => {
+											onSelect(item);
+											setVisible(false);
 										}}
+										style={[
+											styles.selectItem,
+											ativo && { backgroundColor: "rgba(108,92,231,0.18)" }
+										]}
 									>
-										{item}
-									</Text>
-								</TouchableOpacity>
-							);
-						})}
+										<Text
+											style={{
+												color: ativo ? Colors.primaryLight : Colors.textPrimary,
+												fontWeight: ativo ? "bold" : "normal",
+												fontSize: 15,
+											}}
+										>
+											{item}
+										</Text>
+										{ativo && (
+											<MaterialCommunityIcons
+												name="check"
+												size={20}
+												color={Colors.primaryLight}
+											/>
+										)}
+									</TouchableOpacity>
+								);
+							})}
 
-						<TouchableOpacity onPress={() => setVisible(false)}>
-							<Text
-								style={{
-									textAlign: "center",
-
-									color: Colors.textSecondary,
-								}}
+							<TouchableOpacity
+								style={styles.selectCancelBtn}
+								onPress={() => setVisible(false)}
 							>
-								Cancelar
-							</Text>
-						</TouchableOpacity>
-					</View>
+								<Text style={styles.selectCancelText}>
+									Cancelar
+								</Text>
+							</TouchableOpacity>
+						</LinearGradient>
+					</BlurView>
 				</View>
 			</Modal>
 		</>
@@ -812,11 +753,12 @@ export default function AdmCadastroEvento({ navigation }) {
 			</ScrollView>
 
 			{/* MODAL */}
-			<AppModal
+			<ConfirmModal
 				visible={modal.visible}
 				title={modal.title}
 				message={modal.message}
 				type={modal.type}
+				confirmText="OK"
 				onConfirm={() => {
 					setModal({
 						...modal,
@@ -987,108 +929,55 @@ const styles = StyleSheet.create({
 		marginTop: 14,
 	},
 
-	/* MODAL */
-	modalOverlay: {
-		flex: 1,
-
-		backgroundColor: "rgba(0,0,0,0.55)",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		padding: 24,
-	},
-
-	modalBox: {
-		width: "100%",
-	},
-
-	modalContent: {
-		borderRadius: 30,
-
-		padding: 24,
-	},
-
-	modalIcon: {
-		width: 82,
-		height: 82,
-
-		borderRadius: 24,
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		alignSelf: "center",
-
-		marginBottom: 18,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-
-		fontSize: 22,
-
-		fontWeight: "bold",
-
-		textAlign: "center",
-	},
-
-	modalMessage: {
-		color: "rgba(255,255,255,0.7)",
-
-		textAlign: "center",
-
-		lineHeight: 24,
-
-		marginTop: 12,
-	},
-
-	modalButton: {
-		height: 56,
-
-		borderRadius: 18,
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		marginTop: 24,
-	},
-
-	modalButtonText: {
-		color: "#FFF",
-
-		fontWeight: "bold",
-
-		fontSize: 15,
-	},
-
 	/* SELECT */
 	selectOverlay: {
 		flex: 1,
-
-		backgroundColor: "rgba(0,0,0,0.6)",
-
+		backgroundColor: "rgba(0,0,0,0.65)",
 		justifyContent: "center",
+		paddingHorizontal: 24,
+	},
 
-		padding: 20,
+	selectCard: {
+		width: "100%",
+		borderRadius: 30,
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.08)",
 	},
 
 	selectBox: {
-		backgroundColor: Colors.surface,
+		padding: 24,
+	},
 
-		borderRadius: 24,
-
-		padding: 18,
+	selectTitle: {
+		color: "#FFF",
+		fontSize: 20,
+		fontWeight: "bold",
+		marginBottom: 18,
+		textAlign: "center",
 	},
 
 	selectItem: {
 		padding: 16,
-
 		borderRadius: 14,
-
 		marginBottom: 8,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+
+	selectCancelBtn: {
+		marginTop: 18,
+		height: 52,
+		borderRadius: 18,
+		backgroundColor: "rgba(255,255,255,0.06)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+
+	selectCancelText: {
+		color: "#FFF",
+		fontSize: 15,
+		fontWeight: "600",
 	},
 });

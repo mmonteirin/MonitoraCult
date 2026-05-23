@@ -24,6 +24,31 @@ import { BlurView } from "expo-blur";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import React, { useState } from "react";
+
+import {
+	View,
+	TouchableOpacity,
+	Image,
+	TextInput,
+	StyleSheet,
+	ActivityIndicator,
+	ScrollView,
+	KeyboardAvoidingView,
+	Platform,
+	StatusBar,
+} from "react-native";
+
+import * as ImagePicker from "expo-image-picker";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { BlurView } from "expo-blur";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { MotiView } from "moti";
@@ -33,6 +58,8 @@ import { useAuth } from "../context/AuthContext";
 import AppText from "../components/AppText";
 
 import { Colors } from "../styles/Colors";
+
+import ConfirmModal from "../components/ConfirmModal";
 
 import { db } from "../firebaseConfig";
 
@@ -347,44 +374,14 @@ export default function CriarPost({ navigation }) {
 			</KeyboardAvoidingView>
 
 			{/* MODAL */}
-			<Modal transparent animationType="fade" visible={modalVisible}>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalBox}>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor:
-										modalData.type === "success"
-											? "rgba(34,197,94,0.18)"
-											: "rgba(239,68,68,0.18)",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={
-									modalData.type === "success" ? "check-circle" : "alert-circle"
-								}
-								size={42}
-								color={modalData.type === "success" ? "#22C55E" : "#EF4444"}
-							/>
-						</View>
-
-						<AppText style={styles.modalTitle}>{modalData.title}</AppText>
-
-						<AppText style={styles.modalMessage}>{modalData.message}</AppText>
-
-						<TouchableOpacity onPress={() => setModalVisible(false)}>
-							<LinearGradient
-								colors={["#7C3AED", "#5B21B6"]}
-								style={styles.modalBtn}
-							>
-								<AppText style={styles.modalBtnText}>OK</AppText>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalData.title}
+				message={modalData.message}
+				type={modalData.type}
+				confirmText="OK"
+				onConfirm={() => setModalVisible(false)}
+			/>
 		</View>
 	);
 }
@@ -588,59 +585,5 @@ const styles = StyleSheet.create({
 	counter: {
 		color: "rgba(255,255,255,0.45)",
 		fontSize: 12,
-	},
-
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.7)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-
-	modalBox: {
-		width: "100%",
-		backgroundColor: "#111827",
-		borderRadius: 30,
-		padding: 28,
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
-	},
-
-	modalIcon: {
-		width: 84,
-		height: 84,
-		borderRadius: 30,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 18,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-		fontSize: 22,
-		fontWeight: "800",
-		marginBottom: 10,
-	},
-
-	modalMessage: {
-		color: "rgba(255,255,255,0.72)",
-		fontSize: 15,
-		lineHeight: 24,
-		textAlign: "center",
-		marginBottom: 24,
-	},
-
-	modalBtn: {
-		paddingHorizontal: 40,
-		paddingVertical: 14,
-		borderRadius: 18,
-	},
-
-	modalBtnText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 15,
 	},
 });

@@ -807,7 +807,7 @@ export default function AdmEventoDashIndividual({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#05060A",
+    backgroundColor: Colors.background,
   },
 
   scrollContent: {

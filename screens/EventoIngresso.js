@@ -28,6 +28,8 @@ import { comprarIngresso } from "../services/ingressoService";
 
 import { Colors } from "../styles/Colors";
 
+import ConfirmModal from "../components/ConfirmModal";
+
 export default function EventoIngresso({
 	route,
 	navigation,
@@ -147,74 +149,19 @@ export default function EventoIngresso({
 			/>
 
 			{/* MODAL */}
-			<Modal
-				transparent
+			<ConfirmModal
 				visible={modalVisible}
-				animationType="fade"
-			>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalBox}>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor:
-										modalData.type ===
-										"success"
-											? "rgba(34,197,94,0.15)"
-											: "rgba(239,68,68,0.15)",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={
-									modalData.type ===
-									"success"
-										? "check-circle"
-										: "close-circle"
-								}
-								size={42}
-								color={
-									modalData.type ===
-									"success"
-										? "#22C55E"
-										: "#EF4444"
-								}
-							/>
-						</View>
-
-						<Text style={styles.modalTitle}>
-							{modalData.title}
-						</Text>
-
-						<Text style={styles.modalMessage}>
-							{modalData.message}
-						</Text>
-
-						<TouchableOpacity
-							style={styles.modalButton}
-							onPress={() => {
-								setModalVisible(false);
-
-								if (
-									modalData.type ===
-									"success"
-								) {
-									navigation.goBack();
-								}
-							}}
-						>
-							<Text
-								style={
-									styles.modalButtonText
-								}
-							>
-								OK
-							</Text>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+				title={modalData.title}
+				message={modalData.message}
+				type={modalData.type}
+				confirmText="OK"
+				onConfirm={() => {
+					setModalVisible(false);
+					if (modalData.type === "success") {
+						navigation.goBack();
+					}
+				}}
+			/>
 
 			{/* HERO */}
 			<ImageBackground
@@ -789,90 +736,5 @@ const styles = StyleSheet.create({
 		fontSize: 16,
 	},
 
-	/* MODAL */
-	modalOverlay: {
-		flex: 1,
 
-		backgroundColor:
-			"rgba(0,0,0,0.7)",
-
-		justifyContent: "center",
-		alignItems: "center",
-
-		padding: 24,
-	},
-
-	modalBox: {
-		width: "100%",
-
-		backgroundColor:
-			"#111827",
-
-		borderRadius: 28,
-
-		padding: 28,
-
-		alignItems: "center",
-
-		borderWidth: 1,
-
-		borderColor:
-			"rgba(255,255,255,0.08)",
-	},
-
-	modalIcon: {
-		width: 84,
-		height: 84,
-
-		borderRadius: 42,
-
-		justifyContent: "center",
-		alignItems: "center",
-
-		marginBottom: 20,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-
-		fontSize: 22,
-
-		fontWeight: "800",
-
-		marginBottom: 10,
-
-		textAlign: "center",
-	},
-
-	modalMessage: {
-		color:
-			"rgba(255,255,255,0.75)",
-
-		fontSize: 15,
-
-		lineHeight: 24,
-
-		textAlign: "center",
-	},
-
-	modalButton: {
-		marginTop: 24,
-
-		backgroundColor:
-			"#7C3AED",
-
-		paddingVertical: 14,
-
-		paddingHorizontal: 32,
-
-		borderRadius: 18,
-	},
-
-	modalButtonText: {
-		color: "#FFF",
-
-		fontSize: 15,
-
-		fontWeight: "700",
-	},
 });

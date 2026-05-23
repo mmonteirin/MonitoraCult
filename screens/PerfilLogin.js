@@ -25,6 +25,7 @@ import { MotiView } from "moti";
 
 import AppText from "../components/AppText";
 import { Colors } from "../styles/Colors";
+import ConfirmModal from "../components/ConfirmModal";
 
 export default function PerfilLogin({ navigation }) {
   const [email, setEmail] = useState("");
@@ -285,35 +286,14 @@ export default function PerfilLogin({ navigation }) {
       </LinearGradient>
 
       {/* MODAL */}
-      <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={40} tint="dark" style={styles.modalCard}>
-            <View style={styles.modalIcon}>
-              <Feather
-                name={modalData.type === "success" ? "check" : "alert-circle"}
-                size={32}
-                color="#FFF"
-              />
-            </View>
-
-            <AppText style={styles.modalTitle}>{modalData.title}</AppText>
-
-            <AppText style={styles.modalText}>{modalData.message}</AppText>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={() => setModalVisible(false)}
-            >
-              <LinearGradient
-                colors={[Colors.primary, "#7B5CFF"]}
-                style={styles.modalButton}
-              >
-                <AppText style={styles.modalButtonText}>Entendi</AppText>
-              </LinearGradient>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </Modal>
+      <ConfirmModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        confirmText="Entendi"
+        onConfirm={() => setModalVisible(false)}
+      />
     </ImageBackground>
   );
 }
@@ -508,62 +488,5 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.45)",
   },
 
-  /* MODAL */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
 
-  modalCard: {
-    width: "100%",
-    borderRadius: 28,
-    padding: 24,
-    overflow: "hidden",
-    backgroundColor: "rgba(20,20,35,0.92)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-
-  modalIcon: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    backgroundColor: "rgba(124,92,255,0.20)",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginBottom: 18,
-  },
-
-  modalTitle: {
-    color: "#FFF",
-    fontSize: 21,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-
-  modalText: {
-    color: "rgba(255,255,255,0.7)",
-    textAlign: "center",
-    marginTop: 10,
-    lineHeight: 22,
-    fontSize: 14,
-  },
-
-  modalButton: {
-    marginTop: 24,
-    height: 52,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 15,
-  },
 });
