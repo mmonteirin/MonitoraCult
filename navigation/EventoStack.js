@@ -1,7 +1,7 @@
 import { createStackNavigator } from "@react-navigation/stack";
 
 import EventoHome from "../screens/EventoHome";
-import EventoProximo from "../screens/EventoApp";
+import EventoApp from "../screens/EventoApp";
 import EventoDetalhes from "../screens/EventoDetalhes";
 import EventoAvaliacao from "../screens/EventoAvaliacao";
 import EventosPublicos from "../screens/EventoPublico";
@@ -23,7 +23,7 @@ export default function EventoStack() {
       <Stack.Screen name="EventoHome" component={EventoHome} />
 
       {/* LISTAGENS */}
-      <Stack.Screen name="EventosApp" component={EventoProximo} />
+      <Stack.Screen name="EventosApp" component={EventoApp} />
       <Stack.Screen name="EventosPublicos" component={EventosPublicos} />
 
       {/* DETALHES E AÇÕES */}

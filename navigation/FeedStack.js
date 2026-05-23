@@ -3,7 +3,7 @@ import TelaFeed from "../screens/TelaFeed";
 import EventoDetalhes from "../screens/EventoDetalhes";
 import CriarPost from "../screens/CriarPost";
 import PerfilDeclararOcorrencia from "../screens/PerfilDeclararOcorrencia";
-import TelaIngressos from "../screens/TelaIngressos";
+import EventoApp from "../screens/EventoApp";
 
 const Stack = createStackNavigator();
 
@@ -14,7 +14,7 @@ export default function FeedStack() {
 			<Stack.Screen name="Detalhes" component={EventoDetalhes} />
 			<Stack.Screen name="CriarPost" component={CriarPost} />
 			<Stack.Screen name="NovaOcorrencia" component={PerfilDeclararOcorrencia} />
-			<Stack.Screen name="TelaIngressos" component={TelaIngressos} />
+			<Stack.Screen name="EventosApp" component={EventoApp} />
 		</Stack.Navigator>
 	);
 }

@@ -22,6 +22,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import { db, auth } from "../firebaseConfig";
 
+import { useAuth } from "../context/AuthContext";
+
 import { uploadImagem } from "../services/uploadService";
 
 import { geocodeAddress } from "../services/geocodingService";
@@ -234,6 +236,8 @@ const criarDataHora = (data, hora) => {
 export default function AdmCadastroEvento({ navigation }) {
 	const [form, setForm] = useState({});
 
+	const { user, profile } = useAuth();
+
 	const [imagem, setImagem] = useState(null);
 
 	const [loading, setLoading] = useState(false);
@@ -416,8 +420,6 @@ export default function AdmCadastroEvento({ navigation }) {
 		try {
 			setLoading(true);
 
-			const user = auth.currentUser;
-
 			let imageUrl = "";
 
 			if (imagem) {
@@ -434,6 +436,11 @@ export default function AdmCadastroEvento({ navigation }) {
 				coords = await geocodeAddress(endereco);
 			}
 
+			const dataEventoTimestamp = criarDataHora(
+				form.dataEvento,
+				form.horaInicio
+			);
+
 			await addDoc(collection(db, "eventos"), {
 				tituloEvento: form.tituloEvento,
 
@@ -442,6 +449,8 @@ export default function AdmCadastroEvento({ navigation }) {
 				imagemEvento: imageUrl,
 
 				dataEvento: form.dataEvento || "",
+
+				dataEventoTimestamp,
 
 				horaInicio: form.horaInicio || "",
 
@@ -465,9 +474,25 @@ export default function AdmCadastroEvento({ navigation }) {
 
 				longitude: coords?.longitude || null,
 
-				userId: user?.uid || "",
+				status: "ativo",
+
+				likes: 0,
+				comentarios: 0,
 
 				uidEvento: user?.uid || "",
+
+				/* 👤 ORGANIZADOR */
+				organizador: {
+					uid: user?.uid || "",
+
+					nome: profile?.nome || user?.displayName || "Usuário",
+
+					foto: profile?.foto || user?.photoURL || "https://i.pravatar.cc/150",
+
+					email: user?.email || "",
+
+					role: profile?.role || "user",
+				},
 
 				createdAt: serverTimestamp(),
 			});
