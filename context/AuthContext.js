@@ -125,12 +125,23 @@ export function AuthProvider({ children }) {
 		() => ({
 			user,
 			profile,
+
+			uid: user?.uid || "",
+
+			email: profile?.email || user?.email || "",
+
 			nome: profile?.nome || "",
+
 			foto: profile?.foto || null,
+
 			role: profile?.role || "user",
+
 			isAdmin: profile?.role === "admin",
+
 			loading,
+
 			logout,
+
 			refreshProfile,
 		}),
 		[user, profile, loading]

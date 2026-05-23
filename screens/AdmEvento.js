@@ -5,6 +5,7 @@ import {
 	Text,
 	Image,
 	TouchableOpacity,
+	Platform,
 	Alert,
 	ActivityIndicator,
 	StyleSheet,
@@ -12,25 +13,15 @@ import {
 	ImageBackground,
 } from "react-native";
 
-import {
-	FlatList,
-} from "react-native-gesture-handler";
+import { FlatList } from "react-native-gesture-handler";
 
-import {
-	LinearGradient,
-} from "expo-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
 
-import {
-	BlurView,
-} from "expo-blur";
+import { BlurView } from "expo-blur";
 
-import {
-	MotiView,
-} from "moti";
+import { MotiView } from "moti";
 
-import {
-	MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
 	collection,
@@ -44,25 +35,16 @@ import {
 
 import { db } from "../firebaseConfig";
 
-import {
-	useAuth,
-} from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
-import {
-	Colors,
-} from "../styles/Colors";
+import { Colors } from "../styles/Colors";
 
-export default function AdmEvento({
-	navigation,
-}) {
-	const { user, nome, foto } =
-		useAuth();
+export default function AdmEvento({ navigation }) {
+	const { user, nome, foto } = useAuth();
 
-	const [eventos, setEventos] =
-		useState([]);
+	const [eventos, setEventos] = useState([]);
 
-	const [loading, setLoading] =
-		useState(true);
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		if (!user?.uid) return;
@@ -70,85 +52,73 @@ export default function AdmEvento({
 		const q = query(
 			collection(db, "eventos"),
 
-			where(
-				"uidEvento",
-				"==",
-				user.uid
-			),
+			where("uidEvento", "==", user.uid),
 
-			orderBy(
-				"createdAt",
-				"desc"
-			)
+			orderBy("createdAt", "desc")
 		);
 
-		const unsub =
-			onSnapshot(
-				q,
+		const unsub = onSnapshot(
+			q,
 
-				(snapshot) => {
-					const lista =
-						snapshot.docs.map(
-							(d) => ({
-								id: d.id,
-								...d.data(),
-							})
-						);
+			(snapshot) => {
+				const lista = snapshot.docs.map((d) => ({
+					id: d.id,
+					...d.data(),
+				}));
 
-					setEventos(lista);
+				setEventos(lista);
 
-					setLoading(false);
-				},
+				setLoading(false);
+			},
 
-				(err) => {
-					console.log(err);
+			(err) => {
+				console.log(err);
 
-					setLoading(false);
-				}
-			);
+				setLoading(false);
+			}
+		);
 
 		return () => unsub();
 	}, [user?.uid]);
 
 	const deletarEvento = (id) => {
-		Alert.alert(
-			"Excluir Evento",
-			"Deseja realmente excluir este evento?",
-			[
-				{
-					text: "Cancelar",
-					style: "cancel",
-				},
+  // Função interna que executa a exclusão de fato para evitar repetição de código
+  const executarExclusao = async () => {
+    try {
+      await deleteDoc(doc(db, "eventos", id));
+    } catch (error) {
+      if (Platform.OS === 'web') {
+        window.alert("Erro ao excluir");
+      } else {
+        Alert.alert("Erro ao excluir");
+      }
+    }
+  };
 
-				{
-					text: "Excluir",
+  // 1. Comportamento para Web
+  if (Platform.OS === 'web') {
+    const confirmou = window.confirm("Excluir Evento\n\nDeseja realmente excluir este evento?");
+    if (confirmou) {
+      executarExclusao();
+    }
+  } 
+  // 2. Comportamento para Mobile (iOS / Android)
+  else {
+    Alert.alert("Excluir Evento", "Deseja realmente excluir este evento?", [
+      {
+        text: "Cancelar",
+        style: "cancel",
+      },
+      {
+        text: "Excluir",
+        style: "destructive",
+        onPress: executarExclusao,
+      },
+    ]);
+  }
+};
 
-					style: "destructive",
-
-					onPress: async () => {
-						try {
-							await deleteDoc(
-								doc(
-									db,
-									"eventos",
-									id
-								)
-							);
-						} catch {
-							Alert.alert(
-								"Erro ao excluir"
-							);
-						}
-					},
-				},
-			]
-		);
-	};
-
-	const renderItem = ({
-		item,
-		index,
-	}) => (
+	const renderItem = ({ item, index }) => (
 		<MotiView
 			from={{
 				opacity: 0,
@@ -164,9 +134,7 @@ export default function AdmEvento({
 				delay: index * 80,
 			}}
 		>
-
 			<View style={styles.card}>
-
 				<ImageBackground
 					source={{
 						uri:
@@ -175,327 +143,154 @@ export default function AdmEvento({
 					}}
 					style={styles.image}
 				>
-
 					<LinearGradient
-						colors={[
-							"transparent",
-							"rgba(0,0,0,0.92)",
-						]}
-						style={
-							styles.overlay
-						}
+						colors={["transparent", "rgba(0,0,0,0.92)"]}
+						style={styles.overlay}
 					>
-
-						<View
-							style={
-								styles.badge
-							}
-						>
-
+						<View style={styles.badge}>
 							<MaterialCommunityIcons
 								name="calendar-star"
 								size={15}
 								color="#FFF"
 							/>
 
-							<Text
-								style={
-									styles.badgeText
-								}
-							>
-								Evento
-							</Text>
-
+							<Text style={styles.badgeText}>Evento</Text>
 						</View>
-
 					</LinearGradient>
-
 				</ImageBackground>
 
-				<BlurView
-					intensity={50}
-					tint="dark"
-					style={
-						styles.content
-					}
-				>
-
-					<Text
-						style={
-							styles.titulo
-						}
-						numberOfLines={1}
-					>
-						{item.tituloEvento ||
-							"Sem título"}
+				<BlurView intensity={50} tint="dark" style={styles.content}>
+					<Text style={styles.titulo} numberOfLines={1}>
+						{item.tituloEvento || "Sem título"}
 					</Text>
 
-					<View
-						style={
-							styles.infoRow
-						}
-					>
-
+					<View style={styles.infoRow}>
 						<MaterialCommunityIcons
 							name="map-marker"
 							size={16}
-							color={
-								Colors.primary
-							}
+							color={Colors.primary}
 						/>
 
-						<Text
-							style={
-								styles.infoText
-							}
-							numberOfLines={1}
-						>
-							{item.localEvento ||
-								item.nomeLocal ||
-								"Local não informado"}
+						<Text style={styles.infoText} numberOfLines={1}>
+							{item.localEvento || item.nomeLocal || "Local não informado"}
 						</Text>
-
 					</View>
 
-					<View
-						style={
-							styles.infoRow
-						}
-					>
-
+					<View style={styles.infoRow}>
 						<MaterialCommunityIcons
 							name="calendar-month"
 							size={16}
-							color={
-								Colors.primary
-							}
+							color={Colors.primary}
 						/>
 
-						<Text
-							style={
-								styles.infoText
-							}
-						>
-							{item.dataEvento ||
-								"Data não informada"}
+						<Text style={styles.infoText}>
+							{item.dataEvento || "Data não informada"}
 						</Text>
-
 					</View>
 
 					{/* ACTIONS */}
-					<View
-						style={
-							styles.actions
-						}
-					>
-
+					<View style={styles.actions}>
 						<TouchableOpacity
-							style={
-								styles.deleteBtn
-							}
-							onPress={() =>
-								deletarEvento(
-									item.id
-								)
-							}
+							style={styles.deleteBtn}
+							onPress={() => deletarEvento(item.id)}
 						>
-
 							<MaterialCommunityIcons
 								name="delete-outline"
 								size={22}
 								color="#FFF"
 							/>
-
 						</TouchableOpacity>
 
 						<TouchableOpacity
-							activeOpacity={
-								0.85
-							}
+							activeOpacity={0.85}
 							onPress={() =>
-								navigation.navigate(
-									"Metricas",
-									{
-										eventoId:
-											item.id,
-									}
-								)
+								navigation.navigate("Metricas", {
+									eventoId: item.id,
+								})
 							}
 						>
-
 							<LinearGradient
-								colors={[
-									"#7C3AED",
-									"#5B21B6",
-								]}
-								style={
-									styles.dashboardBtn
-								}
+								colors={["#7C3AED", "#5B21B6"]}
+								style={styles.dashboardBtn}
 							>
-
 								<MaterialCommunityIcons
 									name="chart-bar"
 									size={18}
 									color="#FFF"
 								/>
 
-								<Text
-									style={
-										styles.dashboardText
-									}
-								>
-									Dashboard
-								</Text>
-
+								<Text style={styles.dashboardText}>Dashboard</Text>
 							</LinearGradient>
-
 						</TouchableOpacity>
-
 					</View>
-
 				</BlurView>
-
 			</View>
-
 		</MotiView>
 	);
 
 	if (loading) {
 		return (
 			<View style={styles.loading}>
-				<ActivityIndicator
-					size="large"
-					color={
-						Colors.primary
-					}
-				/>
+				<ActivityIndicator size="large" color={Colors.primary} />
 
-				<Text
-					style={
-						styles.loadingText
-					}
-				>
-					Carregando eventos...
-				</Text>
+				<Text style={styles.loadingText}>Carregando eventos...</Text>
 			</View>
 		);
 	}
 
 	return (
 		<View style={styles.container}>
-
-			<StatusBar
-				barStyle="light-content"
-			/>
+			<StatusBar barStyle="light-content" />
 
 			{/* HEADER */}
 			<LinearGradient
-				colors={[
-					"#0F172A",
-					"#111827",
-					"#1E1B4B",
-				]}
+				colors={["#0F172A", "#111827", "#1E1B4B"]}
 				style={styles.header}
 			>
-
 				<TouchableOpacity
-					style={
-						styles.backBtn
-					}
-					onPress={() =>
-						navigation.goBack()
-					}
+					style={styles.backBtn}
+					onPress={() => navigation.goBack()}
 				>
-
-					<MaterialCommunityIcons
-						name="arrow-left"
-						size={24}
-						color="#FFF"
-					/>
-
+					<MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
 				</TouchableOpacity>
 
-				<View
-					style={
-						styles.profileRow
-					}
-				>
-
+				<View style={styles.profileRow}>
 					<Image
 						source={{
-							uri:
-								foto ||
-								"https://i.pravatar.cc/100",
+							uri: foto || "https://i.pravatar.cc/100",
 						}}
-						style={
-							styles.avatar
-						}
+						style={styles.avatar}
 					/>
 
 					<View>
-						<Text
-							style={
-								styles.nome
-							}
-						>
-							{nome ||
-								"Usuário"}
-						</Text>
+						<Text style={styles.nome}>{nome || "Usuário"}</Text>
 
-						<Text
-							style={
-								styles.sub
-							}
-						>
-							Organizador
-						</Text>
+						<Text style={styles.sub}>Organizador</Text>
 					</View>
-
 				</View>
 
-				<Text
-					style={styles.title}
-				>
-					Meus Eventos
-				</Text>
-
+				<Text style={styles.title}>Meus Eventos</Text>
 			</LinearGradient>
 
 			{/* LISTA */}
 			<FlatList
 				data={eventos}
-				keyExtractor={(item) =>
-					item.id
-				}
+				keyExtractor={(item) => item.id}
 				renderItem={renderItem}
-				showsVerticalScrollIndicator={
-					false
-				}
+				showsVerticalScrollIndicator={false}
 				contentContainerStyle={{
 					padding: 18,
 					paddingBottom: 120,
 				}}
 				ListEmptyComponent={
-					<View
-						style={
-							styles.emptyContainer
-						}
-					>
-
+					<View style={styles.emptyContainer}>
 						<MaterialCommunityIcons
 							name="calendar-remove"
 							size={70}
 							color="rgba(255,255,255,0.2)"
 						/>
 
-						<Text
-							style={
-								styles.empty
-							}
-						>
-							Nenhum evento cadastrado
-						</Text>
-
+						<Text style={styles.empty}>Nenhum evento cadastrado</Text>
 					</View>
 				}
 			/>
@@ -504,33 +299,15 @@ export default function AdmEvento({
 			<TouchableOpacity
 				activeOpacity={0.85}
 				style={styles.fab}
-				onPress={() =>
-					navigation.navigate(
-						"CriarEvento"
-					)
-				}
+				onPress={() => navigation.navigate("CriarEvento")}
 			>
-
 				<LinearGradient
-					colors={[
-						"#7C3AED",
-						"#5B21B6",
-					]}
-					style={
-						styles.fabGradient
-					}
+					colors={["#7C3AED", "#5B21B6"]}
+					style={styles.fabGradient}
 				>
-
-					<MaterialCommunityIcons
-						name="plus"
-						size={28}
-						color="#FFF"
-					/>
-
+					<MaterialCommunityIcons name="plus" size={28} color="#FFF" />
 				</LinearGradient>
-
 			</TouchableOpacity>
-
 		</View>
 	);
 }
@@ -557,8 +334,7 @@ const styles = StyleSheet.create({
 
 		borderRadius: 16,
 
-		backgroundColor:
-			"rgba(255,255,255,0.08)",
+		backgroundColor: "rgba(255,255,255,0.08)",
 
 		justifyContent: "center",
 		alignItems: "center",
@@ -581,8 +357,7 @@ const styles = StyleSheet.create({
 
 		borderWidth: 2,
 
-		borderColor:
-			Colors.primary,
+		borderColor: Colors.primary,
 	},
 
 	nome: {
@@ -593,8 +368,7 @@ const styles = StyleSheet.create({
 	},
 
 	sub: {
-		color:
-			"rgba(255,255,255,0.65)",
+		color: "rgba(255,255,255,0.65)",
 
 		marginTop: 2,
 	},
@@ -616,13 +390,11 @@ const styles = StyleSheet.create({
 
 		marginBottom: 22,
 
-		backgroundColor:
-			"rgba(255,255,255,0.04)",
+		backgroundColor: "rgba(255,255,255,0.04)",
 
 		borderWidth: 1,
 
-		borderColor:
-			"rgba(255,255,255,0.06)",
+		borderColor: "rgba(255,255,255,0.06)",
 	},
 
 	image: {
@@ -645,8 +417,7 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 
-		backgroundColor:
-			"rgba(124,58,237,0.85)",
+		backgroundColor: "rgba(124,58,237,0.85)",
 
 		paddingHorizontal: 12,
 		paddingVertical: 7,
@@ -685,8 +456,7 @@ const styles = StyleSheet.create({
 	},
 
 	infoText: {
-		color:
-			"rgba(255,255,255,0.72)",
+		color: "rgba(255,255,255,0.72)",
 
 		marginLeft: 8,
 
@@ -701,8 +471,7 @@ const styles = StyleSheet.create({
 
 		flexDirection: "row",
 
-		justifyContent:
-			"space-between",
+		justifyContent: "space-between",
 
 		alignItems: "center",
 	},
@@ -713,8 +482,7 @@ const styles = StyleSheet.create({
 
 		borderRadius: 16,
 
-		backgroundColor:
-			"rgba(239,68,68,0.18)",
+		backgroundColor: "rgba(239,68,68,0.18)",
 
 		justifyContent: "center",
 		alignItems: "center",
@@ -748,8 +516,7 @@ const styles = StyleSheet.create({
 	},
 
 	empty: {
-		color:
-			"rgba(255,255,255,0.55)",
+		color: "rgba(255,255,255,0.55)",
 
 		marginTop: 14,
 
@@ -767,8 +534,7 @@ const styles = StyleSheet.create({
 	},
 
 	loadingText: {
-		color:
-			"rgba(255,255,255,0.65)",
+		color: "rgba(255,255,255,0.65)",
 
 		marginTop: 14,
 	},
