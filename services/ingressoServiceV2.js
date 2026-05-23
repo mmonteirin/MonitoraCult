@@ -44,6 +44,22 @@ export const STATUS_INGRESSO = {
   UTILIZADO: "utilizado",
 };
 
+const parseEventoData = (value) => {
+  if (!value) return new Date();
+  if (value?.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+
+  const brDate = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (brDate) {
+    const [, day, month, year] = brDate;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+};
+
 /**
  * ✅ COMPRAR INGRESSO(S)
  * Valida, cria transação e gera ingressos
@@ -77,7 +93,18 @@ export const comprarIngressos = async ({
       const eventoData = eventoSnap.data();
       const capacidade = eventoData.capacidade || 0;
       const ingressosVendidos = eventoData.ingressosVendidos || 0;
-      const totalSolicitado = ingressos.reduce((acc, ing) => acc + ing.quantidade, 0);
+      const ingressosGerados = ingressos.flatMap((ing) =>
+        Array.from({ length: ing.quantidade || 1 }, () => ({
+          tipo: ing.tipo,
+          precoUnitario: ing.precoUnitario || 0,
+          desconto: ing.desconto || 0,
+          status: STATUS_INGRESSO.CONFIRMADO,
+          codigoIngresso: gerarCodigoIngresso(),
+          usadoEm: null,
+        }))
+      );
+
+      const totalSolicitado = ingressosGerados.length;
 
       if (capacidade > 0 && ingressosVendidos + totalSolicitado > capacidade) {
         throw new Error("Ingressos indisponíveis. Capacidade limite atingida.");
@@ -99,23 +126,17 @@ export const comprarIngressos = async ({
         userName,
         userEmail,
         userPhoto,
-        ingressos: ingressos.map(ing => ({
-          ...ing,
-          status: STATUS_INGRESSO.CONFIRMADO,
-          codigoIngresso: gerarCodigoIngresso(),
-          usadoEm: null,
-        })),
-        valorTotal,
+        ingressos: ingressosGerados,
+        valorTotal: Number(valorTotal || 0),
         metodoPagamento,
+        tipoCompra: Number(valorTotal || 0) === 0 ? "gratuito" : "pago",
         metadadosPagamento: {
           ...metadadosPagamento,
           timestamp: Timestamp.now(),
         },
         status: "confirmado",
         dataCompra: serverTimestamp(),
-        dataValidade: Timestamp.fromDate(
-          new Date(eventoData.dataEvento || new Date())
-        ),
+        dataValidade: Timestamp.fromDate(parseEventoData(eventoData.dataEvento)),
       };
 
       transaction.set(compraRef, compraData);
@@ -324,11 +345,17 @@ export const obterEstatisticasVendas = async (eventoId) => {
     snapshot.forEach(doc => {
       const compra = doc.data();
 
+      const totalItens = compra.ingressos?.reduce(
+        (acc, ing) => acc + (ing.quantidade || 1),
+        0
+      ) || 0;
+
       compra.ingressos?.forEach(ing => {
-        totalVendido++;
-        arrecadacao += compra.valorTotal / compra.ingressos.length;
-        tiposVendidos[ing.tipo] = (tiposVendidos[ing.tipo] || 0) + 1;
-        statusIngressos[ing.status]++;
+        const quantidade = ing.quantidade || 1;
+        totalVendido += quantidade;
+        arrecadacao += totalItens > 0 ? (compra.valorTotal / totalItens) * quantidade : 0;
+        tiposVendidos[ing.tipo] = (tiposVendidos[ing.tipo] || 0) + quantidade;
+        statusIngressos[ing.status] = (statusIngressos[ing.status] || 0) + quantidade;
       });
     });
 
@@ -361,7 +388,10 @@ const agruparComprasPorDia = (snapshot) => {
     }
 
     porDia[chave].compras++;
-    porDia[chave].ingressos += compra.ingressos?.length || 0;
+    porDia[chave].ingressos += compra.ingressos?.reduce(
+      (acc, ing) => acc + (ing.quantidade || 1),
+      0
+    ) || 0;
     porDia[chave].receita += compra.valorTotal;
   });
 

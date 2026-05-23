@@ -156,6 +156,28 @@ export default function AdmEvento({ navigation }) {
 
 							<Text style={styles.badgeText}>Evento</Text>
 						</View>
+
+						<View style={[styles.badge, styles.priceBadge]}>
+							<MaterialCommunityIcons
+								name={
+									item.gratuito ||
+									item.tipoEvento === "gratuito" ||
+									Number(item.precoInteira || 0) === 0
+										? "ticket-confirmation"
+										: "cash"
+								}
+								size={15}
+								color="#FFF"
+							/>
+
+							<Text style={styles.badgeText}>
+								{item.gratuito ||
+								item.tipoEvento === "gratuito" ||
+								Number(item.precoInteira || 0) === 0
+									? "Gratuito"
+									: "Pago"}
+							</Text>
+						</View>
 					</LinearGradient>
 				</ImageBackground>
 
@@ -204,8 +226,9 @@ export default function AdmEvento({ navigation }) {
 						<TouchableOpacity
 							activeOpacity={0.85}
 							onPress={() =>
-								navigation.navigate("Metricas", {
+								navigation.navigate("AdmEventoDashIndividual", {
 									eventoId: item.id,
+									evento: item,
 								})
 							}
 						>
@@ -425,6 +448,11 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 
 		gap: 6,
+	},
+
+	priceBadge: {
+		marginTop: 8,
+		backgroundColor: "rgba(34,197,94,0.82)",
 	},
 
 	badgeText: {

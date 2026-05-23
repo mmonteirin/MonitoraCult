@@ -244,13 +244,35 @@ export default function EventoDetalhes({
 	/* DADOS */
 	/* ───────────────────────────── */
 
-	const precoBase =
-		evento?.precoInteira ?? 50;
+	const precoBase = Number(
+		evento?.precoInteira ??
+			evento?.preco ??
+			evento?.valor ??
+			0
+	);
+
+	const eventoGratuito =
+		evento?.gratuito === true ||
+		evento?.tipoEvento === "gratuito" ||
+		precoBase === 0;
+
+	const eventoComIngressos =
+		evento?.ingressosAtivos !== false &&
+		(evento?.tipoEvento === "gratuito" ||
+			evento?.tipoEvento === "pago" ||
+			evento?.capacidade > 0 ||
+			evento?.precoInteira !== undefined ||
+			evento?.preco !== undefined);
 
 	const capacidadeRestante =
-		(evento?.capacidade || 0) -
-		(evento?.ingressosVendidos ||
-			0);
+		evento?.capacidade > 0
+			? Math.max(
+					0,
+					(evento?.capacidade || 0) -
+						(evento?.ingressosVendidos ||
+							0)
+			  )
+			: null;
 
 	/* ───────────────────────────── */
 	/* EFFECTS */
@@ -913,8 +935,7 @@ export default function EventoDetalhes({
 
 					{/* INGRESSOS */}
 
-					{evento?.precoInteira !==
-						undefined && (
+					{eventoComIngressos && (
 						<View
 							style={
 								styles.ingressoSection
@@ -959,10 +980,10 @@ export default function EventoDetalhes({
 											styles.dispText
 										}
 									>
-										{
-											capacidadeRestante
-										}{" "}
-										vagas
+										{capacidadeRestante ===
+										null
+											? "Disponível"
+											: `${capacidadeRestante} vagas`}
 									</Text>
 								</View>
 							</View>
@@ -980,8 +1001,7 @@ export default function EventoDetalhes({
 									styles.precoValor
 								}
 							>
-								{precoBase ===
-								0
+								{eventoGratuito
 									? "Gratuito"
 									: `R$ ${Number(
 											precoBase
@@ -1004,6 +1024,18 @@ export default function EventoDetalhes({
 										showModal(
 											"Login necessário",
 											"Faça login para comprar ingressos."
+										);
+
+										return;
+									}
+
+									if (
+										capacidadeRestante ===
+										0
+									) {
+										showModal(
+											"Ingressos esgotados",
+											"Não há ingressos disponíveis para este evento."
 										);
 
 										return;
@@ -1047,7 +1079,9 @@ export default function EventoDetalhes({
 											styles.btnComprarText
 										}
 									>
-										Comprar Ingressos
+										{eventoGratuito
+											? "Reservar ingresso gratuito"
+											: "Comprar ingressos"}
 									</Text>
 
 									<MaterialCommunityIcons

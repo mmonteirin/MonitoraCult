@@ -52,6 +52,20 @@ const maskHora = (t) =>
 		.replace(/^(\d{2})(\d)/, "$1:$2")
 		.slice(0, 5);
 
+const parseMoney = (value) => {
+	if (value == null) return 0;
+
+	const normalized = String(value)
+		.replace(/\./g, "")
+		.replace(",", ".")
+		.replace(/[^\d.]/g, "");
+
+	return Number(normalized) || 0;
+};
+
+const parseInteger = (value) =>
+	Number(String(value || "").replace(/\D/g, "")) || 0;
+
 /* 🔥 MODAL */
 function AppModal({ visible, title, message, type = "info", onConfirm }) {
 	const getIcon = () => {
@@ -417,6 +431,33 @@ export default function AdmCadastroEvento({ navigation }) {
 			return;
 		}
 
+		const tipoEvento = form.tipoEvento || "gratuito";
+		const gratuito = tipoEvento === "gratuito";
+		const precoInteira = gratuito ? 0 : parseMoney(form.precoInteira);
+		const capacidade = parseInteger(form.capacidade);
+
+		if (capacidade <= 0) {
+			setModal({
+				visible: true,
+				title: "Capacidade obrigatória",
+				message: "Informe a quantidade de ingressos disponíveis.",
+				type: "error",
+			});
+
+			return;
+		}
+
+		if (!gratuito && precoInteira <= 0) {
+			setModal({
+				visible: true,
+				title: "Preço obrigatório",
+				message: "Informe o valor do ingresso inteiro para eventos pagos.",
+				type: "error",
+			});
+
+			return;
+		}
+
 		try {
 			setLoading(true);
 
@@ -460,7 +501,19 @@ export default function AdmCadastroEvento({ navigation }) {
 
 				categoria: form.categoria || "",
 
-				tipoEvento: form.tipoEvento || "",
+				tipoEvento,
+
+				gratuito,
+
+				precoInteira,
+
+				preco: precoInteira,
+
+				capacidade,
+
+				ingressosVendidos: 0,
+
+				ingressosAtivos: true,
 
 				cep: form.cep || "",
 
@@ -591,9 +644,18 @@ export default function AdmCadastroEvento({ navigation }) {
 					>
 						<SelectModal
 							label="Tipo"
-							value={form.tipoEvento}
+							value={form.tipoEvento || "gratuito"}
 							options={["gratuito", "pago"]}
-							onSelect={(v) => setField("tipoEvento", v)}
+							onSelect={(v) =>
+								setForm((prev) => ({
+									...prev,
+									tipoEvento: v,
+									precoInteira:
+										v === "gratuito"
+											? "0"
+											: prev.precoInteira,
+								}))
+							}
 						/>
 					</View>
 				</View>
@@ -689,6 +751,38 @@ export default function AdmCadastroEvento({ navigation }) {
 					onChangeText={(v) => setField("localEvento", v)}
 					style={styles.input}
 				/>
+
+				<TextInput
+					placeholder="Quantidade de ingressos disponíveis"
+					placeholderTextColor={Colors.textMuted}
+					keyboardType="numeric"
+					value={form.capacidade || ""}
+					onChangeText={(v) => setField("capacidade", v.replace(/\D/g, ""))}
+					style={styles.input}
+				/>
+
+				{form.tipoEvento === "pago" ? (
+					<TextInput
+						placeholder="Valor do ingresso inteiro (R$)"
+						placeholderTextColor={Colors.textMuted}
+						keyboardType="decimal-pad"
+						value={form.precoInteira || ""}
+						onChangeText={(v) => setField("precoInteira", v)}
+						style={styles.input}
+					/>
+				) : (
+					<View style={styles.freeTicketBox}>
+						<MaterialCommunityIcons
+							name="ticket-confirmation"
+							size={20}
+							color={Colors.success}
+						/>
+
+						<Text style={styles.freeTicketText}>
+							Evento gratuito: o público poderá reservar ingresso sem cobrança.
+						</Text>
+					</View>
+				)}
 
 				{/* UPLOAD */}
 				{loading && uploadProgress > 0 && (
@@ -825,6 +919,25 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 
 		borderColor: "rgba(255,255,255,0.05)",
+	},
+
+	freeTicketBox: {
+		marginTop: 14,
+		padding: 14,
+		borderRadius: 18,
+		backgroundColor: "rgba(34,197,94,0.12)",
+		borderWidth: 1,
+		borderColor: "rgba(34,197,94,0.28)",
+		flexDirection: "row",
+		alignItems: "center",
+	},
+
+	freeTicketText: {
+		flex: 1,
+		color: Colors.textSecondary,
+		fontSize: 13,
+		lineHeight: 18,
+		marginLeft: 10,
 	},
 
 	btnCep: {

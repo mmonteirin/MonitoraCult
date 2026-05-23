@@ -11,6 +11,10 @@ import {
 	StatusBar,
 	Dimensions,
 	Modal,
+	TextInput,
+	KeyboardAvoidingView,
+	Platform,
+	Alert,
 } from "react-native";
 
 import Animated, {
@@ -52,7 +56,12 @@ import {
 	getSubscribedEvents,
 } from "../services/subscribedEventsService";
 
-import { getUserFeedLikes, toggleFeedLike } from "../services/feedService";
+import {
+	adicionarFeedComentario,
+	escutarFeedComentarios,
+	getUserFeedLikes,
+	toggleFeedLike,
+} from "../services/feedService";
 
 const { width } = Dimensions.get("window");
 
@@ -60,6 +69,14 @@ const PAGE_SIZE = 10;
 
 const DEFAULT_EVENT_IMAGE =
 	"https://placehold.co/600x600/1B1D26/6C5CE7?text=Evento";
+
+const getFeedItemKey = (itemOrId, type) => {
+	if (typeof itemOrId === "object") {
+		return `${itemOrId.type}-${itemOrId.id}`;
+	}
+
+	return `${type}-${itemOrId}`;
+};
 
 const LikeButton = memo(({ isLiked, onPress }) => {
 	const scale = useSharedValue(1);
@@ -109,6 +126,7 @@ const EventoCard = memo(
 		formatarNumero,
 		formatarData,
 		onToggleLike,
+		onOpenComments,
 		toggleNotification,
 		subscribedEvents,
 		onNavigate,
@@ -217,6 +235,30 @@ const EventoCard = memo(
 								)}
 
 								{item.type === "evento" && (
+									<View style={styles.ticketTypeBadge}>
+										<MaterialCommunityIcons
+											name={
+												item.gratuito ||
+												item.tipoEvento === "gratuito" ||
+												Number(item.precoInteira || 0) === 0
+													? "ticket-confirmation"
+													: "cash"
+											}
+											size={12}
+											color="#fff"
+										/>
+
+										<Text style={styles.ticketTypeText}>
+											{item.gratuito ||
+											item.tipoEvento === "gratuito" ||
+											Number(item.precoInteira || 0) === 0
+												? "Gratuito"
+												: "Pago"}
+										</Text>
+									</View>
+								)}
+
+								{item.type === "evento" && (
 									<Text numberOfLines={2} style={styles.eventTitle}>
 										{item.tituloEvento || "Evento"}
 									</Text>
@@ -238,7 +280,7 @@ const EventoCard = memo(
 
 								<TouchableOpacity
 									style={styles.actionBtn}
-									onPress={() => onNavigate(item)}
+									onPress={() => onOpenComments(item)}
 								>
 									<MaterialCommunityIcons
 										name="comment-outline"
@@ -279,6 +321,17 @@ const EventoCard = memo(
 							<Text style={styles.likesText}>
 								{formatarNumero(item.likes || 0)} curtidas
 							</Text>
+
+							<TouchableOpacity
+								activeOpacity={0.75}
+								onPress={() => onOpenComments(item)}
+							>
+								<Text style={styles.commentsText}>
+									{formatarNumero(
+										item.comentarios || item.commentsCount || 0
+									)} comentários
+								</Text>
+							</TouchableOpacity>
 						</View>
 					</TouchableOpacity>
 				</Animated.View>
@@ -290,7 +343,7 @@ const EventoCard = memo(
 export default function TelaFeed({ navigation }) {
 	const insets = useSafeAreaInsets();
 
-	const { user, isAdmin } = useAuth();
+	const { user, isAdmin, nome, foto } = useAuth();
 
 	const [eventos, setEventos] = useState([]);
 
@@ -302,11 +355,38 @@ export default function TelaFeed({ navigation }) {
 
 	const [subscribedEvents, setSubscribedEvents] = useState({});
 
+	const [selectedItem, setSelectedItem] = useState(null);
+
+	const [comentarios, setComentarios] = useState([]);
+
+	const [commentsLoading, setCommentsLoading] = useState(false);
+
+	const [commentText, setCommentText] = useState("");
+
+	const [sendingComment, setSendingComment] = useState(false);
+
 	useEffect(() => {
 		carregarFeed();
 		carregarLikes();
 		carregarSubscribedEvents();
 	}, []);
+
+	useEffect(() => {
+		if (!selectedItem?.id) return;
+
+		setCommentsLoading(true);
+
+		const unsubscribe = escutarFeedComentarios(
+			selectedItem.id,
+			selectedItem.type,
+			(lista) => {
+				setComentarios(lista);
+				setCommentsLoading(false);
+			}
+		);
+
+		return unsubscribe;
+	}, [selectedItem?.id, selectedItem?.type]);
 
 	const carregarLikes = async () => {
 		try {
@@ -430,17 +510,87 @@ export default function TelaFeed({ navigation }) {
 			try {
 				const liked = await toggleFeedLike(itemId, itemType, user.uid);
 
+				const itemKey = getFeedItemKey(itemId, itemType);
+
 				if (liked) {
-					setLikedIds((prev) => [...prev, itemId]);
+					setLikedIds((prev) =>
+						prev.includes(itemKey) ? prev : [...prev, itemKey]
+					);
 				} else {
-					setLikedIds((prev) => prev.filter((id) => id !== itemId));
+					setLikedIds((prev) => prev.filter((id) => id !== itemKey));
 				}
+
+				setEventos((prev) =>
+					prev.map((item) => {
+						if (item.id !== itemId || item.type !== itemType) return item;
+
+						const likes = item.likes || 0;
+
+						return {
+							...item,
+							likes: liked ? likes + 1 : Math.max(0, likes - 1),
+						};
+					})
+				);
 			} catch (e) {
 				console.log(e);
+				Alert.alert("Erro", "Não foi possível atualizar a curtida.");
 			}
 		},
 		[user]
 	);
+
+	const abrirComentarios = useCallback((item) => {
+		setSelectedItem(item);
+		setComentarios([]);
+		setCommentText("");
+	}, []);
+
+	const fecharComentarios = useCallback(() => {
+		setSelectedItem(null);
+		setComentarios([]);
+		setCommentText("");
+		setCommentsLoading(false);
+	}, []);
+
+	const enviarComentario = useCallback(async () => {
+		if (!selectedItem || !commentText.trim()) return;
+
+		try {
+			setSendingComment(true);
+
+			await adicionarFeedComentario(
+				selectedItem.id,
+				selectedItem.type,
+				commentText.trim(),
+				{ nome, foto }
+			);
+
+			setCommentText("");
+
+			setEventos((prev) =>
+				prev.map((item) => {
+					if (item.id !== selectedItem.id || item.type !== selectedItem.type) {
+						return item;
+					}
+
+					const comentariosCount =
+						item.comentarios || item.commentsCount || 0;
+
+					return {
+						...item,
+						comentarios: comentariosCount + 1,
+						commentsCount: comentariosCount + 1,
+					};
+				})
+			);
+		} catch (error) {
+			console.log(error);
+			Alert.alert("Erro", "Não foi possível enviar o comentário.");
+		} finally {
+			setSendingComment(false);
+		}
+	}, [commentText, foto, nome, selectedItem]);
 
 	async function toggleNotification(evento) {
 		try {
@@ -573,12 +723,13 @@ export default function TelaFeed({ navigation }) {
 					<EventoCard
 						item={item}
 						index={index}
-						isLiked={likedIds.includes(item.id)}
+						isLiked={likedIds.includes(getFeedItemKey(item))}
 						isAdmin={isAdmin}
 						currentUserId={user?.uid}
 						formatarNumero={formatarNumero}
 						formatarData={formatarData}
 						onToggleLike={toggleLike}
+						onOpenComments={abrirComentarios}
 						toggleNotification={toggleNotification}
 						subscribedEvents={subscribedEvents}
 						onNavigate={(item) => {
@@ -587,14 +738,162 @@ export default function TelaFeed({ navigation }) {
 									evento: item,
 								});
 							} else {
-								navigation.navigate("DetalhesPost", {
-									post: item,
-								});
+								abrirComentarios(item);
 							}
 						}}
 					/>
 				)}
 			/>
+
+			<Modal
+				visible={!!selectedItem}
+				transparent
+				animationType="slide"
+				onRequestClose={fecharComentarios}
+			>
+				<KeyboardAvoidingView
+					style={styles.commentsModalOverlay}
+					behavior={Platform.OS === "ios" ? "padding" : undefined}
+				>
+					<TouchableOpacity
+						style={styles.commentsBackdrop}
+						activeOpacity={1}
+						onPress={fecharComentarios}
+					/>
+
+					<View
+						style={[
+							styles.commentsSheet,
+							{
+								paddingBottom: insets.bottom + 14,
+							},
+						]}
+					>
+						<View style={styles.commentsHandle} />
+
+						<View style={styles.commentsHeader}>
+							<View style={styles.commentsTitleBox}>
+								<Text style={styles.commentsTitle}>Comentários</Text>
+
+								<Text style={styles.commentsSubtitle} numberOfLines={1}>
+									{selectedItem?.tituloEvento ||
+										selectedItem?.descricao ||
+										"Publicação"}
+								</Text>
+							</View>
+
+							<TouchableOpacity
+								style={styles.closeCommentsBtn}
+								onPress={fecharComentarios}
+							>
+								<MaterialCommunityIcons
+									name="close"
+									size={22}
+									color={Colors.textPrimary}
+								/>
+							</TouchableOpacity>
+						</View>
+
+						{commentsLoading ? (
+							<View style={styles.commentsLoading}>
+								<ActivityIndicator size="small" color={Colors.primary} />
+							</View>
+						) : (
+							<FlatList
+								data={comentarios}
+								keyExtractor={(item) => item.id}
+								contentContainerStyle={styles.commentsList}
+								showsVerticalScrollIndicator={false}
+								ListEmptyComponent={
+									<View style={styles.emptyComments}>
+										<MaterialCommunityIcons
+											name="comment-text-outline"
+											size={38}
+											color={Colors.textMuted}
+										/>
+
+										<Text style={styles.emptyCommentsTitle}>
+											Nenhum comentário ainda
+										</Text>
+
+										<Text style={styles.emptyCommentsText}>
+											Seja a primeira pessoa a comentar.
+										</Text>
+									</View>
+								}
+								renderItem={({ item }) => (
+									<View style={styles.commentItem}>
+										<Image
+											source={{
+												uri:
+													item.userPhoto ||
+													item.foto ||
+													"https://i.pravatar.cc/100",
+											}}
+											style={styles.commentAvatar}
+										/>
+
+										<View style={styles.commentBubble}>
+											<View style={styles.commentTopRow}>
+												<Text style={styles.commentAuthor} numberOfLines={1}>
+													{item.userName || item.nome || "Usuário"}
+												</Text>
+
+												<Text style={styles.commentDate}>
+													{formatarData(item.createdAt)}
+												</Text>
+											</View>
+
+											<Text style={styles.commentBody}>{item.texto}</Text>
+										</View>
+									</View>
+								)}
+							/>
+						)}
+
+						<View style={styles.commentComposer}>
+							<Image
+								source={{
+									uri: foto || "https://i.pravatar.cc/100",
+								}}
+								style={styles.composerAvatar}
+							/>
+
+							<View style={styles.commentInputWrapper}>
+								<TextInput
+									value={commentText}
+									onChangeText={setCommentText}
+									placeholder={`Comentar como ${nome || "Usuário"}`}
+									placeholderTextColor={Colors.textMuted}
+									style={styles.commentInput}
+									multiline
+									maxLength={500}
+								/>
+
+								<TouchableOpacity
+									style={[
+										styles.sendCommentBtn,
+										(!commentText.trim() || sendingComment) &&
+											styles.sendCommentBtnDisabled,
+									]}
+									disabled={!commentText.trim() || sendingComment}
+									onPress={enviarComentario}
+								>
+									{sendingComment ? (
+										<ActivityIndicator size="small" color="#FFF" />
+									) : (
+										<MaterialCommunityIcons
+											name="send"
+											size={18}
+											color="#FFF"
+										/>
+									)}
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+				</KeyboardAvoidingView>
+			</Modal>
 		</View>
 	);
 }
@@ -785,6 +1084,24 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 	},
 
+	ticketTypeBadge: {
+		alignSelf: "flex-start",
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+		borderRadius: 20,
+		backgroundColor: "rgba(124,58,237,0.86)",
+		marginBottom: 10,
+		gap: 5,
+	},
+
+	ticketTypeText: {
+		color: "#FFF",
+		fontSize: 11,
+		fontWeight: "800",
+	},
+
 	eventTitle: {
 		color: "#FFF",
 		fontSize: 26,
@@ -847,6 +1164,214 @@ const styles = StyleSheet.create({
 		color: Colors.textPrimary,
 		fontWeight: "700",
 		fontSize: 13,
+	},
+
+	commentsText: {
+		color: Colors.textSecondary,
+		fontSize: 13,
+		marginTop: 6,
+	},
+
+	commentsModalOverlay: {
+		flex: 1,
+		justifyContent: "flex-end",
+	},
+
+	commentsBackdrop: {
+		...StyleSheet.absoluteFillObject,
+		backgroundColor: "rgba(0,0,0,0.68)",
+	},
+
+	commentsSheet: {
+		maxHeight: "82%",
+		minHeight: "58%",
+		backgroundColor: Colors.surface,
+		borderTopLeftRadius: 28,
+		borderTopRightRadius: 28,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+		overflow: "hidden",
+	},
+
+	commentsHandle: {
+		alignSelf: "center",
+		width: 44,
+		height: 5,
+		borderRadius: 3,
+		backgroundColor: "rgba(255,255,255,0.22)",
+		marginTop: 10,
+		marginBottom: 12,
+	},
+
+	commentsHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingHorizontal: 18,
+		paddingBottom: 14,
+		borderBottomWidth: 1,
+		borderBottomColor: "rgba(255,255,255,0.08)",
+	},
+
+	commentsTitleBox: {
+		flex: 1,
+		paddingRight: 12,
+	},
+
+	commentsTitle: {
+		color: Colors.textPrimary,
+		fontSize: 20,
+		fontWeight: "800",
+	},
+
+	commentsSubtitle: {
+		color: Colors.textMuted,
+		fontSize: 12,
+		marginTop: 4,
+	},
+
+	closeCommentsBtn: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: "rgba(255,255,255,0.08)",
+	},
+
+	commentsLoading: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 40,
+	},
+
+	commentsList: {
+		paddingHorizontal: 18,
+		paddingVertical: 14,
+		flexGrow: 1,
+	},
+
+	emptyComments: {
+		flex: 1,
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 44,
+	},
+
+	emptyCommentsTitle: {
+		color: Colors.textPrimary,
+		fontSize: 16,
+		fontWeight: "700",
+		marginTop: 12,
+	},
+
+	emptyCommentsText: {
+		color: Colors.textMuted,
+		fontSize: 13,
+		marginTop: 6,
+	},
+
+	commentItem: {
+		flexDirection: "row",
+		marginBottom: 14,
+	},
+
+	commentAvatar: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		marginRight: 10,
+		backgroundColor: Colors.background,
+	},
+
+	commentBubble: {
+		flex: 1,
+		padding: 12,
+		borderRadius: 16,
+		backgroundColor: "rgba(255,255,255,0.06)",
+	},
+
+	commentTopRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		marginBottom: 5,
+	},
+
+	commentAuthor: {
+		flex: 1,
+		color: Colors.textPrimary,
+		fontSize: 13,
+		fontWeight: "800",
+		paddingRight: 8,
+	},
+
+	commentDate: {
+		color: Colors.textMuted,
+		fontSize: 11,
+	},
+
+	commentBody: {
+		color: Colors.textSecondary,
+		fontSize: 13,
+		lineHeight: 19,
+	},
+
+	commentComposer: {
+		flexDirection: "row",
+		alignItems: "flex-end",
+		paddingHorizontal: 16,
+		paddingTop: 12,
+		borderTopWidth: 1,
+		borderTopColor: "rgba(255,255,255,0.08)",
+	},
+
+	composerAvatar: {
+		width: 38,
+		height: 38,
+		borderRadius: 19,
+		marginRight: 10,
+		marginBottom: 3,
+		backgroundColor: Colors.background,
+	},
+
+	commentInputWrapper: {
+		flex: 1,
+		minHeight: 46,
+		maxHeight: 112,
+		flexDirection: "row",
+		alignItems: "flex-end",
+		borderRadius: 22,
+		backgroundColor: "rgba(255,255,255,0.08)",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.08)",
+		paddingLeft: 14,
+		paddingRight: 5,
+		paddingVertical: 5,
+	},
+
+	commentInput: {
+		flex: 1,
+		color: Colors.textPrimary,
+		fontSize: 14,
+		maxHeight: 96,
+		paddingTop: 8,
+		paddingBottom: 8,
+	},
+
+	sendCommentBtn: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		alignItems: "center",
+		justifyContent: "center",
+		backgroundColor: Colors.primary,
+		marginLeft: 6,
+	},
+
+	sendCommentBtnDisabled: {
+		opacity: 0.45,
 	},
 
 	/* MODAL */

@@ -139,6 +139,10 @@ export default function CriarPost({ navigation }) {
 
 				descricao: descricao.trim(),
 
+				likes: 0,
+
+				comentarios: 0,
+
 				createdAt: serverTimestamp(),
 			});
 

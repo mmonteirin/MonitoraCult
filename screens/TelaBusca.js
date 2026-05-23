@@ -123,6 +123,11 @@ export default function TelaBusca({
             item.categoria ||
             "Outros",
 
+          gratuito:
+            item.gratuito === true ||
+            item.tipoEvento === "gratuito" ||
+            Number(item.precoInteira ?? item.preco ?? 0) === 0,
+
           likes:
             item.likes || 0,
 
@@ -429,7 +434,11 @@ export default function TelaBusca({
                 }
               >
                 {
-                  item.categoria
+                  item.origem !== "app"
+                    ? item.categoria
+                    : item.gratuito
+                    ? `${item.categoria} • Gratuito`
+                    : `${item.categoria} • Pago`
                 }
               </Text>
             </BlurView>

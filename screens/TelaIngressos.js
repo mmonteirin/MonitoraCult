@@ -26,6 +26,19 @@ import { Colors } from "../styles/Colors";
 import SeletorIngressos from "../components/SeletorIngressos";
 import CarrinhoIngressos from "../components/CarrinhoIngressos";
 
+const getPrecoBase = (evento) =>
+  Number(
+    evento?.precoInteira ??
+      evento?.preco ??
+      evento?.valor ??
+      0
+  ) || 0;
+
+const isEventoGratuito = (evento) =>
+  evento?.gratuito === true ||
+  evento?.tipoEvento === "gratuito" ||
+  getPrecoBase(evento) === 0;
+
 export default function TelaIngressos({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
@@ -48,17 +61,43 @@ export default function TelaIngressos({ route, navigation }) {
 
   const [etapa, setEtapa] = useState("selecao"); // selecao, confirmacao, processando, sucesso
 
-  // Preços dos ingressos (viriam do evento)
-  const precos = useMemo(
-    () => ({
-      inteira: evento?.precoInteira || 50,
-      meia: (evento?.precoInteira || 50) * 0.5,
-      estudante: (evento?.precoInteira || 50) * 0.7,
-      senior: (evento?.precoInteira || 50) * 0.5,
-      promocional: (evento?.precoInteira || 50) * 0.5,
-    }),
+  const gratuito = useMemo(
+    () => isEventoGratuito(evento),
     [evento]
   );
+
+  const precoBase = useMemo(
+    () => getPrecoBase(evento),
+    [evento]
+  );
+
+  const precos = useMemo(
+    () =>
+      Object.fromEntries(
+        [
+          "inteira",
+          "meia",
+          "estudante",
+          "senior",
+          "promocional",
+        ].map((tipo) => [tipo, gratuito ? 0 : precoBase])
+      ),
+    [gratuito, precoBase]
+  );
+
+  // Verificar disponibilidade
+  const capacidadeRestante = useMemo(() => {
+    const capacidade = Number(evento?.capacidade || 0);
+    const vendidos = evento?.ingressosVendidos || 0;
+
+    if (capacidade <= 0) return null;
+
+    return Math.max(0, capacidade - vendidos);
+  }, [evento]);
+
+  const temIngressos =
+    capacidadeRestante === null ||
+    capacidadeRestante >= quantidadeTotal;
 
   if (!evento) {
     return (
@@ -72,15 +111,6 @@ export default function TelaIngressos({ route, navigation }) {
     );
   }
 
-  // Verificar disponibilidade
-  const capacidadeRestante = useMemo(() => {
-    const capacidade = evento.capacidade || 0;
-    const vendidos = evento.ingressosVendidos || 0;
-    return capacidade - vendidos;
-  }, [evento]);
-
-  const temIngressos = capacidadeRestante > quantidadeTotal;
-
   // Processar compra
   const handleComprar = async () => {
     if (!user?.uid) {
@@ -89,7 +119,7 @@ export default function TelaIngressos({ route, navigation }) {
       return;
     }
 
-    if (quantidadeTotal > capacidadeRestante) {
+    if (!temIngressos) {
       Alert.alert("Aviso", "Não há ingressos suficientes");
       return;
     }
@@ -103,7 +133,7 @@ export default function TelaIngressos({ route, navigation }) {
         profile?.nome || user.email,
         user.email,
         profile?.foto || "",
-        "credit_card"
+        gratuito ? "gratuito" : "credit_card"
       );
 
       setEtapa("sucesso");
@@ -164,7 +194,9 @@ export default function TelaIngressos({ route, navigation }) {
           />
         </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Comprar Ingressos</Text>
+        <Text style={styles.headerTitle}>
+          {gratuito ? "Reservar Ingressos" : "Comprar Ingressos"}
+        </Text>
 
         <View style={{ width: 44 }} />
       </LinearGradient>
@@ -213,7 +245,7 @@ export default function TelaIngressos({ route, navigation }) {
         </View>
 
         {/* DISPONIBILIDADE */}
-        {capacidadeRestante > 0 ? (
+        {capacidadeRestante === null || capacidadeRestante > 0 ? (
           <View style={styles.disponibilidade}>
             <MaterialCommunityIcons
               name="check-circle"
@@ -221,7 +253,9 @@ export default function TelaIngressos({ route, navigation }) {
               color={Colors.success}
             />
             <Text style={styles.disponibilidadeText}>
-              {capacidadeRestante} ingresso(s) disponível(is)
+              {capacidadeRestante === null
+                ? "Ingressos disponíveis"
+                : `${capacidadeRestante} ingresso(s) disponível(is)`}
             </Text>
           </View>
         ) : (
@@ -238,12 +272,14 @@ export default function TelaIngressos({ route, navigation }) {
         )}
 
         {/* SELETOR DE INGRESSOS */}
-        {etapa === "selecao" && capacidadeRestante > 0 && (
+        {etapa === "selecao" &&
+          (capacidadeRestante === null || capacidadeRestante > 0) && (
           <SeletorIngressos
             precos={precos}
             carrinho={carrinho}
             onAdionar={adicionarAoCarrinho}
             onRemover={removerDoCarrinho}
+            gratuito={gratuito}
           />
         )}
 
@@ -272,7 +308,8 @@ export default function TelaIngressos({ route, navigation }) {
       </ScrollView>
 
       {/* CARRINHO FLUTUANTE */}
-      {etapa === "selecao" && capacidadeRestante > 0 && (
+      {etapa === "selecao" &&
+        (capacidadeRestante === null || capacidadeRestante > 0) && (
         <View style={styles.carrinhoContainer}>
           <CarrinhoIngressos
             carrinho={carrinho}
@@ -283,6 +320,7 @@ export default function TelaIngressos({ route, navigation }) {
             dataEvento={`${evento.dataEvento} às ${evento.horaInicio}`}
             onRemover={removerDoCarrinho}
             onComprar={handleComprar}
+            gratuito={gratuito}
           />
         </View>
       )}

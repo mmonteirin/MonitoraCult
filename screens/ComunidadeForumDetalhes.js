@@ -1,316 +1,229 @@
 import React, { useState, useEffect } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  FlatList,
-  ActivityIndicator,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
+  TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../styles/Colors";
-import { getForumReplies, addForumReply } from "../services/communityService";
-import { auth } from "../firebaseConfig";
+import { useCommunity } from "../hooks/useCommunity";
+
+function formatDate(timestamp) {
+  if (!timestamp) return "";
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp.seconds * 1000);
+  const diff = Date.now() - date.getTime();
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(h / 24);
+  if (h < 1) return "Agora";
+  if (h < 24) return `${h}h atrás`;
+  if (d < 7) return `${d}d atrás`;
+  return date.toLocaleDateString("pt-BR");
+}
 
 export default function ComunidadeForumDetalhes({ route, navigation }) {
   const { groupId, threadId } = route.params;
+  const {
+    currentThread, threadReplies, loading,
+    loadThreadDetails, handleAddForumReply, checkIsMember, currentGroup, loadGroupDetails,
+  } = useCommunity();
 
-  const [thread, setThread] = useState(null);
-  const [replies, setReplies] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadForumData();
-  }, []);
+    loadThreadDetails(groupId, threadId);
+    loadGroupDetails(groupId);
+  }, [groupId, threadId]);
 
-  const loadForumData = async () => {
-    try {
-      setLoading(true);
-      const repliesData = await getForumReplies(groupId, threadId);
-      setReplies(repliesData);
-      // Aqui você precisaria buscar os detalhes do thread também
-      setLoading(false);
-    } catch (error) {
-      console.error("Erro ao carregar fórum:", error);
-      setLoading(false);
-    }
-  };
-
-  const handleAddReply = async () => {
-    if (!replyText.trim()) {
-      alert("Digite uma resposta");
-      return;
-    }
-
+  const handleSubmitReply = async () => {
+    if (!replyText.trim()) return;
     setSubmitting(true);
     try {
-      await addForumReply(groupId, threadId, {
-        content: replyText,
-      });
+      await handleAddForumReply(groupId, threadId, replyText);
       setReplyText("");
-      await loadForumData();
-      alert("Resposta adicionada com sucesso!");
-    } catch (error) {
-      alert("Erro ao adicionar resposta: " + error.message);
+    } catch (err) {
+      Alert.alert("Erro", err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return "";
-    const date = new Date(timestamp.seconds * 1000);
-    const now = new Date();
-    const diff = now - date;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const isMember = checkIsMember(currentGroup);
 
-    if (hours < 1) return "Agora";
-    if (hours < 24) return `${hours}h atrás`;
-    if (days < 7) return `${days}d atrás`;
-    return date.toLocaleDateString("pt-BR");
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+  const renderReply = ({ item, index }) => (
+    <View style={[styles.replyCard, index === 0 && { marginTop: 4 }]}>
+      <View style={styles.replyAuthorRow}>
+        <View style={styles.avatar}>
+          <MaterialCommunityIcons name="account" size={18} color={Colors.textMuted} />
         </View>
+        <View>
+          <Text style={styles.authorName}>{item.authorName || "Usuário"}</Text>
+          <Text style={styles.replyDate}>{formatDate(item.createdAt)}</Text>
+        </View>
+      </View>
+      <Text style={styles.replyContent}>{item.content}</Text>
+    </View>
+  );
+
+  if (loading && !currentThread) {
+    return (
+      <View style={styles.loadingScreen}>
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Discussão</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>Fórum</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <FlatList
-        data={replies}
+        data={threadReplies}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.replyContainer}>
-            <View style={styles.replyHeader}>
-              <View style={styles.avatar}>
-                <MaterialCommunityIcons
-                  name="account-circle"
-                  size={36}
-                  color={Colors.primary}
-                />
+        renderItem={renderReply}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.threadCard}>
+            {/* THREAD AUTHOR */}
+            <View style={styles.threadAuthorRow}>
+              <View style={styles.avatarLg}>
+                <MaterialCommunityIcons name="account" size={24} color={Colors.textMuted} />
               </View>
-              <View style={styles.replyInfo}>
-                <Text style={styles.authorName}>
-                  {item.authorName || "Usuário"}
-                </Text>
-                <Text style={styles.timestamp}>
-                  {formatDate(item.createdAt)}
-                </Text>
+              <View>
+                <Text style={styles.threadAuthorName}>{currentThread?.authorName || "Usuário"}</Text>
+                <Text style={styles.threadDate}>{formatDate(currentThread?.createdAt)}</Text>
               </View>
             </View>
-            <Text style={styles.replyContent}>{item.content}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="message-outline"
-              size={60}
-              color={Colors.textMuted}
-            />
-            <Text style={styles.emptyStateText}>
-              Nenhuma resposta ainda
-            </Text>
-            <Text style={styles.emptyStateSubText}>
-              Seja o primeiro a responder!
-            </Text>
+
+            {/* THREAD CONTENT */}
+            <Text style={styles.threadTitle}>{currentThread?.title}</Text>
+            <Text style={styles.threadDescription}>{currentThread?.description}</Text>
+
+            {/* STATS */}
+            <View style={styles.threadStats}>
+              <View style={styles.statItem}>
+                <MaterialCommunityIcons name="comment-multiple-outline" size={16} color={Colors.textMuted} />
+                <Text style={styles.statText}>{threadReplies.length} respostas</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+            <Text style={styles.repliesLabel}>Respostas</Text>
           </View>
         }
-        scrollEnabled={true}
+        ListEmptyComponent={
+          <View style={styles.emptyReplies}>
+            <MaterialCommunityIcons name="comment-outline" size={40} color={Colors.textMuted} />
+            <Text style={styles.emptyText}>Nenhuma resposta ainda. Seja o primeiro!</Text>
+          </View>
+        }
+        contentContainerStyle={{ paddingBottom: 120 }}
       />
 
-      {/* REPLY INPUT */}
-      <View style={styles.replyInputContainer}>
-        <TextInput
-          style={styles.replyInput}
-          placeholder="Escreva uma resposta..."
-          placeholderTextColor={Colors.textMuted}
-          multiline
-          numberOfLines={3}
-          value={replyText}
-          onChangeText={setReplyText}
-          editable={!submitting}
-        />
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!replyText.trim() || submitting) && styles.sendButtonDisabled,
-          ]}
-          onPress={handleAddReply}
-          disabled={!replyText.trim() || submitting}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons
-            name="send"
-            size={20}
-            color={
-              replyText.trim() && !submitting
-                ? Colors.primary
-                : Colors.textMuted
-            }
+      {/* INPUT AREA */}
+      {isMember ? (
+        <View style={styles.inputArea}>
+          <TextInput
+            style={styles.replyInput}
+            placeholder="Escreva sua resposta..."
+            placeholderTextColor={Colors.textMuted}
+            value={replyText}
+            onChangeText={setReplyText}
+            multiline
+            maxLength={600}
           />
-        </TouchableOpacity>
-      </View>
-    </View>
+          <TouchableOpacity
+            style={[styles.sendBtn, (!replyText.trim() || submitting) && { opacity: 0.5 }]}
+            onPress={handleSubmitReply}
+            disabled={!replyText.trim() || submitting}
+          >
+            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.sendBtnGradient}>
+              {submitting
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <MaterialCommunityIcons name="send" size={20} color="#fff" />}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.joinBanner}>
+          <Text style={styles.joinBannerText}>Entre na comunidade para responder</Text>
+        </View>
+      )}
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.textPrimary,
-    flex: 1,
-    textAlign: "center",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  replyContainer: {
-    backgroundColor: Colors.card,
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  replyHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  replyInfo: {
-    flex: 1,
-  },
-  authorName: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: Colors.textPrimary,
-  },
-  timestamp: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
-  replyContent: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    marginLeft: 46,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 40,
-  },
-  emptyStateText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: Colors.textMuted,
-  },
-  emptyStateSubText: {
-    marginTop: 6,
-    fontSize: 12,
-    color: Colors.textMuted,
-  },
-  replyInputContainer: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-    padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 8, paddingVertical: 8, paddingTop: 52,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
     backgroundColor: Colors.background,
+  },
+  backBtn: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surface,
+    justifyContent: "center", alignItems: "center",
+  },
+  headerTitle: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary, flex: 1, textAlign: "center" },
+  threadCard: { padding: 20 },
+  threadAuthorRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  avatarLg: {
+    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface,
+    justifyContent: "center", alignItems: "center",
+  },
+  threadAuthorName: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary },
+  threadDate: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
+  threadTitle: { fontSize: 20, fontWeight: "800", color: Colors.textPrimary, lineHeight: 26, marginBottom: 12 },
+  threadDescription: { fontSize: 14, color: Colors.textSecondary, lineHeight: 21 },
+  threadStats: { flexDirection: "row", marginTop: 16, gap: 16 },
+  statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
+  statText: { color: Colors.textMuted, fontSize: 13 },
+  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 20 },
+  repliesLabel: { fontSize: 15, fontWeight: "700", color: Colors.textPrimary },
+  replyCard: {
+    marginHorizontal: 16, marginBottom: 10, backgroundColor: Colors.card,
+    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border,
+  },
+  replyAuthorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
+  avatar: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface,
+    justifyContent: "center", alignItems: "center",
+  },
+  authorName: { fontSize: 13, fontWeight: "700", color: Colors.textPrimary },
+  replyDate: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
+  replyContent: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+  emptyReplies: { alignItems: "center", paddingVertical: 40 },
+  emptyText: { color: Colors.textMuted, fontSize: 14, marginTop: 10, textAlign: "center" },
+  inputArea: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    flexDirection: "row", alignItems: "flex-end", gap: 10,
+    padding: 14, paddingBottom: Platform.OS === "ios" ? 30 : 14,
+    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border,
   },
   replyInput: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    color: Colors.textPrimary,
-    padding: 10,
-    borderRadius: 12,
-    fontSize: 13,
-    maxHeight: 80,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    flex: 1, backgroundColor: Colors.card, borderRadius: 20, paddingHorizontal: 16,
+    paddingVertical: 10, color: Colors.textPrimary, fontSize: 14, maxHeight: 100,
+    borderWidth: 1, borderColor: Colors.border,
   },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    justifyContent: "center",
-    alignItems: "center",
+  sendBtn: { borderRadius: 20, overflow: "hidden" },
+  sendBtnGradient: { width: 44, height: 44, justifyContent: "center", alignItems: "center", borderRadius: 22 },
+  joinBanner: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    padding: 16, paddingBottom: Platform.OS === "ios" ? 30 : 16,
+    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border, alignItems: "center",
   },
-  sendButtonDisabled: {
-    opacity: 0.5,
-  },
+  joinBannerText: { color: Colors.textMuted, fontSize: 14 },
 });

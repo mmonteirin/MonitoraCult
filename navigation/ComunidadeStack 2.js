@@ -1,6 +1,5 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 import TelaComunidade from "../screens/TelaComunidade";
 import ComunidadeGrupoDetalhes from "../screens/ComunidadeGrupoDetalhes";
 import ComunidadeForumDetalhes from "../screens/ComunidadeForumDetalhes";
@@ -8,10 +7,6 @@ import ComunidadeCriadorDetalhes from "../screens/ComunidadeCriadorDetalhes";
 import ComunidadeNoticiaDetalhes from "../screens/ComunidadeNoticiaDetalhes";
 
 const Stack = createNativeStackNavigator();
-
-const screenOpts = {
-  animationEnabled: true,
-};
 
 export default function ComunidadeStack() {
   return (
@@ -24,27 +19,37 @@ export default function ComunidadeStack() {
       <Stack.Screen
         name="TelaComunidade"
         component={TelaComunidade}
-        options={screenOpts}
+        options={{
+          animationEnabled: true,
+        }}
       />
       <Stack.Screen
         name="ComunidadeGrupoDetalhes"
         component={ComunidadeGrupoDetalhes}
-        options={screenOpts}
+        options={{
+          animationEnabled: true,
+        }}
       />
       <Stack.Screen
         name="ComunidadeForumDetalhes"
         component={ComunidadeForumDetalhes}
-        options={screenOpts}
+        options={{
+          animationEnabled: true,
+        }}
       />
       <Stack.Screen
         name="ComunidadeCriadorDetalhes"
         component={ComunidadeCriadorDetalhes}
-        options={screenOpts}
+        options={{
+          animationEnabled: true,
+        }}
       />
       <Stack.Screen
         name="ComunidadeNoticiaDetalhes"
         component={ComunidadeNoticiaDetalhes}
-        options={screenOpts}
+        options={{
+          animationEnabled: true,
+        }}
       />
     </Stack.Navigator>
   );

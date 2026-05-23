@@ -23,16 +23,21 @@ const ItemCarrinho = memo(({ item, onRemover, onAtualizar }) => {
   const tipoConfig = TIPOS_INGRESSO[item.tipo.toUpperCase()];
   const precoComDesconto = item.precoUnitario * (1 - item.desconto);
   const subtotal = precoComDesconto * item.quantidade;
+  const gratuito = subtotal === 0;
 
   return (
     <View style={styles.itemCarrinho}>
       <View style={styles.itemInfo}>
         <Text style={styles.itemLabel}>{tipoConfig?.label}</Text>
-        <Text style={styles.itemQtd}>{item.quantidade}x R$ {precoComDesconto.toFixed(2)}</Text>
+        <Text style={styles.itemQtd}>
+          {item.quantidade}x {gratuito ? "Gratuito" : `R$ ${precoComDesconto.toFixed(2)}`}
+        </Text>
       </View>
 
       <View style={styles.itemAcoes}>
-        <Text style={styles.itemSubtotal}>R$ {subtotal.toFixed(2)}</Text>
+        <Text style={styles.itemSubtotal}>
+          {gratuito ? "Gratuito" : `R$ ${subtotal.toFixed(2)}`}
+        </Text>
 
         <TouchableOpacity
           onPress={() => onRemover(item.tipo)}
@@ -54,6 +59,7 @@ const CarrinhoIngressos = ({
   onComprar,
   nomeEvento = "Evento",
   dataEvento = "",
+  gratuito = false,
 }) => {
   const economiaTotal = useMemo(() => {
     return carrinho.reduce((acc, item) => {
@@ -131,7 +137,9 @@ const CarrinhoIngressos = ({
 
         <View style={styles.linhaResumo}>
           <Text style={styles.labelTotal}>Total:</Text>
-          <Text style={styles.valorTotal}>R$ {total.toFixed(2)}</Text>
+          <Text style={styles.valorTotal}>
+            {gratuito || total === 0 ? "Gratuito" : `R$ ${total.toFixed(2)}`}
+          </Text>
         </View>
       </LinearGradient>
 
@@ -145,14 +153,22 @@ const CarrinhoIngressos = ({
           <ActivityIndicator color="#fff" />
         ) : (
           <>
-            <MaterialCommunityIcons name="credit-card" size={22} color="#fff" />
-            <Text style={styles.btnComprarText}>Continuar Pagamento</Text>
+            <MaterialCommunityIcons
+              name={gratuito || total === 0 ? "ticket-confirmation" : "credit-card"}
+              size={22}
+              color="#fff"
+            />
+            <Text style={styles.btnComprarText}>
+              {gratuito || total === 0 ? "Reservar ingresso" : "Continuar pagamento"}
+            </Text>
           </>
         )}
       </TouchableOpacity>
 
       <Text style={styles.avisoSeguranca}>
-        💳 Pagamento seguro com encriptação SSL
+        {gratuito || total === 0
+          ? "Reserva gratuita. Seu ingresso será gerado sem cobrança."
+          : "Pagamento seguro com encriptação SSL"}
       </Text>
     </View>
   );
