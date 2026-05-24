@@ -434,6 +434,16 @@ export default function TabNavigator() {
 			/>
 
 			<Tab.Screen
+				name="Mensagens"
+				component={MessagingStack}
+			/>
+
+			<Tab.Screen
+				name="Notificacoes"
+				component={NotificationsStack}
+			/>
+
+			<Tab.Screen
 				name="Conta"
 				component={PerfilStack}
 			/>

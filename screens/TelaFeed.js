@@ -57,6 +57,7 @@ import {
     getUserFeedLikes,
     toggleFeedLike,
 } from "../services/feedService";
+import NotificationBell from "../components/NotificationBell";
 
 const { width } = Dimensions.get("window");
 const PAGE_SIZE = 10;
@@ -558,9 +559,11 @@ export default function TelaFeed({ navigation }) {
                         <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate("CriarPost")}>
                             <MaterialCommunityIcons name="plus-box-outline" size={26} color="#FFF" />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.headerIconBtn} onPress={() => navigation.navigate("EventosApp")}>
-                            <MaterialCommunityIcons name="bell-outline" size={25} color="#FFF" />
-                        </TouchableOpacity>
+                        <NotificationBell 
+                            onPress={() => navigation.navigate("Notificacoes")}
+                            color="#FFF"
+                            size={25}
+                        />
                     </View>
                 </Animated.View>
             </LinearGradient>

@@ -15,12 +15,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
+import { useAuth } from "../context/AuthContext";
 import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
-  const auth = route?.params?.auth; // Obtém auth via params
-  const userId = auth?.currentUser?.uid;
+  const { user } = useAuth();
+  const userId = user?.uid;
   
   const { conversas, loading, naoLidas, iniciarConversa } =
     useDirectMessages(userId);
@@ -36,13 +37,8 @@ const TelaConversas = ({ navigation, route }) => {
   );
 
   const handleNovaConversa = useCallback(() => {
-    // Aqui você pode adicionar um modal para selecionar contato
-    Alert.alert(
-      "Nova Conversa",
-      "Selecione um contato para iniciar",
-      [{ text: "OK" }]
-    );
-  }, []);
+    navigation.navigate("BuscaUsuarios");
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
