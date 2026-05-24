@@ -149,6 +149,8 @@ export function CadastroProvider({ children }) {
         areaAtuacao,
         localAtuacao,
         cnpj,
+        followers: 0,
+        following: 0,
         createdAt: serverTimestamp(),
       });
 

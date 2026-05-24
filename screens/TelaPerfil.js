@@ -168,6 +168,29 @@ export default function TelaPerfil({ navigation }) {
                         />
                     </TouchableOpacity>
 
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={styles.card}
+                        onPress={() => go("LocaisVisitados")}
+                    >
+                        <View style={styles.iconBox}>
+                            <MaterialCommunityIcons
+                                name="map-marker-multiple-outline"
+                                size={22}
+                                color={Colors.primary}
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <AppText style={styles.texto}>Locais Visitados</AppText>
+                            <AppText style={styles.subtexto}>Veja seus espaços culturais favoritos</AppText>
+                        </View>
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={24}
+                            color="rgba(255,255,255,0.35)"
+                        />
+                    </TouchableOpacity>
+
                     {/* BOTAO LOGOUT */}
                     <TouchableOpacity
                         activeOpacity={0.85}

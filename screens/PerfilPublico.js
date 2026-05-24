@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
 import { FollowButton } from "../components/FollowButton";
+import { SeguindoList } from "../components/SeguidoresCard";
 import { getFollowers, getFollowing } from "../services/followService";
 import {
   getAttendedEvents,
@@ -46,6 +47,81 @@ export default function PerfilPublico({ navigation, route }) {
 
   const isOwnProfile = user?.uid && user.uid === targetUserId;
 
+  const carregarRede = useCallback(async () => {
+    if (!targetUserId) return;
+
+    const [followersList, followingList] = await Promise.all([
+      getFollowers(targetUserId),
+      getFollowing(targetUserId),
+    ]);
+
+    setSeguidores(followersList);
+    setSeguindo(followingList);
+  }, [targetUserId]);
+
+  const abrirPerfilUsuario = useCallback(
+    (item) => {
+      const userId =
+        item?.targetUserId ||
+        item?.followerId ||
+        item?.uid ||
+        item?.userId ||
+        item?.id;
+
+      if (!userId) return;
+
+      navigation.push("PerfilPublico", {
+        userId,
+        usuario: {
+          uid: userId,
+          nome:
+            item?.targetName ||
+            item?.followerName ||
+            item?.nome ||
+            item?.displayName,
+          displayName:
+            item?.targetName ||
+            item?.followerName ||
+            item?.nome ||
+            item?.displayName,
+          foto:
+            item?.targetPhoto ||
+            item?.followerPhoto ||
+            item?.foto ||
+            item?.photoURL,
+          photoURL:
+            item?.targetPhoto ||
+            item?.followerPhoto ||
+            item?.foto ||
+            item?.photoURL,
+        },
+      });
+    },
+    [navigation]
+  );
+
+  const handleFollowChange = useCallback(
+    async (nextState) => {
+      if (typeof nextState === "boolean") {
+        setProfile((current) =>
+          current
+            ? {
+                ...current,
+                followers: Math.max(
+                  0,
+                  (current.followers || seguidores.length || 0) +
+                    (nextState ? 1 : -1)
+                ),
+              }
+            : current
+        );
+      }
+
+      await carregarRede();
+    },
+    [carregarRede, seguidores.length]
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -58,20 +134,17 @@ export default function PerfilPublico({ navigation, route }) {
       try {
         setLoading(true);
 
-        const [perfil, frequentados, followersList, followingList] =
+        const [perfil, frequentados] =
           await Promise.all([
             getPublicProfile(targetUserId),
             getAttendedEvents(targetUserId),
-            getFollowers(targetUserId),
-            getFollowing(targetUserId),
           ]);
 
         if (!mounted) return;
 
         setProfile(perfil);
         setEventos(frequentados);
-        setSeguidores(followersList);
-        setSeguindo(followingList);
+        await carregarRede();
       } catch (error) {
         console.log("Erro ao carregar perfil público:", error);
       } finally {
@@ -84,7 +157,7 @@ export default function PerfilPublico({ navigation, route }) {
     return () => {
       mounted = false;
     };
-  }, [targetUserId]);
+  }, [carregarRede, targetUserId]);
 
   const targetUserData = useMemo(
     () => ({
@@ -172,6 +245,7 @@ export default function PerfilPublico({ navigation, route }) {
               <FollowButton
                 targetUserId={targetUserId}
                 targetUserData={targetUserData}
+                onFollowChange={handleFollowChange}
               />
             )}
           </View>
@@ -265,6 +339,18 @@ export default function PerfilPublico({ navigation, route }) {
           <Text style={styles.networkText}>
             {seguidores.length} seguidores e {seguindo.length} seguindo
           </Text>
+
+          <SeguindoList
+            title="Seguidores"
+            usuarios={seguidores}
+            onNavigateProfile={abrirPerfilUsuario}
+          />
+
+          <SeguindoList
+            title="Seguindo"
+            usuarios={seguindo}
+            onNavigateProfile={abrirPerfilUsuario}
+          />
         </View>
       </ScrollView>
     </View>

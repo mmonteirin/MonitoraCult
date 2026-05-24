@@ -15,6 +15,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
+import { registrarVisitaLocal } from "./localVisitadoService";
 
 export async function getEventosApp() {
   try {
@@ -119,6 +120,10 @@ export async function trackUserEventInteraction({
         null,
       createdAt: serverTimestamp(),
     });
+
+    if (["checkin", "compra", "attended"].includes(action)) {
+      await registrarVisitaLocal(usuarioId, evento);
+    }
   } catch (error) {
     console.log("Erro ao registrar interação:", error);
   }

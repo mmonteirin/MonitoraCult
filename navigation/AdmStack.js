@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import AdmMenu from "../screens/AdmMenu";
 import AdmEvento from "../screens/AdmEvento";
 import AdmCadastroEvento from "../screens/AdmCadastroEvento";
-import TelaSuporte from "../screens/TelaSuporte";
+import AdmSuporte from "../screens/AdmSuporte";
 import AdmEventoMetrica from "../screens/AdmEventoMetrica";
 import AdmEventoDashIndividual from "../screens/AdmEventoDashIndividual";
 
@@ -63,7 +63,7 @@ export default function AdmStack() {
         name="AdmEventoDashIndividual"
         component={AdmEventoDashIndividual}
       />
-      <Stack.Screen name="Ajuda" component={TelaSuporte} />
+      <Stack.Screen name="AdmSuporte" component={AdmSuporte} />
     </Stack.Navigator>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
+    RefreshControl,
     StatusBar,
     StyleSheet,
     Text,
@@ -10,9 +11,17 @@ import {
 
 import Animated, {
     interpolate,
+    interpolateColor,
+    Extrapolate,
     useAnimatedScrollHandler,
     useAnimatedStyle,
     useSharedValue,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    FadeInLeft,
+    FadeInRight,
+    withSpring,
 } from "react-native-reanimated";
 
 import { BlurView } from "expo-blur";
@@ -29,12 +38,8 @@ import * as Haptics from "expo-haptics";
 
 import {
     getEventosApp,
-    getUserEventInteractions,
-    getUserLikes,
     trackUserEventInteraction,
 } from "../services/eventosAppService";
-import { getSubscribedEvents } from "../services/subscribedEventsService";
-import { getAttendedEvents } from "../services/profileService";
 
 import { getUserLocation } from "../services/locationService";
 
@@ -65,13 +70,12 @@ import StoryBar from "../components/home/StoryBar";
 import TrendingCarousel from "../components/home/TrendingCarousel";
 
 import {
-    buildUserSignals,
     categoriasHome,
     normalizeEvento,
-    scoreRecommendation,
 } from "../components/home/homeUtils";
 
-// Importação do backend que criamos para processar as recomendações
+import useRecomendacoes from "../hooks/useRecomendacoes";
+
 import { gerarInsightsCulturais } from "../services/aiService";
 
 export default function TelaInicio() {
@@ -85,17 +89,10 @@ export default function TelaInicio() {
 
     const [loading, setLoading] = useState(true);
 
-    const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
+    const [categoriaAtiva, setCategoriaAtiva] =
+        useState("Todos");
 
     const [location, setLocation] = useState(null);
-
-    const [likes, setLikes] = useState([]);
-
-    const [interactions, setInteractions] = useState([]);
-
-    const [subscribedEvents, setSubscribedEvents] = useState([]);
-
-    const [attendedEvents, setAttendedEvents] = useState([]);
 
     const scrollY = useSharedValue(0);
 
@@ -127,25 +124,11 @@ export default function TelaInicio() {
         try {
             setLoading(true);
 
-            const [
-                eventosData,
-                usuario,
-                likesData,
-                interactionsData,
-                subscribedData,
-                attendedData,
-            ] = await Promise.all([
-                getEventosApp(),
-                getUserLocation(),
-                getUserLikes(usuarioId),
-                getUserEventInteractions(usuarioId),
-                usuarioId
-                    ? getSubscribedEvents(usuarioId)
-                    : [],
-                usuarioId
-                    ? getAttendedEvents(usuarioId)
-                    : [],
-            ]);
+            const [eventosData, usuario] =
+                await Promise.all([
+                    getEventosApp(),
+                    getUserLocation(),
+                ]);
 
             const normalizados =
                 eventosData.map(normalizeEvento);
@@ -153,14 +136,6 @@ export default function TelaInicio() {
             setEventos(normalizados);
 
             setLocation(usuario);
-
-            setLikes(likesData);
-
-            setInteractions(interactionsData);
-
-            setSubscribedEvents(subscribedData);
-
-            setAttendedEvents(attendedData);
         } catch (error) {
             console.log(error);
         } finally {
@@ -177,11 +152,11 @@ export default function TelaInicio() {
                 item.latitude != null &&
                 item.longitude != null
                     ? calcularDistancia(
-                            location.latitude,
-                            location.longitude,
-                            item.latitude,
-                            item.longitude
-                        )
+                          location.latitude,
+                          location.longitude,
+                          item.latitude,
+                          item.longitude
+                      )
                     : null,
         }));
     }, [eventos, location]);
@@ -198,28 +173,14 @@ export default function TelaInicio() {
         );
     }, [categoriaAtiva, eventosComDistancia]);
 
-    const sinaisUsuario = useMemo(
-        () =>
-            buildUserSignals({
-                likes,
-                interactions,
-                likedEvents:
-                    eventosComDistancia.filter(
-                        (evento) =>
-                            likes.includes(
-                                evento.id
-                            )
-                    ),
-                subscribedEvents,
-                attendedEvents,
-            }),
-        [
-            likes,
-            interactions,
-            eventosComDistancia,
-            subscribedEvents,
-            attendedEvents,
-        ]
+    const {
+        recomendados,
+        sinaisUsuario,
+        loading: loadingRecomendacoes,
+        refresh: refreshRecomendacoes,
+    } = useRecomendacoes(
+        eventosFiltrados,
+        usuarioId
     );
 
     const destaques = useMemo(() => {
@@ -228,23 +189,6 @@ export default function TelaInicio() {
             .sort((a, b) => b.score - a.score)
             .slice(0, 8);
     }, [eventosFiltrados]);
-
-    const recomendados = useMemo(() => {
-        return eventosFiltrados
-            .slice()
-            .sort(
-                (a, b) =>
-                    scoreRecommendation(
-                        b,
-                        sinaisUsuario
-                    ) -
-                    scoreRecommendation(
-                        a,
-                        sinaisUsuario
-                    )
-            )
-            .slice(0, 8);
-    }, [eventosFiltrados, sinaisUsuario]);
 
     const proximos = useMemo(() => {
         const comDistancia = eventosFiltrados.filter(
@@ -278,37 +222,71 @@ export default function TelaInicio() {
         },
     });
 
-    const headerStyle = useAnimatedStyle(() => ({
-        transform: [
-            {
-                translateY: interpolate(
-                    scrollY.value,
-                    [0, 140],
-                    [0, -8],
-                    "clamp"
-                ),
-            },
-        ],
-
-        opacity: interpolate(
+    const headerStyle = useAnimatedStyle(() => {
+        const backgroundOpacity = interpolate(
             scrollY.value,
-            [0, 140],
-            [1, 0.96],
-            "clamp"
-        ),
-    }));
+            [0, 120],
+            [0, 1],
+            Extrapolate.CLAMP
+        );
 
-    const momentStyle = useAnimatedStyle(() => ({
-        transform: [
-            {
-                scale: interpolate(
-                    scrollY.value,
-                    [-120, 0, 220],
-                    [1.03, 1, 0.985]
-                ),
-            },
-        ],
-    }));
+        return {
+            transform: [
+                {
+                    translateY: interpolate(
+                        scrollY.value,
+                        [0, 180],
+                        [0, -12],
+                        Extrapolate.CLAMP
+                    ),
+                },
+            ],
+
+            backgroundColor: interpolateColor(
+                backgroundOpacity,
+                [0, 1],
+                ["rgba(0,0,0,0)", Colors.background]
+            ),
+
+            opacity: interpolate(
+                scrollY.value,
+                [0, 120],
+                [1, 0.98],
+                Extrapolate.CLAMP
+            ),
+        };
+    });
+
+    const momentStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                {
+                    scale: interpolate(
+                        scrollY.value,
+                        [-160, 0, 250],
+                        [1.08, 1, 0.94],
+                        Extrapolate.CLAMP
+                    ),
+                },
+
+                {
+                    translateY: interpolate(
+                        scrollY.value,
+                        [0, 300],
+                        [0, 18],
+                        Extrapolate.CLAMP
+                    ),
+                },
+            ],
+
+            opacity: interpolate(
+                scrollY.value,
+                [0, 320],
+                [1, 0.85],
+                Extrapolate.CLAMP
+            ),
+        };
+    });
 
     const abrirEvento = async (evento) => {
         try {
@@ -333,51 +311,46 @@ export default function TelaInicio() {
         });
     };
 
-    /**
-     * LÓGICA DE INTEGRAÇÃO DA INTELEGÊNCIA ARTIFICIAL (BACKEND)
-     * Processa a seleção do chip da IA e navega para os resultados filtrados
-     */
     const lidarComAIGerada = async (termoBusca) => {
         try {
-            // Vibração tátil premium ao gerar
-            try { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+            try {
+                await Haptics.impactAsync(
+                    Haptics.ImpactFeedbackStyle.Medium
+                );
+            } catch (e) {}
 
-            // Se o usuário selecionou uma tag, mapeamos um termo amigável para a caixa de texto
             let textoPesquisaInput = "";
-            if (termoBusca === "orla") textoPesquisaInput = "Orla";
-            if (termoBusca === "gratuito") textoPesquisaInput = "Gratuito";
-            if (termoBusca === "show") textoPesquisaInput = "Show";
-            if (termoBusca === "teatro") textoPesquisaInput = "Teatro";
 
-            // Executa o motor algorítmico do backend passando os eventos locais da home para análise
-            const roteiroSugerido = await gerarInsightsCulturais(termoBusca, eventosFiltrados);
+            if (termoBusca === "orla")
+                textoPesquisaInput = "Orla";
 
-            // Redireciona para a aba de busca aplicando o termo de forma síncrona
+            if (termoBusca === "gratuito")
+                textoPesquisaInput = "Gratuito";
+
+            if (termoBusca === "show")
+                textoPesquisaInput = "Show";
+
+            if (termoBusca === "teatro")
+                textoPesquisaInput = "Teatro";
+
+            const roteiroSugerido =
+                await gerarInsightsCulturais(
+                    termoBusca,
+                    eventosFiltrados
+                );
+
             navigation.navigate("Busca", {
-                screen: "BuscaHome", 
-                params: { 
+                screen: "BuscaHome",
+
+                params: {
                     queryIA: textoPesquisaInput,
-                    resultadosIA: roteiroSugerido 
-                }
+
+                    resultadosIA: roteiroSugerido,
+                },
             });
-
         } catch (error) {
-            console.log("Erro na integração nativa da IA da Home:", error);
+            console.log(error);
         }
-    };
-
-    const abrirMapaVivo = () => {
-        navigation.navigate("MapaVivo");
-    };
-
-    const abrirExploreCidade = () => {
-        navigation.navigate("TelaExploreCidade");
-    };
-
-    const abrirEventosProximos = () => {
-        navigation.navigate("Busca", {
-            screen: "BuscaHome",
-        });
     };
 
     if (loading) {
@@ -401,6 +374,7 @@ export default function TelaInicio() {
             <StatusBar barStyle="light-content" />
 
             <Animated.ScrollView
+                entering={FadeIn.duration(700)}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{
                     paddingBottom: insets.bottom + 140,
@@ -408,8 +382,22 @@ export default function TelaInicio() {
                 onScroll={verticalScroll}
                 scrollEventThrottle={16}
                 bounces
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={() => {
+                            carregarHome();
+                            refreshRecomendacoes();
+                        }}
+                        tintColor={Colors.primary}
+                    />
+                }
             >
-                <Animated.View style={headerStyle}>
+                {/* HEADER */}
+                <Animated.View
+                    entering={FadeInDown.duration(700)}
+                    style={headerStyle}
+                >
                     <LinearGradient
                         colors={[
                             Colors.backgroundSecondary,
@@ -441,9 +429,12 @@ export default function TelaInicio() {
                                 </Text>
                             </View>
 
-                            <View style={styles.headerActions}>
+                            <Animated.View
+                                entering={FadeInRight.delay(250)}
+                                style={styles.headerActions}
+                            >
                                 <TouchableOpacity
-                                    activeOpacity={0.9}
+                                    activeOpacity={0.8}
                                     style={styles.headerButton}
                                     onPress={() =>
                                         navigation.navigate(
@@ -452,22 +443,20 @@ export default function TelaInicio() {
                                     }
                                 >
                                     <BlurView
-                                        intensity={25}
+                                        intensity={35}
                                         tint="dark"
                                         style={styles.headerBlur}
                                     >
                                         <MaterialCommunityIcons
                                             name="magnify"
                                             size={22}
-                                            color={
-                                                Colors.textPrimary
-                                            }
+                                            color="#FFF"
                                         />
                                     </BlurView>
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    activeOpacity={0.9}
+                                    activeOpacity={0.8}
                                     style={styles.headerButton}
                                     onPress={() =>
                                         navigation.navigate(
@@ -476,16 +465,14 @@ export default function TelaInicio() {
                                     }
                                 >
                                     <BlurView
-                                        intensity={25}
+                                        intensity={35}
                                         tint="dark"
                                         style={styles.headerBlur}
                                     >
                                         <MaterialCommunityIcons
                                             name="bell-outline"
                                             size={22}
-                                            color={
-                                                Colors.textPrimary
-                                            }
+                                            color="#FFF"
                                         />
 
                                         <View
@@ -495,66 +482,121 @@ export default function TelaInicio() {
                                         />
                                     </BlurView>
                                 </TouchableOpacity>
-                            </View>
+                            </Animated.View>
                         </View>
                     </LinearGradient>
                 </Animated.View>
 
-                <HeroSection
-                    evento={destaques[0]}
-                    animatedStyle={momentStyle}
-                    onPress={abrirEvento}
-                />
+                {/* HERO */}
+                <Animated.View
+                    entering={FadeInUp.delay(120).springify()}
+                >
+                    <HeroSection
+                        evento={destaques[0]}
+                        animatedStyle={momentStyle}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
 
-                <StoryBar
-                    eventos={destaques}
-                    onPress={abrirEvento}
-                />
+                {/* STORIES */}
+                <Animated.View
+                    entering={FadeInLeft.delay(180).springify()}
+                >
+                    <StoryBar
+                        eventos={destaques}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
 
-                <CategoryPills
-                    categorias={categoriasHome}
-                    ativa={categoriaAtiva}
-                    onChange={setCategoriaAtiva}
-                />
+                {/* CATEGORIAS */}
+                <Animated.View
+                    entering={FadeInRight.delay(220).springify()}
+                >
+                    <CategoryPills
+                        categorias={categoriasHome}
+                        ativa={categoriaAtiva}
+                        onChange={setCategoriaAtiva}
+                    />
+                </Animated.View>
 
-                {/* COMPONENTE DA IA INTEGRADO COM A SUA NOVA PROPRIEDADE DE CLICK */}
-                <CulturalAISection
-                    onPressInsight={lidarComAIGerada}
-                />
+                {/* IA */}
+                <Animated.View
+                    entering={FadeInUp.delay(260).springify()}
+                >
+                    <CulturalAISection
+                        onPressInsight={lidarComAIGerada}
+                    />
+                </Animated.View>
 
-                <RecommendationSection
-                    eventos={recomendados}
-                    signals={sinaisUsuario}
-                    onPress={abrirEvento}
-                />
+                {/* RECOMENDAÇÕES */}
+                <Animated.View
+                    entering={FadeInUp.delay(320).springify()}
+                >
+                    <RecommendationSection
+                        eventos={recomendados}
+                        signals={sinaisUsuario}
+                        loading={loadingRecomendacoes}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
 
                 <SectionHeader
                     title="Destaques"
                     subtitle="Eventos em alta agora"
                 />
 
-                <TrendingCarousel
-                    eventos={destaques}
-                    scrollX={scrollX}
-                    onScroll={horizontalScroll}
-                    onPress={abrirEvento}
-                />
+                {/* TRENDING */}
+                <Animated.View
+                    entering={FadeInUp.delay(380).springify()}
+                >
+                    <TrendingCarousel
+                        eventos={destaques}
+                        scrollX={scrollX}
+                        onScroll={horizontalScroll}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
 
-                <LiveMapCard
-                    activeCount={proximos.length}
-                    onPress={abrirMapaVivo}
-                />
+                {/* MAPA */}
+                <Animated.View
+                    entering={FadeInUp.delay(440).springify()}
+                >
+                    <LiveMapCard
+                        activeCount={proximos.length}
+                        onPress={() =>
+                            navigation.navigate("MapaVivo")
+                        }
+                    />
+                </Animated.View>
 
-                <ExploreCitySection
-                    eventos={eventosFiltrados}
-                    onPress={abrirExploreCidade}
-                />
+                {/* EXPLORE */}
+                <Animated.View
+                    entering={FadeInUp.delay(500).springify()}
+                >
+                    <ExploreCitySection
+                        eventos={eventosFiltrados}
+                        onPress={() =>
+                            navigation.navigate(
+                                "TelaExploreCidade"
+                            )
+                        }
+                    />
+                </Animated.View>
 
-                <NearbySection
-                    eventos={proximos}
-                    onPress={abrirEvento}
-                    onViewAll={abrirEventosProximos}
-                />
+                {/* PRÓXIMOS */}
+                <Animated.View
+                    entering={FadeInUp.delay(560).springify()}
+                >
+                    <NearbySection
+                        eventos={proximos}
+                        onPress={abrirEvento}
+                        onViewAll={() =>
+                            navigation.navigate("Busca", {
+                                screen: "BuscaHome",
+                            })
+                        }
+                    />
+                </Animated.View>
             </Animated.ScrollView>
         </View>
     );
@@ -606,15 +648,15 @@ const styles = StyleSheet.create({
     },
 
     headerBlur: {
-        width: 50,
-        height: 50,
+        width: 52,
+        height: 52,
         borderRadius: 18,
         justifyContent: "center",
         alignItems: "center",
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: Colors.glassBorder,
-        backgroundColor: Colors.glass,
+        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "rgba(255,255,255,0.04)",
     },
 
     notificationDot: {

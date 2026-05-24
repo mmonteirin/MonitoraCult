@@ -13,6 +13,7 @@ import MapaStack from "./MapaStack";
 
 import Suporte from "../screens/TelaSuporte";
 import TelaPainelCidade from "../screens/TelaPainelCidade";
+import TelaLocaisVisitados from "../screens/TelaLocaisVisitados";
 
 import DrawerAvatar from "../components/DrawerAvatar";
 import { Colors, Typography } from "../styles/Colors";
@@ -86,6 +87,16 @@ export default function DrawerNavigator() {
         options={{
           drawerLabel: "Meu Perfil",
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="account-circle-outline" color={color} size={size} />,
+        }}
+      />
+
+      {/* 📍 LOCAIS VISITADOS */}
+      <Drawer.Screen
+        name="LocaisVisitados"
+        component={TelaLocaisVisitados}
+        options={{
+          drawerLabel: "Locais Visitados",
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-multiple-outline" color={color} size={size} />,
         }}
       />
 

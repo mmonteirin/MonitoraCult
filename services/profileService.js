@@ -7,7 +7,8 @@ import {
   where,
   orderBy,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
+import { registrarVisitaLocal } from "./localVisitadoService";
 
 const parseDate = (value) => {
   if (!value) return null;
@@ -88,7 +89,7 @@ export const getAttendedEvents = async (userId, maxItems = 30) => {
     const snapshot = await getDocs(comprasQuery);
     const now = new Date();
 
-    return snapshot.docs
+    const frequentados = snapshot.docs
       .map((document) => ({
         id: document.id,
         ...document.data(),
@@ -103,6 +104,14 @@ export const getAttendedEvents = async (userId, maxItems = 30) => {
         );
       })
       .slice(0, maxItems);
+
+    if (auth.currentUser?.uid === userId) {
+      frequentados.forEach((compra) => {
+        registrarVisitaLocal(userId, compra).catch(() => {});
+      });
+    }
+
+    return frequentados;
   } catch (error) {
     console.log("Erro ao buscar eventos frequentados:", error);
     return [];
