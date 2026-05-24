@@ -29,7 +29,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciador de sessão
 
 export default function PerfilLogin({ navigation }) {
-  const { login } = useAuth(); // Se o seu AuthContext expuser uma função de login, use aqui
+  const { googleLogin, facebookLogin, microsoftLogin, twitterLogin } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -264,16 +264,36 @@ export default function PerfilLogin({ navigation }) {
 
                 {/* LOGIN SOCIAL */}
                 <View style={styles.socialContainer}>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                    <Feather name="google" size={20} color="#FFF" />
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={googleLogin}
+                  >
+                    <FontAwesome6 name="google" size={20} color="#FFF" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                    <Feather name="facebook-f" size={20} color="#FFF" />
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={facebookLogin}
+                  >
+                    <FontAwesome6 name="facebook" size={20} color="#FFF" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                    <Feather name="x-twitter" size={20} color="#FFF" />
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={microsoftLogin}
+                  >
+                    <FontAwesome6 name="microsoft" size={20} color="#FFF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={twitterLogin}
+                  >
+                    <FontAwesome6 name="x-twitter" size={20} color="#FFF" />
                   </TouchableOpacity>
                 </View>
 

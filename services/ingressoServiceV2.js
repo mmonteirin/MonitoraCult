@@ -111,6 +111,18 @@ export const comprarIngressos = async ({
         throw new Error("Ingressos indisponíveis. Capacidade limite atingida.");
       }
 
+      // Verificar compra duplicada para o mesmo evento
+      const comprasExistentesRef = collection(db, "usuarios", userId, "compras");
+      const duplicadoQuery = query(
+        comprasExistentesRef,
+        where("eventoId", "==", eventoId),
+        where("status", "==", "confirmado")
+      );
+      const duplicadoSnap = await getDocs(duplicadoQuery);
+      if (!duplicadoSnap.empty) {
+        throw new Error("Você já possui ingressos confirmados para este evento.");
+      }
+
       // 2. Criar documento de compra
       const compraRef = doc(
         collection(db, "usuarios", userId, "compras")

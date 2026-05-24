@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import emailjs from "@emailjs/react-native";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -23,34 +24,31 @@ const gerarCodigo = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
 // ─────────────────────────────────────────────────────────────
-// Envia email via Firebase Extension "Trigger Email"
-// (coleção "mail" → Extension dispara o envio)
-//
-// Se preferir EmailJS, substitua esta função:
-//   import emailjs from "@emailjs/react-native";
-//   await emailjs.send(SERVICE_ID, TEMPLATE_ID, { to_email, code }, PUBLIC_KEY);
+// Envia email de verificação via EmailJS
 // ─────────────────────────────────────────────────────────────
-const enviarEmailFirebase = async (toEmail, code) => {
-  const mailRef = doc(db, "mail", `verify_${toEmail.replace(/[^a-z0-9]/gi, "_")}_${Date.now()}`);
+const enviarEmailVerificacao = async (toEmail, codigo) => {
+  try {
+    const response = await emailjs.send(
+      "MonitoraCult",
+      "verificacaoMonitoraCult",
+      {
+        CODIGO_VERIFICACAO: codigo,
+        TEMPO_VALIDADE: 10,
+        to_email: toEmail,
+      },
+      {
+        publicKey: "re6QctN7UZLA_gLCL",
+      }
+    );
 
-  await setDoc(mailRef, {
-    to: toEmail,
-    message: {
-      subject: "Seu código de verificação — MonitoraCult",
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#0f0f1a;border-radius:16px;color:#fff;">
-          <h2 style="color:#7B5CFF;margin-bottom:8px;">MonitoraCult</h2>
-          <p style="color:rgba(255,255,255,0.7);margin-bottom:24px;">Use o código abaixo para confirmar seu cadastro.</p>
-          <div style="background:rgba(123,92,255,0.15);border:1px solid rgba(123,92,255,0.4);border-radius:12px;padding:24px;text-align:center;">
-            <span style="font-size:36px;font-weight:bold;letter-spacing:10px;color:#fff;">${code}</span>
-          </div>
-          <p style="color:rgba(255,255,255,0.45);font-size:12px;margin-top:24px;text-align:center;">
-            Este código expira em 10 minutos. Não compartilhe com ninguém.
-          </p>
-        </div>
-      `,
-    },
-  });
+    console.log("Email enviado com sucesso:", response);
+
+    return true;
+  } catch (error) {
+    console.error("Erro ao enviar email:", error);
+
+    throw error;
+  }
 };
 
 export function CadastroProvider({ children }) {
@@ -76,7 +74,7 @@ export function CadastroProvider({ children }) {
       });
 
       // Dispara o envio do email
-      await enviarEmailFirebase(email, code);
+      await enviarEmailVerificacao(email, code);
 
       return { success: true };
     } catch (error) {

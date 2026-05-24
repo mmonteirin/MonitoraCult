@@ -28,10 +28,11 @@ import CarrinhoIngressos from "../components/CarrinhoIngressos";
 
 const getPrecoBase = (evento) =>
   Number(
-    evento?.precoInteira ??
-      evento?.preco ??
-      evento?.valor ??
-      0
+    evento?.precoIngresso ??  // campo canônico (AdmCadastroEvento)
+    evento?.precoInteira  ??  // alias alternativo
+    evento?.preco         ??  // legado
+    evento?.valor         ??  // legado
+    0
   ) || 0;
 
 const isEventoGratuito = (evento) =>
@@ -71,19 +72,16 @@ export default function TelaIngressos({ route, navigation }) {
     [evento]
   );
 
-  const precos = useMemo(
-    () =>
-      Object.fromEntries(
-        [
-          "inteira",
-          "meia",
-          "estudante",
-          "senior",
-          "promocional",
-        ].map((tipo) => [tipo, gratuito ? 0 : precoBase])
-      ),
-    [gratuito, precoBase]
-  );
+  const precos = useMemo(() => {
+    if (gratuito) return { inteira: 0, meia: 0, estudante: 0, senior: 0, promocional: 0 };
+    return {
+      inteira:    Number(evento?.precoIngresso ?? evento?.precoInteira ?? precoBase),
+      meia:       Number(evento?.precoMeia        || precoBase * 0.5),
+      estudante:  Number(evento?.precoEstudante   || precoBase * 0.7),
+      senior:     Number(evento?.precoSenior      || precoBase * 0.5),
+      promocional:Number(evento?.precoPromocional || precoBase * 0.5),
+    };
+  }, [gratuito, precoBase, evento]);
 
   // Verificar disponibilidade
   const capacidadeRestante = useMemo(() => {
@@ -145,21 +143,7 @@ export default function TelaIngressos({ route, navigation }) {
           resultado.mensagem,
           [
             {
-              text: "Ver Meus Ingressos",
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [
-                    {
-                      name: "PerfilMenu",
-                      params: { tela: "ingressos" },
-                    },
-                  ],
-                });
-              },
-            },
-            {
-              text: "Voltar",
+              text: "OK",
               onPress: () => navigation.goBack(),
             },
           ]
