@@ -7,18 +7,42 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDoc,
   query,
   where,
   orderBy,
   serverTimestamp,
   doc,
+  setDoc,
   updateDoc,
   onSnapshot,
   limit,
-  or,
-  and,
+  increment,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+
+const fallbackAvatar = (id) => `https://i.pravatar.cc/100?u=${id || "user"}`;
+
+const getOutroParticipanteFromConversaId = (conversaId, usuarioId) =>
+  conversaId
+    ?.split("_")
+    .find((participanteId) => participanteId && participanteId !== usuarioId);
+
+const getTimestampMillis = (value) => {
+  if (!value) return 0;
+  if (typeof value.toMillis === "function") return value.toMillis();
+  if (typeof value.toDate === "function") return value.toDate().getTime();
+  const date = value instanceof Date ? value : new Date(value);
+  const time = date.getTime();
+  return Number.isNaN(time) ? 0 : time;
+};
+
+const ordenarConversasPorAtividade = (conversas) =>
+  conversas.sort(
+    (a, b) =>
+      getTimestampMillis(b.ultimaAtividade) -
+      getTimestampMillis(a.ultimaAtividade)
+  );
 
 // ✅ ENVIAR MENSAGEM
 export const enviarMensagem = async ({
@@ -29,20 +53,35 @@ export const enviarMensagem = async ({
   destinatarioName,
   destinatarioPhoto,
   texto,
+  conversaId: conversaIdParam,
   midia = null, // {tipo: 'imagem/video', uri}
 }) => {
   try {
-    // Criar conversaId (sempre em ordem alfabética para consistência)
-    const conversaId = [remetenteId, destinatarioId].sort().join("_");
+    if (!remetenteId) throw new Error("Usuário remetente inválido");
+    if (!texto?.trim() && !midia) throw new Error("Mensagem não pode estar vazia");
+
+    let conversaId = conversaIdParam;
+    if (!conversaId && destinatarioId) {
+      conversaId = [remetenteId, destinatarioId].sort().join("_");
+    }
+
+    if (!conversaId) throw new Error("Conversa inválida");
+
+    const conversaRef = doc(db, "conversas", conversaId);
+    destinatarioId =
+      destinatarioId ||
+      getOutroParticipanteFromConversaId(conversaId, remetenteId);
+
+    if (!destinatarioId) throw new Error("Destinatário inválido");
 
     const mensagemData = {
       conversaId,
       remetenteId,
-      remetenteName,
-      remetentePhoto,
+      remetenteName: remetenteName || "Usuário",
+      remetentePhoto: remetentePhoto || fallbackAvatar(remetenteId),
       destinatarioId,
-      destinatarioName,
-      destinatarioPhoto,
+      destinatarioName: destinatarioName || "Usuário",
+      destinatarioPhoto: destinatarioPhoto || fallbackAvatar(destinatarioId),
       texto: texto.trim(),
       midia,
       lido: false,
@@ -52,31 +91,25 @@ export const enviarMensagem = async ({
       updatedAt: serverTimestamp(),
     };
 
-    // Adicionar mensagem
+    const conversaPayload = {
+      conversaId,
+      participantes: [remetenteId, destinatarioId].sort(),
+      ultimaMensagem: texto.trim(),
+      ultimaAtividade: serverTimestamp(),
+      remetente: remetenteId,
+    };
+
+    await setDoc(conversaRef, {
+      ...conversaPayload,
+      [`naoLido.${destinatarioId}`]: increment(1),
+      [`naoLido.${remetenteId}`]: 0,
+    }, { merge: true });
+
+    // Adicionar mensagem após garantir que a conversa existe para as rules.
     const docRef = await addDoc(
       collection(db, "conversas", conversaId, "mensagens"),
       mensagemData
     );
-
-    // Atualizar último update da conversa
-    const conversaRef = doc(db, "conversas", conversaId);
-    await updateDoc(conversaRef, {
-      ultimaMensagem: texto,
-      ultimaAtividade: serverTimestamp(),
-      remetente: remetenteId,
-    }).catch(async (e) => {
-      // Se não existe, criar documento
-      if (e.code === "not-found") {
-        await addDoc(collection(db, "conversas"), {
-          conversaId,
-          participantes: [remetenteId, destinatarioId],
-          ultimaMensagem: texto,
-          ultimaAtividade: serverTimestamp(),
-          remetente: remetenteId,
-          naoLido: { [destinatarioId]: 1 },
-        });
-      }
-    });
 
     return {
       success: true,
@@ -98,8 +131,7 @@ export const obterConversas = async (userId) => {
     // Buscar conversas onde o usuário participa
     const q = query(
       collection(db, "conversas"),
-      where("participantes", "array-contains", userId),
-      orderBy("ultimaAtividade", "desc")
+      where("participantes", "array-contains", userId)
     );
 
     const snapshot = await getDocs(q);
@@ -110,7 +142,7 @@ export const obterConversas = async (userId) => {
       conversas.push(conversa);
     });
 
-    return conversas;
+    return ordenarConversasPorAtividade(conversas);
   } catch (error) {
     console.error("Erro ao obter conversas:", error);
     return [];
@@ -158,7 +190,7 @@ export const marcarComolidas = async (conversaId, usuarioId) => {
     // Atualizar contador na conversa
     const conversaRef = doc(db, "conversas", conversaId);
     await updateDoc(conversaRef, {
-      naoLido: { [usuarioId]: 0 },
+      [`naoLido.${usuarioId}`]: 0,
     });
 
     return { success: true };
@@ -178,9 +210,7 @@ export const deletarMensagem = async (conversaId, mensagemId, usuarioId) => {
       "mensagens",
       mensagemId
     );
-    const mensagemSnap = await (await import("firebase/firestore")).getDoc(
-      mensagemRef
-    );
+    const mensagemSnap = await getDoc(mensagemRef);
 
     if (!mensagemSnap.exists()) {
       return { success: false, error: "Mensagem não encontrada" };
@@ -219,9 +249,7 @@ export const editarMensagem = async (
       "mensagens",
       mensagemId
     );
-    const mensagemSnap = await (await import("firebase/firestore")).getDoc(
-      mensagemRef
-    );
+    const mensagemSnap = await getDoc(mensagemRef);
 
     if (!mensagemSnap.exists()) {
       return { success: false, error: "Mensagem não encontrada" };
@@ -275,8 +303,7 @@ export const escutarConversas = (userId, callback) => {
   try {
     const q = query(
       collection(db, "conversas"),
-      where("participantes", "array-contains", userId),
-      orderBy("ultimaAtividade", "desc")
+      where("participantes", "array-contains", userId)
     );
 
     return onSnapshot(q, (snapshot) => {
@@ -286,7 +313,7 @@ export const escutarConversas = (userId, callback) => {
         conversas.push({ id: doc.id, ...doc.data() });
       });
 
-      callback(conversas);
+      callback(ordenarConversasPorAtividade(conversas));
     });
   } catch (error) {
     console.error("Erro ao escutar conversas:", error);
@@ -321,35 +348,19 @@ export const contarNaoLidas = async (userId) => {
 // ✅ BUSCAR OU CRIAR CONVERSA COM USUÁRIO
 export const obterOuCriarConversa = async (
   usuarioId,
-  outroUsuarioId,
-  outroUsuarioName,
-  outroUsuarioPhoto
+  outroUsuarioId
 ) => {
   try {
     const conversaId = [usuarioId, outroUsuarioId].sort().join("_");
     const conversaRef = doc(db, "conversas", conversaId);
 
-    const snap = await (
-      await import("firebase/firestore")
-    ).getDoc(conversaRef);
-
-    if (snap.exists()) {
-      return { success: true, conversaId, conversa: snap.data() };
-    }
-
-    // Criar nova conversa
+    // Garante a conversa sem leitura prévia, evitando bloqueio das rules em docs inexistentes.
     const novaConversa = {
       conversaId,
-      participantes: [usuarioId, outroUsuarioId],
-      ultimaMensagem: "",
-      ultimaAtividade: serverTimestamp(),
-      naoLido: { [outroUsuarioId]: 0 },
+      participantes: [usuarioId, outroUsuarioId].sort(),
     };
 
-    await (await import("firebase/firestore")).setDoc(
-      conversaRef,
-      novaConversa
-    );
+    await setDoc(conversaRef, novaConversa, { merge: true });
 
     return { success: true, conversaId, conversa: novaConversa };
   } catch (error) {

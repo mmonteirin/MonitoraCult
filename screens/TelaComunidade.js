@@ -37,8 +37,9 @@ const TABS = [
   { key: "meus", label: "meus grupos", icon: "bookmark-outline" },
 ];
 
-export default function TelaComunidade({ navigation }) {
+export default function TelaComunidade({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  const embedded = !!route?.params?.embedded;
   const {
     groups, myGroups, highlightedCreators, loading,
     loadGroups, loadMyGroups, loadHighlightedCreators,
@@ -58,6 +59,16 @@ export default function TelaComunidade({ navigation }) {
     name: "", description: "", genre: "Música", isPrivate: false,
   });
   const [creating, setCreating] = useState(false);
+  const HeaderContainer = embedded ? View : LinearGradient;
+  const headerContainerProps = embedded
+    ? {}
+    : {
+        colors: [
+          Colors?.backgroundSecondary || "#18122B",
+          Colors?.surface || "#10131F",
+          Colors?.background || "#10131F",
+        ],
+      };
 
   useEffect(() => {
     loadInitialData();
@@ -120,22 +131,27 @@ export default function TelaComunidade({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      {!embedded && <StatusBar barStyle="light-content" />}
 
       {/* HEADER DE COMUNIDADES NOVO LAYOUT */}
-      <LinearGradient
-        colors={[Colors?.backgroundSecondary || "#18122B", Colors?.surface || "#10131F", Colors?.background || "#10131F"]}
-        style={[styles.header, { paddingTop: insets.top + 12 }]}
+      <HeaderContainer
+        {...headerContainerProps}
+        style={[
+          styles.header,
+          embedded ? styles.headerEmbedded : { paddingTop: insets.top + 12 },
+        ]}
       >
-        <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.headerTitle}>Comunidade</Text>
-            <Text style={styles.headerSub}>Descubra grupos, criadores e cultura viva perto de você.</Text>
+        {!embedded && (
+          <View style={styles.headerTopRow}>
+            <View style={styles.headerCopy}>
+              <Text style={styles.headerTitle}>Comunidade</Text>
+              <Text style={styles.headerSub}>Descubra grupos, criadores e cultura viva perto de você.</Text>
+            </View>
+            <TouchableOpacity style={styles.bellButton} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="bell-outline" size={22} color="#FFF" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.bellButton} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="bell-outline" size={22} color="#FFF" />
-          </TouchableOpacity>
-        </View>
+        )}
 
         {/* BARRA DE BUSCA PREMIUM INTEGRADA */}
         <View style={styles.searchContainer}>
@@ -161,7 +177,7 @@ export default function TelaComunidade({ navigation }) {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </HeaderContainer>
 
       {/* TABS EM FORMATO DE PÍLULA CENTRALIZADA (IGUAL À SUA IMAGEM) */}
       <View style={styles.tabContainerOuter}>
@@ -430,12 +446,14 @@ export default function TelaComunidade({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors?.background || "#10131F" },
-  header: { paddingHorizontal: 20, paddingBottom: 16 },
+  header: { paddingHorizontal: 20, paddingBottom: 16, backgroundColor: Colors?.background || "#10131F" },
+  headerEmbedded: { paddingTop: 12, paddingBottom: 8 },
   headerTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  headerCopy: { flex: 1, paddingRight: 14 },
   headerTitle: { fontSize: 32, fontWeight: "800", color: "#FFF" },
   headerSub: { fontSize: 13, color: Colors?.textSecondary || "#94A3B8", marginTop: 4, paddingRight: 40, lineHeight: 18 },
   bellButton: { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
-  searchContainer: { flexDirection: "row", gap: 12, marginTop: 20 },
+  searchContainer: { flexDirection: "row", gap: 12, marginTop: 14 },
   searchBox: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 18, paddingHorizontal: 16, height: 54, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)", overflow: "hidden" },
   searchInput: { flex: 1, color: "#FFF", fontSize: 15 },
   createBtn: { borderRadius: 18, overflow: "hidden" },

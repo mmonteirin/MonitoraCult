@@ -12,6 +12,7 @@ import AdmStack from "./AdmStack";
 import MapaStack from "./MapaStack";
 
 import Suporte from "../screens/TelaSuporte";
+import TelaConfiguracoes from "../screens/TelaConfiguracoes";
 import TelaPainelCidade from "../screens/TelaPainelCidade";
 import TelaLocaisVisitados from "../screens/TelaLocaisVisitados";
 
@@ -57,6 +58,11 @@ export default function DrawerNavigator() {
           marginLeft: -10,
           fontFamily: Typography?.medium || "System",
         },
+        drawerItemStyle: {
+          minHeight: 44,
+          marginVertical: 1,
+          borderRadius: 14,
+        },
         drawerActiveBackgroundColor: "rgba(108,92,231,0.15)",
 
         /* 🎨 HEADER CONFIGS */
@@ -97,6 +103,17 @@ export default function DrawerNavigator() {
         options={{
           drawerLabel: "Locais Visitados",
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-multiple-outline" color={color} size={size} />,
+        }}
+      />
+
+      {/* ⚙️ CONFIGURAÇÕES */}
+      <Drawer.Screen
+        name="Configuracoes"
+        component={TelaConfiguracoes}
+        options={{
+          headerShown: false,
+          drawerLabel: "Configurações",
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" color={color} size={size} />,
         }}
       />
 

@@ -3,15 +3,12 @@
  * Exibe lista de conversas com opções
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
@@ -45,7 +42,9 @@ const TelaConversas = ({ navigation, route }) => {
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
+          <Text style={styles.label}>Conversas</Text>
           <Text style={styles.titulo}>Mensagens</Text>
+          <Text style={styles.subtitulo}>Fale com pessoas, criadores e organizadores.</Text>
           {naoLidas > 0 && (
             <View style={styles.badgeNaoLidas}>
               <Text style={styles.badgeText}>{naoLidas}</Text>
@@ -85,8 +84,9 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: Colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     flexDirection: "row",
@@ -96,24 +96,41 @@ const styles = StyleSheet.create({
 
   headerContent: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    paddingRight: 14,
   },
 
   titulo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "800",
     color: Colors.textPrimary,
+    marginTop: 2,
+  },
+
+  label: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0,
+  },
+
+  subtitulo: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    marginTop: 5,
+    lineHeight: 18,
   },
 
   badgeNaoLidas: {
     backgroundColor: Colors.primary,
-    width: 24,
+    alignSelf: "flex-start",
+    minWidth: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+    paddingHorizontal: 7,
+    marginTop: 10,
   },
 
   badgeText: {
@@ -123,7 +140,14 @@ const styles = StyleSheet.create({
   },
 
   btnNovaConversa: {
-    padding: 8,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
 });
 

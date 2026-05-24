@@ -143,6 +143,29 @@ export default function TelaPerfil({ navigation }) {
                         />
                     </TouchableOpacity>
 
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={styles.card}
+                        onPress={() => navigation.navigate("Configuracoes")}
+                    >
+                        <View style={styles.iconBox}>
+                            <MaterialCommunityIcons
+                                name="cog-outline"
+                                size={22}
+                                color={Colors.primary}
+                            />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <AppText style={styles.texto}>Configurações</AppText>
+                            <AppText style={styles.subtexto}>Privacidade, notificações e suporte</AppText>
+                        </View>
+                        <MaterialCommunityIcons
+                            name="chevron-right"
+                            size={24}
+                            color="rgba(255,255,255,0.35)"
+                        />
+                    </TouchableOpacity>
+
                     <AppText style={styles.section}>Atividade</AppText>
 
                     <TouchableOpacity

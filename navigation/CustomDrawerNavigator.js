@@ -53,28 +53,32 @@ export default function CustomDrawerContent(props) {
   return (
     <View style={styles.container}>
       {/* HEADER EM GRADIENTE */}
-      <LinearGradient colors={Gradients?.primary || ["#1E1B4B", "#0F172A"]} style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <LinearGradient colors={Gradients?.primary || ["#1E1B4B", "#0F172A"]} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.glow} />
         <TouchableOpacity activeOpacity={0.85} onPress={() => props.navigation.navigate("Perfil")}>
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], alignItems: "center" }}>
+          <Animated.View style={[styles.profileRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.avatarWrapper}>
               <Image source={{ uri: foto || user?.photoURL || "https://i.pravatar.cc/300" }} style={styles.avatar} />
               <View style={styles.onlineBadge} />
             </View>
 
-            <Text style={styles.nome}>{nomeUsuario}</Text>
-            <Text style={styles.email}>{user?.email || "Sem email"}</Text>
+            <View style={styles.profileCopy}>
+              <Text style={styles.nome} numberOfLines={1}>{nomeUsuario}</Text>
+              <Text style={styles.email} numberOfLines={1}>{user?.email || "Sem email"}</Text>
 
-            <BlurView intensity={40} tint="dark" style={styles.roleBadge}>
-              <MaterialCommunityIcons name={role === "admin" ? "shield-crown" : "account-circle"} size={14} color="#fff" />
-              <Text style={styles.roleText}>{role === "admin" ? "Organizador" : "Participante"}</Text>
-            </BlurView>
+              <BlurView intensity={35} tint="dark" style={styles.roleBadge}>
+                <MaterialCommunityIcons name={role === "admin" ? "shield-crown" : "account-circle"} size={13} color="#fff" />
+                <Text style={styles.roleText}>{role === "admin" ? "Organizador" : "Participante"}</Text>
+              </BlurView>
+            </View>
+
+            <MaterialCommunityIcons name="chevron-right" size={22} color="rgba(255,255,255,0.55)" />
           </Animated.View>
         </TouchableOpacity>
       </LinearGradient>
 
       {/* ROLAGEM DOS ITENS DO MENU */}
-      <DrawerContentScrollView {...props} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 10 }}>
+      <DrawerContentScrollView {...props} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 6, paddingBottom: 8 }}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }], paddingHorizontal: 8 }}>
           <DrawerItemList {...props} />
         </Animated.View>
@@ -139,24 +143,26 @@ export default function CustomDrawerContent(props) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: 22, paddingBottom: 28, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: "hidden", alignItems: "center" },
-  glow: { position: "absolute", width: 220, height: 220, borderRadius: Radius?.round || 999, backgroundColor: "rgba(255,255,255,0.08)", top: -70, right: -60 },
-  avatarWrapper: { position: "relative", marginBottom: 14 },
-  avatar: { width: 100, height: 100, borderRadius: Radius?.round || 50, borderWidth: 3, borderColor: "rgba(255,255,255,0.15)" },
-  onlineBadge: { position: "absolute", right: 6, bottom: 6, width: 16, height: 16, borderRadius: 8, backgroundColor: Colors.success, borderWidth: 2, borderColor: "#111827" },
-  nome: { color: Colors.textPrimary, fontFamily: Typography?.bold || "System", fontSize: 20, fontWeight: "700", marginBottom: 4, textAlign: "center" },
-  email: { color: "rgba(255,255,255,0.75)", fontSize: 13, marginBottom: 14, textAlign: "center" },
-  roleBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 30, overflow: "hidden" },
+  header: { paddingHorizontal: 14, paddingBottom: 14, borderBottomLeftRadius: 22, borderBottomRightRadius: 22, overflow: "hidden" },
+  glow: { position: "absolute", width: 160, height: 160, borderRadius: Radius?.round || 999, backgroundColor: "rgba(255,255,255,0.08)", top: -62, right: -46 },
+  profileRow: { flexDirection: "row", alignItems: "center" },
+  profileCopy: { flex: 1, paddingHorizontal: 12 },
+  avatarWrapper: { position: "relative" },
+  avatar: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
+  onlineBadge: { position: "absolute", right: 1, bottom: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: Colors.success, borderWidth: 2, borderColor: "#111827" },
+  nome: { color: Colors.textPrimary, fontFamily: Typography?.bold || "System", fontSize: 16, fontWeight: "800" },
+  email: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
+  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 30, overflow: "hidden", marginTop: 7 },
   roleText: { color: Colors.textPrimary, fontFamily: Typography?.bold || "System", fontSize: 12, fontWeight: "600" },
-  footer: { padding: 20 },
-  supportButton: { borderRadius: Radius?.lg || 16, overflow: "hidden", marginBottom: 14 },
-  cityButtonGradient: { flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16, borderRadius: Radius?.lg || 16 },
-  cityIconWrapper: { width: 42, height: 42, borderRadius: Radius?.md || 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(124,58,237,0.14)", marginRight: 12 },
-  supportText: { color: Colors.textPrimary, fontWeight: "700", fontSize: 14 },
-  citySubText: { color: Colors.textMuted, marginTop: 2, fontSize: 12 },
-  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,68,68,0.08)", paddingVertical: 16, borderRadius: Radius?.md || 12 },
-  logoutText: { color: Colors.error, fontWeight: "700", marginLeft: 10, fontSize: 15 },
-  version: { color: Colors.textMuted, textAlign: "center", marginTop: 16, fontSize: 12 },
+  footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 14 },
+  supportButton: { borderRadius: Radius?.md || 16, overflow: "hidden", marginBottom: 10 },
+  cityButtonGradient: { flexDirection: "row", alignItems: "center", paddingVertical: 11, paddingHorizontal: 12, borderRadius: Radius?.md || 16 },
+  cityIconWrapper: { width: 36, height: 36, borderRadius: Radius?.sm || 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(124,58,237,0.14)", marginRight: 10 },
+  supportText: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13 },
+  citySubText: { color: Colors.textMuted, marginTop: 1, fontSize: 11 },
+  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,68,68,0.08)", paddingVertical: 12, borderRadius: Radius?.sm || 12 },
+  logoutText: { color: Colors.error, fontWeight: "700", marginLeft: 9, fontSize: 14 },
+  version: { color: Colors.textMuted, textAlign: "center", marginTop: 10, fontSize: 11 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 },
   modalCard: { width: "100%", borderRadius: 30, overflow: "hidden", padding: 26, backgroundColor: "rgba(15,15,25,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
   modalIcon: { width: 74, height: 74, borderRadius: 24, justifyContent: "center", alignItems: "center", alignSelf: "center", marginBottom: 20 },

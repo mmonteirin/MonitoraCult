@@ -16,16 +16,35 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
 
+const TAB_BAR_CLEARANCE = 130;
+
+const formatarHora = (timestamp) => {
+  if (!timestamp) return "";
+  const data = timestamp.toDate?.() || new Date(timestamp);
+  const diff = Date.now() - data.getTime();
+  const min = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+
+  if (min < 1) return "agora";
+  if (min < 60) return `${min}m`;
+  if (h < 24) return `${h}h`;
+  if (d < 7) return `${d}d`;
+  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+};
+
 // ✅ Item de conversa
 const ConversaItem = memo(({ conversa, onPress, userId }) => {
   // Identificar outro usuário
+  const participantes = conversa.participantes || [];
   const outroUserId =
-    conversa.participantes[0] === userId
-      ? conversa.participantes[1]
-      : conversa.participantes[0];
+    participantes.find((participante) => participante !== userId) || "";
+  const outroPerfil = conversa.participantProfiles?.[outroUserId] || {};
 
   const naoLidas = conversa.naoLido?.[userId] || 0;
   const ultimoFoiEle = conversa.remetente !== userId;
+  const nome = outroPerfil.nome || conversa.nomeOutro || `Usuário ${outroUserId.slice(0, 4)}`;
+  const avatar = outroPerfil.avatar || conversa.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId || "user"}`;
 
   return (
     <TouchableOpacity
@@ -36,7 +55,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
       {/* Avatar */}
       <Image
         source={{
-          uri: `https://i.pravatar.cc/100?u=${outroUserId}`,
+          uri: avatar,
         }}
         style={styles.avatar}
       />
@@ -51,7 +70,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
             ]}
             numberOfLines={1}
           >
-            Usuário {outroUserId.slice(0, 4)}
+            {nome}
           </Text>
           <Text
             style={[
@@ -59,7 +78,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
               naoLidas > 0 && styles.horaNaoLida,
             ]}
           >
-            agora
+            {formatarHora(conversa.ultimaAtividade)}
           </Text>
         </View>
 
@@ -70,7 +89,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
           ]}
           numberOfLines={1}
         >
-          {ultimoFoiEle && "👤 "}{conversa.ultimaMensagem || "Nenhuma mensagem"}
+          {ultimoFoiEle ? "" : "Você: "}{conversa.ultimaMensagem || "Nenhuma mensagem"}
         </Text>
       </View>
 
@@ -128,6 +147,7 @@ const ListaConversas = memo(
         )}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={() => <View style={styles.separador} />}
+        contentContainerStyle={styles.lista}
         scrollEventThrottle={16}
       />
     );
@@ -144,13 +164,19 @@ const styles = StyleSheet.create({
   conversaItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    marginHorizontal: 14,
+    marginVertical: 5,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: Colors.background,
+    borderRadius: 18,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
 
   conversaNaoLida: {
-    backgroundColor: Colors.primary + "08",
+    backgroundColor: Colors.primary + "12",
+    borderColor: Colors.primary + "55",
   },
 
   avatar: {
@@ -174,7 +200,7 @@ const styles = StyleSheet.create({
   nome: {
     fontSize: 15,
     color: Colors.textSecondary,
-    fontWeight: "500",
+    fontWeight: "700",
   },
 
   nomeNaoLido: {
@@ -219,15 +245,19 @@ const styles = StyleSheet.create({
   },
 
   separador: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginHorizontal: 16,
+    height: 0,
+  },
+
+  lista: {
+    paddingTop: 8,
+    paddingBottom: TAB_BAR_CLEARANCE,
   },
 
   vazio: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingBottom: TAB_BAR_CLEARANCE,
   },
 
   vazioText: {
