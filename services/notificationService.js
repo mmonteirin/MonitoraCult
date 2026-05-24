@@ -1,24 +1,19 @@
 /**
  * notificationService.js
- * Serviço completo de notificações push — expo-notifications + Firestore
  *
- * Responsabilidades:
- *  - Solicitar permissão e obter o Expo Push Token
- *  - Salvar/remover o token no Firestore (users/{uid}/pushTokens)
- *  - Enviar notificações locais (agendadas ou imediatas)
- *  - Enviar notificações via Expo Push API (servidor → dispositivo)
- *  - Persistir histórico de notificações em Firestore (users/{uid}/notifications)
- *  - Utilitários: marcar como lida, limpar histórico, contar não lidas
+ * ⚠️  expo-notifications depende de módulos Node.js (util, assert) que não
+ *     existem no bundle web. A solução é importar via módulo local que o
+ *     Metro resolve por plataforma:
+ *       modules/notifications.native.js → re-export de expo-notifications
+ *       modules/notifications.web.js    → stub vazio (noop)
  */
 
-import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
+import * as Notifications from "../modules/notifications";
 import { Platform } from "react-native";
 
 import {
   doc,
   setDoc,
-  deleteDoc,
   collection,
   addDoc,
   getDocs,
@@ -29,13 +24,11 @@ import {
   where,
   serverTimestamp,
   writeBatch,
-  getDoc,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
 
-// ─── Configuração padrão do handler ──────────────────────────────────────────
-// Define o comportamento quando a notificação chega com o app em foreground
+// ─── Handler de foreground (noop na web via stub) ─────────────────────────────
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -44,7 +37,7 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// ─── Tipos de notificação suportados ─────────────────────────────────────────
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 export const NOTIFICATION_TYPES = {
   EVENTO_NOVO: "evento_novo",
   EVENTO_LEMBRETE: "evento_lembrete",
@@ -62,7 +55,6 @@ export const NOTIFICATION_TYPES = {
 // ─── Canal Android ────────────────────────────────────────────────────────────
 export async function configurarCanaisAndroid() {
   if (Platform.OS !== "android") return;
-
   await Notifications.setNotificationChannelAsync("eventos", {
     name: "Eventos Culturais",
     importance: Notifications.AndroidImportance.HIGH,
@@ -71,232 +63,156 @@ export async function configurarCanaisAndroid() {
     sound: "default",
     enableVibrate: true,
   });
-
   await Notifications.setNotificationChannelAsync("social", {
     name: "Interações Sociais",
     importance: Notifications.AndroidImportance.DEFAULT,
     sound: "default",
   });
-
   await Notifications.setNotificationChannelAsync("mensagens", {
     name: "Mensagens",
     importance: Notifications.AndroidImportance.HIGH,
     sound: "default",
     enableVibrate: true,
   });
-
   await Notifications.setNotificationChannelAsync("sistema", {
     name: "Sistema",
     importance: Notifications.AndroidImportance.LOW,
   });
 }
 
-// ─── Permissão e token ────────────────────────────────────────────────────────
-
-/**
- * Solicita permissão e retorna o Expo Push Token.
- * Retorna null em simulador/emulador ou se permissão negada.
- */
+// ─── Token ────────────────────────────────────────────────────────────────────
 export async function obterPushToken() {
-  // Expo Push Notifications só funciona em dispositivo físico
-  if (!Device.isDevice) {
-    console.log("[Notificações] Push Token não disponível em simulador.");
+  if (Platform.OS === "web") return null;
+  try {
+    const Device = require("expo-device");
+    if (!Device.isDevice) return null;
+    const { status: existente } = await Notifications.getPermissionsAsync();
+    let status = existente;
+    if (existente !== "granted") {
+      const { status: novo } = await Notifications.requestPermissionsAsync();
+      status = novo;
+    }
+    if (status !== "granted") return null;
+    await configurarCanaisAndroid();
+    const tokenData = await Notifications.getExpoPushTokenAsync({
+      projectId: "snack-76330891-d725-4703-84bd-f58504f3c860",
+    });
+    return tokenData.data;
+  } catch (e) {
+    console.log("[Notificações] obterPushToken:", e.message);
     return null;
   }
-
-  const { status: existente } = await Notifications.getPermissionsAsync();
-  let status = existente;
-
-  if (existente !== "granted") {
-    const { status: novo } = await Notifications.requestPermissionsAsync();
-    status = novo;
-  }
-
-  if (status !== "granted") {
-    console.log("[Notificações] Permissão negada pelo usuário.");
-    return null;
-  }
-
-  await configurarCanaisAndroid();
-
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId: "snack-76330891-d725-4703-84bd-f58504f3c860", // slug do app.json
-  });
-
-  return tokenData.data;
 }
 
-/**
- * Salva o push token no Firestore para o usuário autenticado.
- * Armazena por deviceId para suportar múltiplos dispositivos.
- */
 export async function salvarTokenNoFirestore(uid, token) {
   if (!uid || !token) return;
-
   try {
-    const tokenRef = doc(db, "users", uid, "pushTokens", token.replace(/[^a-zA-Z0-9]/g, "_"));
-    await setDoc(tokenRef, {
-      token,
-      platform: Platform.OS,
-      criadoEm: serverTimestamp(),
-      ativo: true,
-    });
-  } catch (error) {
-    console.error("[Notificações] Erro ao salvar token:", error);
+    await setDoc(
+      doc(db, "users", uid, "pushTokens", token.replace(/[^a-zA-Z0-9]/g, "_")),
+      { token, platform: Platform.OS, criadoEm: serverTimestamp(), ativo: true }
+    );
+  } catch (e) {
+    console.error("[Notificações] salvarToken:", e);
   }
 }
 
-/**
- * Desativa o token ao fazer logout (não remove, apenas marca inativo).
- */
 export async function desativarToken(uid, token) {
   if (!uid || !token) return;
   try {
-    const tokenRef = doc(db, "users", uid, "pushTokens", token.replace(/[^a-zA-Z0-9]/g, "_"));
-    await updateDoc(tokenRef, { ativo: false });
+    await updateDoc(
+      doc(db, "users", uid, "pushTokens", token.replace(/[^a-zA-Z0-9]/g, "_")),
+      { ativo: false }
+    );
   } catch (_) {}
 }
 
-// ─── Notificações locais ──────────────────────────────────────────────────────
-
-/**
- * Exibe uma notificação local imediata.
- */
+// ─── Locais ───────────────────────────────────────────────────────────────────
 export async function notificarLocal({ titulo, corpo, dados = {}, canal = "eventos" }) {
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: titulo,
-      body: corpo,
-      data: dados,
-      sound: "default",
+      title: titulo, body: corpo, data: dados, sound: "default",
       ...(Platform.OS === "android" && { channelId: canal }),
     },
-    trigger: null, // imediata
+    trigger: null,
   });
 }
 
-/**
- * Agenda uma notificação local para uma data/hora específica.
- */
 export async function agendarNotificacao({ titulo, corpo, dados = {}, dataHora, canal = "eventos" }) {
   if (dataHora <= new Date()) return null;
-
-  const id = await Notifications.scheduleNotificationAsync({
+  return await Notifications.scheduleNotificationAsync({
     content: {
-      title: titulo,
-      body: corpo,
-      data: dados,
-      sound: "default",
+      title: titulo, body: corpo, data: dados, sound: "default",
       ...(Platform.OS === "android" && { channelId: canal }),
     },
     trigger: { date: dataHora },
   });
-
-  return id;
 }
 
-/**
- * Cancela uma notificação agendada por ID.
- */
-export async function cancelarNotificacao(notificationId) {
-  if (!notificationId) return;
-  await Notifications.cancelScheduledNotificationAsync(notificationId);
+export async function cancelarNotificacao(id) {
+  if (!id) return;
+  await Notifications.cancelScheduledNotificationAsync(id);
 }
 
-/**
- * Cancela todas as notificações agendadas.
- */
 export async function cancelarTodasNotificacoes() {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
-// ─── Lembrete de evento ───────────────────────────────────────────────────────
-
-/**
- * Agenda lembretes automáticos para um evento:
- *   - 24h antes
- *   - 1h antes
- */
 export async function agendarLembretesEvento(evento) {
   if (!evento.dataEventoTimestamp) return [];
-
   const dataEvento = evento.dataEventoTimestamp.toDate
     ? evento.dataEventoTimestamp.toDate()
     : new Date(evento.dataEventoTimestamp);
-
   const ids = [];
-
-  const umDiaAntes = new Date(dataEvento.getTime() - 24 * 60 * 60 * 1000);
-  if (umDiaAntes > new Date()) {
+  const umDia = new Date(dataEvento.getTime() - 24 * 60 * 60 * 1000);
+  if (umDia > new Date()) {
     const id = await agendarNotificacao({
       titulo: "🎭 Amanhã tem evento!",
       corpo: `"${evento.tituloEvento}" acontece amanhã em ${evento.localEvento || "local a confirmar"}`,
       dados: { tipo: NOTIFICATION_TYPES.EVENTO_LEMBRETE, eventoId: evento.id },
-      dataHora: umDiaAntes,
+      dataHora: umDia,
     });
     if (id) ids.push(id);
   }
-
-  const umaHoraAntes = new Date(dataEvento.getTime() - 60 * 60 * 1000);
-  if (umaHoraAntes > new Date()) {
+  const umaHora = new Date(dataEvento.getTime() - 60 * 60 * 1000);
+  if (umaHora > new Date()) {
     const id = await agendarNotificacao({
       titulo: "⏰ Já está chegando!",
       corpo: `"${evento.tituloEvento}" começa em 1 hora!`,
       dados: { tipo: NOTIFICATION_TYPES.EVENTO_LEMBRETE, eventoId: evento.id },
-      dataHora: umaHoraAntes,
+      dataHora: umaHora,
     });
     if (id) ids.push(id);
   }
-
   return ids;
 }
 
-// ─── Histórico Firestore ──────────────────────────────────────────────────────
-
-/**
- * Cria uma notificação no histórico do usuário (Firestore).
- * Usado para exibir o sino de notificações dentro do app.
- */
+// ─── Firestore ────────────────────────────────────────────────────────────────
 export async function criarNotificacaoFirestore(uid, { titulo, corpo, tipo, dados = {} }) {
   if (!uid) return null;
   try {
     const ref = await addDoc(collection(db, "users", uid, "notifications"), {
-      titulo,
-      corpo,
-      tipo,
-      dados,
-      lida: false,
-      criadoEm: serverTimestamp(),
+      titulo, corpo, tipo, dados, lida: false, criadoEm: serverTimestamp(),
     });
     return ref.id;
-  } catch (error) {
-    console.error("[Notificações] Erro ao criar notificação:", error);
+  } catch (e) {
+    console.error("[Notificações] criarNotificacao:", e);
     return null;
   }
 }
 
-/**
- * Busca as últimas notificações do usuário.
- */
 export async function buscarNotificacoes(uid, quantidade = 30) {
   if (!uid) return [];
   try {
-    const q = query(
-      collection(db, "users", uid, "notifications"),
-      orderBy("criadoEm", "desc"),
-      limit(quantidade)
+    const snap = await getDocs(
+      query(collection(db, "users", uid, "notifications"), orderBy("criadoEm", "desc"), limit(quantidade))
     );
-    const snap = await getDocs(q);
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  } catch (error) {
-    console.error("[Notificações] Erro ao buscar:", error);
+  } catch (e) {
+    console.error("[Notificações] buscarNotificacoes:", e);
     return [];
   }
 }
 
-/**
- * Marca uma notificação específica como lida.
- */
 export async function marcarComoLida(uid, notifId) {
   if (!uid || !notifId) return;
   try {
@@ -304,47 +220,33 @@ export async function marcarComoLida(uid, notifId) {
   } catch (_) {}
 }
 
-/**
- * Marca todas as notificações do usuário como lidas.
- */
 export async function marcarTodasComoLidas(uid) {
   if (!uid) return;
   try {
-    const q = query(
-      collection(db, "users", uid, "notifications"),
-      where("lida", "==", false)
+    const snap = await getDocs(
+      query(collection(db, "users", uid, "notifications"), where("lida", "==", false))
     );
-    const snap = await getDocs(q);
     if (snap.empty) return;
-
     const batch = writeBatch(db);
     snap.docs.forEach((d) => batch.update(d.ref, { lida: true }));
     await batch.commit();
-  } catch (error) {
-    console.error("[Notificações] Erro ao marcar todas:", error);
+  } catch (e) {
+    console.error("[Notificações] marcarTodas:", e);
   }
 }
 
-/**
- * Conta notificações não lidas.
- */
 export async function contarNaoLidas(uid) {
   if (!uid) return 0;
   try {
-    const q = query(
-      collection(db, "users", uid, "notifications"),
-      where("lida", "==", false)
+    const snap = await getDocs(
+      query(collection(db, "users", uid, "notifications"), where("lida", "==", false))
     );
-    const snap = await getDocs(q);
     return snap.size;
   } catch (_) {
     return 0;
   }
 }
 
-/**
- * Remove todas as notificações do histórico.
- */
 export async function limparHistorico(uid) {
   if (!uid) return;
   try {
@@ -352,70 +254,40 @@ export async function limparHistorico(uid) {
     const batch = writeBatch(db);
     snap.docs.forEach((d) => batch.delete(d.ref));
     await batch.commit();
-  } catch (error) {
-    console.error("[Notificações] Erro ao limpar:", error);
+  } catch (e) {
+    console.error("[Notificações] limpar:", e);
   }
 }
 
-// ─── Envio via Expo Push API (server-side) ────────────────────────────────────
-
-/**
- * Envia uma notificação push para um token específico via Expo Push API.
- * Usar em Cloud Functions ou em fluxos de admin.
- *
- * Nota: Para produção, mova isso para um backend seguro.
- */
+// ─── Push remoto ──────────────────────────────────────────────────────────────
 export async function enviarPushParaToken(token, { titulo, corpo, dados = {} }) {
   try {
-    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+    const r = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "Accept-Encoding": "gzip, deflate",
-      },
-      body: JSON.stringify({
-        to: token,
-        title: titulo,
-        body: corpo,
-        data: dados,
-        sound: "default",
-        priority: "high",
-      }),
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ to: token, title: titulo, body: corpo, data: dados, sound: "default", priority: "high" }),
     });
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error("[Notificações] Erro ao enviar push:", error);
+    return await r.json();
+  } catch (e) {
+    console.error("[Notificações] enviarPush:", e);
     return null;
   }
 }
 
-/**
- * Busca todos os tokens ativos de um usuário e envia push para todos.
- */
 export async function notificarUsuario(uid, payload) {
   if (!uid) return;
   try {
     const snap = await getDocs(
-      query(
-        collection(db, "users", uid, "pushTokens"),
-        where("ativo", "==", true)
-      )
+      query(collection(db, "users", uid, "pushTokens"), where("ativo", "==", true))
     );
-    const promises = snap.docs.map((d) =>
-      enviarPushParaToken(d.data().token, payload)
-    );
-    await Promise.allSettled(promises);
-    // Persiste no histórico do usuário
+    await Promise.allSettled(snap.docs.map((d) => enviarPushParaToken(d.data().token, payload)));
     await criarNotificacaoFirestore(uid, payload);
-  } catch (error) {
-    console.error("[Notificações] Erro ao notificar usuário:", error);
+  } catch (e) {
+    console.error("[Notificações] notificarUsuario:", e);
   }
 }
 
 // ─── Badge ────────────────────────────────────────────────────────────────────
-
 export async function setBadgeCount(count) {
   await Notifications.setBadgeCountAsync(count);
 }

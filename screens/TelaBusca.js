@@ -180,19 +180,30 @@ const SearchHeroCard = React.memo(({ item, index, scrollX, onNavigate, setModalM
 /* -------------------------------------------------------------------------- */
 /* COMPONENTE PRINCIPAL                          */
 /* -------------------------------------------------------------------------- */
-export default function TelaBusca({ navigation }) {
+export default function TelaBusca({ route, navigation }) {
   const insets = useSafeAreaInsets();
 
+  const params = route?.params;
+
   const [loading, setLoading] = useState(true);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(params?.query || "");
   const [eventos, setEventos] = useState([]);
-  const [categoria, setCategoria] = useState("Todos");
+  const [categoria, setCategoria] = useState(params?.categoria || "Todos");
   const [filtroData, setFiltroData] = useState("todos");
   const [filtroPreco, setFiltroPreco] = useState("todos");
-  const [localizacao, setLocalizacao] = useState("");
+  const [localizacao, setLocalizacao] = useState(params?.localizacao || "");
   const [filtrosVisible, setFiltrosVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+
+  // Atualiza reativamente os filtros caso venham parâmetros em nova navegação
+  useEffect(() => {
+    if (params) {
+      if (params.query !== undefined) setQuery(params.query);
+      if (params.categoria !== undefined) setCategoria(params.categoria);
+      if (params.localizacao !== undefined) setLocalizacao(params.localizacao);
+    }
+  }, [params]);
 
   // Shared Value reanimado compartilhado com o manipulador de rolagem do FlatList
   const scrollX = useSharedValue(0);

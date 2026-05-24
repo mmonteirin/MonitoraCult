@@ -103,7 +103,7 @@ export function NotificationProvider({ children }) {
       return;
     }
 
-    const Notifications = require("expo-notifications");
+    const Notifications = require("../modules/notifications");
     notificationsModuleRef.current = Notifications;
 
     // 1. Obter token

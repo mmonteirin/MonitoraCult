@@ -46,6 +46,8 @@ import { Colors } from "../styles/Colors";
 
 import ConfirmModal from "../components/ConfirmModal";
 
+import EventoShareCard from "../components/EventoShareCard";
+
 import {
 	getUserLikes,
 	toggleEventoLike,
@@ -233,6 +235,9 @@ export default function EventoDetalhes({
 
 	const [modalMessage, setModalMessage] =
 		useState("");
+
+	const [showShare, setShowShare] =
+		useState(false);
 
 	const showModal = (
 		title,
@@ -666,6 +671,35 @@ export default function EventoDetalhes({
 								size={
 									22
 								}
+								color="#FFF"
+							/>
+						</BlurView>
+					</TouchableOpacity>
+
+					{/* Botão compartilhar */}
+					<TouchableOpacity
+						activeOpacity={0.8}
+						style={[
+							styles.back,
+							styles.shareBtn,
+							{
+								top:
+									insets.top +
+									10,
+							},
+						]}
+						onPress={() =>
+							setShowShare(true)
+						}
+					>
+						<BlurView
+							intensity={40}
+							tint="dark"
+							style={styles.blurBtn}
+						>
+							<MaterialCommunityIcons
+								name="share-variant"
+								size={22}
 								color="#FFF"
 							/>
 						</BlurView>
@@ -1317,6 +1351,13 @@ export default function EventoDetalhes({
 				confirmText="OK"
 				onConfirm={() => setModalVisible(false)}
 			/>
+
+			{/* SHARE CARD */}
+			<EventoShareCard
+				visible={showShare}
+				onClose={() => setShowShare(false)}
+				evento={evento}
+			/>
 		</View>
 	);
 }
@@ -1358,6 +1399,11 @@ const styles =
 			left: 18,
 			borderRadius: 18,
 			overflow: "hidden",
+		},
+
+		shareBtn: {
+			left: undefined,
+			right: 18,
 		},
 
 		blurBtn: {

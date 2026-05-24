@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
 import {
     RefreshControl,
@@ -7,6 +7,9 @@ import {
     Text,
     TouchableOpacity,
     View,
+    Modal,
+    ScrollView,
+    Dimensions,
 } from "react-native";
 
 import Animated, {
@@ -97,6 +100,28 @@ export default function TelaInicio() {
     const scrollY = useSharedValue(0);
 
     const scrollX = useSharedValue(0);
+
+    const [modalAIVisivel, setModalAIVisivel] = useState(false);
+    const [insightsGerados, setInsightsGerados] = useState([]);
+    const [textoTypewriter, setTextoTypewriter] = useState("");
+    const intervalRef = useRef(null);
+
+    const gerarIntroducaoIA = (nome, termo, clima, eventosCount) => {
+        const saudacao = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
+        const focoMap = {
+            orla: "focado na Orla e Praias 🏖️",
+            gratuito: "com foco em Eventos Gratuitos 🎟️",
+            show: "especial para curtir Shows e Música ao Vivo 🎸",
+            teatro: "recheado de Teatro e Artes Cênicas 🎭"
+        };
+        const focoText = focoMap[termo] || "super especial e sob medida 🎨";
+        
+        if (eventosCount === 0) {
+            return `Olá, ${nome}! ${saudacao}. Analisei o pulso cultural de Fortaleza hoje mas não encontrei eventos ativos correspondentes a essa categoria específica no momento. Que tal tentarmos outro foco? ✨`;
+        }
+
+        return `Olá, ${nome}! ${saudacao}. Analisei os eventos ativos em Fortaleza e, baseado no clima de ${clima}, montei este roteiro exclusivo ${focoText} com ${eventosCount} paradas perfeitas para você curtir hoje! 👇`;
+    };
 
     const usuarioId = user?.uid;
 
@@ -319,37 +344,41 @@ export default function TelaInicio() {
                 );
             } catch (e) {}
 
-            let textoPesquisaInput = "";
+            // 1. Gera os roteiros contextuais pela IA
+            const roteiroSugerido = await gerarInsightsCulturais(
+                termoBusca,
+                eventosFiltrados
+            );
 
-            if (termoBusca === "orla")
-                textoPesquisaInput = "Orla";
+            setInsightsGerados(roteiroSugerido);
 
-            if (termoBusca === "gratuito")
-                textoPesquisaInput = "Gratuito";
+            // 2. Abre o modal glassmorphic
+            setModalAIVisivel(true);
 
-            if (termoBusca === "show")
-                textoPesquisaInput = "Show";
+            // 3. Inicia o efeito typewriter de digitação em tempo real
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
 
-            if (termoBusca === "teatro")
-                textoPesquisaInput = "Teatro";
+            const introducao = gerarIntroducaoIA(
+                nomeUsuario,
+                termoBusca,
+                "29°C",
+                roteiroSugerido.length
+            );
 
-            const roteiroSugerido =
-                await gerarInsightsCulturais(
-                    termoBusca,
-                    eventosFiltrados
-                );
-
-            navigation.navigate("Busca", {
-                screen: "BuscaHome",
-
-                params: {
-                    queryIA: textoPesquisaInput,
-
-                    resultadosIA: roteiroSugerido,
-                },
-            });
+            setTextoTypewriter("");
+            let index = 0;
+            intervalRef.current = setInterval(() => {
+                if (index < introducao.length) {
+                    setTextoTypewriter((prev) => prev + introducao.charAt(index));
+                    index++;
+                } else {
+                    clearInterval(intervalRef.current);
+                }
+            }, 10);
         } catch (error) {
-            console.log(error);
+            console.log("Erro ao gerar roteiro na IA:", error);
         }
     };
 
@@ -577,7 +606,8 @@ export default function TelaInicio() {
                         eventos={eventosFiltrados}
                         onPress={() =>
                             navigation.navigate(
-                                "TelaExploreCidade"
+                                "TelaExploreCidade",
+                                { eventos: eventosFiltrados }
                             )
                         }
                     />
@@ -598,6 +628,137 @@ export default function TelaInicio() {
                     />
                 </Animated.View>
             </Animated.ScrollView>
+
+            {/* MODAL CULTURAL AI HOLOGRÁFICO GLASSMORPHIC */}
+            <Modal
+                visible={modalAIVisivel}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => {
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                    setModalAIVisivel(false);
+                }}
+            >
+                <View style={styles.modalOverlay}>
+                    <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill}>
+                        <LinearGradient
+                            colors={["rgba(10, 8, 20, 0.96)", "rgba(139, 92, 246, 0.12)", "rgba(7, 11, 20, 0.98)"]}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    </BlurView>
+
+                    <Animated.View 
+                        entering={FadeInDown.springify().damping(18)}
+                        style={styles.modalContent}
+                    >
+                        {/* Header do Modal */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalAiBadge}>
+                                <MaterialCommunityIcons name="robot" size={16} color="#FFF" />
+                                <Text style={styles.modalAiBadgeText}>ASSISTENTE CULTURAL AI</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                style={styles.modalCloseButton}
+                                onPress={() => {
+                                    if (intervalRef.current) clearInterval(intervalRef.current);
+                                    setModalAIVisivel(false);
+                                }}
+                            >
+                                <BlurView intensity={25} tint="light" style={styles.modalCloseBlur}>
+                                    <MaterialCommunityIcons name="close" size={20} color="#FFF" />
+                                </BlurView>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Efeito Typewriter */}
+                        <View style={styles.typewriterBox}>
+                            <MaterialCommunityIcons name="comment-text-multiple-outline" size={18} color="#C084FC" style={styles.quoteIcon} />
+                            <Text style={styles.typewriterText}>
+                                {textoTypewriter}
+                                <Text style={styles.cursor}>|</Text>
+                            </Text>
+                        </View>
+
+                        {/* Roteiro Carousel */}
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.modalCardsScroll}
+                        >
+                            {insightsGerados.map((evento, index) => (
+                                <Animated.View
+                                    key={evento.id || index}
+                                    entering={FadeInDown.delay(200 + index * 100).springify().damping(16)}
+                                    style={styles.aiEventCardOuter}
+                                >
+                                    <TouchableOpacity
+                                        activeOpacity={0.92}
+                                        style={styles.aiEventCard}
+                                        onPress={() => {
+                                            setModalAIVisivel(false);
+                                            abrirEvento(evento);
+                                        }}
+                                    >
+                                        <LinearGradient
+                                            colors={["rgba(255, 255, 255, 0.04)", "rgba(255, 255, 255, 0.01)"]}
+                                            style={styles.aiEventGlow}
+                                        >
+                                            {/* Match Badge */}
+                                            <View style={styles.aiCardTop}>
+                                                <View style={styles.matchBadge}>
+                                                    <MaterialCommunityIcons name="heart-flash" size={12} color="#FFF" />
+                                                    <Text style={styles.matchBadgeText}>
+                                                        {evento.matchPercent || 88}% Match
+                                                    </Text>
+                                                </View>
+
+                                                <Text style={styles.aiCardCategory} numberOfLines={1}>
+                                                    {evento.categoria || "Cultura"}
+                                                </Text>
+                                            </View>
+
+                                            <Text style={styles.aiCardTitle} numberOfLines={1}>
+                                                {evento.tituloEvento || evento.titulo || evento.name || "Evento Recomendado"}
+                                            </Text>
+
+                                            <View style={styles.aiCardLocalRow}>
+                                                <MaterialCommunityIcons name="map-marker-outline" size={14} color="#C084FC" />
+                                                <Text style={styles.aiCardLocalText} numberOfLines={1}>
+                                                    {evento.localEvento || evento.local || "Fortaleza, CE"}
+                                                </Text>
+                                            </View>
+
+                                            {/* AI Reason Bubble */}
+                                            <View style={styles.aiReasonBubble}>
+                                                <Text style={styles.aiReasonText}>
+                                                    {evento.aiReason || "✨ Recomendação inteligente baseada no seu perfil."}
+                                                </Text>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            ))}
+                        </ScrollView>
+
+                        {/* Botão de Rodapé */}
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            style={styles.modalExploreButton}
+                            onPress={() => {
+                                setModalAIVisivel(false);
+                                navigation.navigate("Busca", {
+                                    screen: "BuscaHome",
+                                });
+                            }}
+                        >
+                            <Text style={styles.modalExploreButtonText}>
+                                Abrir no Mapa de Busca Completo 🧭
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -685,5 +846,205 @@ const styles = StyleSheet.create({
         color: Colors.textMuted,
         fontSize: 14,
         marginTop: 6,
+    },
+
+    /* CULTURAL AI NEW STYLES */
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: "rgba(0,0,0,0.6)",
+    },
+
+    modalContent: {
+        width: "100%",
+        height: "82%",
+        backgroundColor: "rgba(18, 14, 36, 0.92)",
+        borderRadius: 32,
+        padding: 22,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.08)",
+        overflow: "hidden",
+        justifyContent: "space-between",
+    },
+
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+
+    modalAiBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(139, 92, 246, 0.35)",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: "rgba(192, 132, 252, 0.2)",
+    },
+
+    modalAiBadgeText: {
+        color: "#E9D5FF",
+        fontSize: 10,
+        fontWeight: "800",
+        letterSpacing: 1.5,
+    },
+
+    modalCloseButton: {
+        zIndex: 10,
+    },
+
+    modalCloseBlur: {
+        width: 38,
+        height: 38,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.12)",
+        backgroundColor: "rgba(255,255,255,0.05)",
+    },
+
+    typewriterBox: {
+        backgroundColor: "rgba(139, 92, 246, 0.08)",
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: "rgba(139, 92, 246, 0.12)",
+        marginBottom: 18,
+        flexDirection: "row",
+        alignItems: "flex-start",
+    },
+
+    quoteIcon: {
+        marginRight: 10,
+        marginTop: 2,
+    },
+
+    typewriterText: {
+        flex: 1,
+        color: "#F3E8FF",
+        fontSize: 14,
+        lineHeight: 22,
+        fontWeight: "600",
+    },
+
+    cursor: {
+        color: "#C084FC",
+        fontWeight: "bold",
+    },
+
+    modalCardsScroll: {
+        gap: 12,
+        paddingBottom: 16,
+    },
+
+    aiEventCardOuter: {
+        borderRadius: 22,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.06)",
+        backgroundColor: "rgba(255, 255, 255, 0.02)",
+        marginBottom: 12,
+    },
+
+    aiEventCard: {
+        width: "100%",
+    },
+
+    aiEventGlow: {
+        padding: 16,
+    },
+
+    aiCardTop: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
+
+    matchBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#8B5CF6",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+    },
+
+    matchBadgeText: {
+        color: "#FFF",
+        fontSize: 11,
+        fontWeight: "800",
+    },
+
+    aiCardCategory: {
+        color: "rgba(255, 255, 255, 0.4)",
+        fontSize: 11,
+        fontWeight: "700",
+        textTransform: "uppercase",
+    },
+
+    aiCardTitle: {
+        color: "#FFF",
+        fontSize: 17,
+        fontWeight: "700",
+        marginBottom: 6,
+    },
+
+    aiCardLocalRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 12,
+    },
+
+    aiCardLocalText: {
+        color: "rgba(255, 255, 255, 0.6)",
+        fontSize: 13,
+        fontWeight: "500",
+    },
+
+    aiReasonBubble: {
+        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.03)",
+    },
+
+    aiReasonText: {
+        color: "#D8B4FE",
+        fontSize: 12,
+        fontWeight: "600",
+        lineHeight: 18,
+    },
+
+    modalExploreButton: {
+        backgroundColor: Colors.primary,
+        height: 52,
+        borderRadius: 18,
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 12,
+        shadowColor: "#8B5CF6",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+
+    modalExploreButtonText: {
+        color: "#FFF",
+        fontWeight: "bold",
+        fontSize: 14,
     },
 });

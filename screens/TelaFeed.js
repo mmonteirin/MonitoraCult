@@ -62,6 +62,8 @@ import {
 	orderBy,
 	limit,
 	getDocs,
+	getDoc,
+	doc,
 	query,
 } from "firebase/firestore";
 
@@ -173,7 +175,7 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 				{/* ── HEADER DO CARD ── */}
 				<TouchableOpacity style={s.cardHeader} onPress={() => onPerfil(item)} activeOpacity={0.8}>
 					<Image
-						source={{ uri: item.fotoUsuario || "https://i.pravatar.cc/150" }}
+						source={{ uri: item.fotoUsuario || undefined }}
 						style={s.avatar}
 					/>
 					<View style={{ flex: 1 }}>
@@ -393,22 +395,62 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 				getDocs(query(collection(db, "posts"),   orderBy("createdAt", "desc"), limit(PAGE_SIZE))),
 			]);
 
+			// Coleta UIDs únicos para buscar fotos atualizadas em /users/{uid}
+			const uidsSet = new Set();
+			evSnap.docs.forEach((d) => {
+				const uid = d.data().uidEvento || d.data().organizador?.uid;
+				if (uid) uidsSet.add(uid);
+			});
+			postSnap.docs.forEach((d) => {
+				const uid = d.data().userId || d.data().autor?.uid;
+				if (uid) uidsSet.add(uid);
+			});
+
+			// Busca todos os perfis em paralelo
+			const perfilMap = {};
+			await Promise.all(
+				[...uidsSet].map(async (uid) => {
+					try {
+						const snap = await getDoc(doc(db, "users", uid));
+						if (snap.exists()) perfilMap[uid] = snap.data();
+					} catch {}
+				})
+			);
+
+			const resolverFoto = (uid, fallbackFoto) => {
+				const perfil = perfilMap[uid];
+				return (
+					perfil?.fotoUrl ||
+					perfil?.foto ||
+					perfil?.photoURL ||
+					fallbackFoto ||
+					null
+				);
+			};
+
+			const resolverNome = (uid, fallbackNome) => {
+				const perfil = perfilMap[uid];
+				return perfil?.nome || perfil?.displayName || fallbackNome || "Usuário";
+			};
+
 			const evs = evSnap.docs.map((d) => {
 				const data = d.data();
+				const uid = data.uidEvento || data.organizador?.uid;
 				return {
 					id: d.id, type: "evento", ...data,
-					nomeUsuario: data.organizador?.nome || "Organizador",
-					fotoUsuario: data.organizador?.foto || "https://i.pravatar.cc/150",
+					nomeUsuario: resolverNome(uid, data.organizador?.nome || "Organizador"),
+					fotoUsuario: resolverFoto(uid, data.organizador?.foto),
 					imagemFeed:  data.imagemEvento || DEFAULT_IMG,
 				};
 			});
 
 			const posts = postSnap.docs.map((d) => {
 				const data = d.data();
+				const uid = data.userId || data.autor?.uid;
 				return {
 					id: d.id, type: "post", ...data,
-					nomeUsuario: data.autor?.nome || "Usuário",
-					fotoUsuario: data.autor?.foto || "https://i.pravatar.cc/150",
+					nomeUsuario: resolverNome(uid, data.autor?.nome || "Usuário"),
+					fotoUsuario: resolverFoto(uid, data.autor?.foto),
 					imagemFeed:  data.imagemUrl || DEFAULT_IMG,
 				};
 			});
