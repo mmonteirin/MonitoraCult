@@ -13,6 +13,11 @@ import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AppText from "./AppText";
+import {
+  Colors,
+  Gradients,
+  Radius,
+} from "../styles/Colors";
 
 export default function ConfirmModal({
   visible,
@@ -37,35 +42,35 @@ export default function ConfirmModal({
       case "error":
         return {
           icon: "alert-circle",
-          iconColor: "#EF4444",
+          iconColor: Colors.error,
           iconBg: "rgba(239,68,68,0.12)",
           cardGradient: ["rgba(239,68,68,0.15)", "rgba(127,29,29,0.05)"],
-          btnGradient: ["#EF4444", "#DC2626"],
+          btnGradient: Gradients.danger,
         };
       case "success":
         return {
           icon: "check-circle",
-          iconColor: "#22C55E",
+          iconColor: Colors.success,
           iconBg: "rgba(34,197,94,0.12)",
           cardGradient: ["rgba(34,197,94,0.15)", "rgba(20,83,45,0.05)"],
-          btnGradient: ["#22C55E", "#16A34A"],
+          btnGradient: Gradients.success,
         };
       case "warning":
         return {
           icon: "alert",
-          iconColor: "#F59E0B",
+          iconColor: Colors.warning,
           iconBg: "rgba(245,158,11,0.12)",
           cardGradient: ["rgba(245,158,11,0.15)", "rgba(120,53,4,0.05)"],
-          btnGradient: ["#F59E0B", "#D97706"],
+          btnGradient: Gradients.warning,
         };
       case "info":
       default:
         return {
           icon: "information",
-          iconColor: "#6C5CE7",
-          iconBg: "rgba(108,92,231,0.12)",
+          iconColor: Colors.primary,
+          iconBg: Colors.primarySoft,
           cardGradient: ["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"],
-          btnGradient: ["#6C5CE7", "#5746D6"],
+          btnGradient: Gradients.primaryButton,
         };
     }
   };
@@ -148,7 +153,7 @@ export default function ConfirmModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.65)",
+    backgroundColor: Colors.overlayStronger,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -156,10 +161,10 @@ const styles = StyleSheet.create({
 
   modalCard: {
     width: "100%",
-    borderRadius: 30,
+    borderRadius: Radius.xxl,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: Colors.glassBorder,
   },
 
   modalGradient: {
@@ -170,20 +175,20 @@ const styles = StyleSheet.create({
   modalIcon: {
     width: 78,
     height: 78,
-    borderRadius: 30,
+    borderRadius: Radius.xl,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
   },
 
   modalTitle: {
-    color: "#FFF",
+    color: Colors.textPrimary,
     fontSize: 22,
     textAlign: "center",
   },
 
   modalText: {
-    color: "rgba(255,255,255,0.65)",
+    color: Colors.textSecondary,
     textAlign: "center",
     marginTop: 10,
     fontSize: 14,
@@ -200,14 +205,14 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     height: 52,
-    borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: Radius.md,
+    backgroundColor: Colors.glass,
     justifyContent: "center",
     alignItems: "center",
   },
 
   cancelText: {
-    color: "#FFF",
+    color: Colors.textPrimary,
   },
 
   confirmBtn: {
@@ -216,7 +221,7 @@ const styles = StyleSheet.create({
 
   confirmGradient: {
     height: 52,
-    borderRadius: 18,
+    borderRadius: Radius.md,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -224,6 +229,6 @@ const styles = StyleSheet.create({
   },
 
   confirmText: {
-    color: "#FFF",
+    color: Colors.textPrimary,
   },
 });

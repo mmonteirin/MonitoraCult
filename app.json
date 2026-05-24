@@ -6,19 +6,45 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
+
+    "icon": "./assets/icon.png",
+
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.monitoracult.app",
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "O MonitoraCult envia notificações sobre eventos culturais, lembretes e atualizações da comunidade."
+      }
+    },
+
     "android": {
+      "package": "com.monitoracult.app",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
     },
-    "web": {},
+
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+
     "plugins": [
       "expo-font",
       "@react-native-community/datetimepicker",
+
       [
         "expo-image-picker",
         {
@@ -26,11 +52,22 @@
           "cameraPermission": "O MonitoraCult precisa da câmera para tirar fotos dos eventos."
         }
       ],
+
       [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "O MonitoraCult usa sua localização para mostrar eventos próximos.",
           "locationWhenInUsePermission": "O MonitoraCult usa sua localização para mostrar eventos próximos."
+        }
+      ],
+
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#6C5CE7",
+          "sounds": [],
+          "mode": "production"
         }
       ]
     ]

@@ -22,6 +22,7 @@ import {
   runTransaction,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { agendarPedidoAvaliacaoEvento } from "./avaliacaoService";
 
 /**
  * TIPOS DE INGRESSO
@@ -82,7 +83,7 @@ export const comprarIngressos = async ({
   let compraId;
 
   try {
-    return await runTransaction(db, async (transaction) => {
+    const resultado = await runTransaction(db, async (transaction) => {
       // 1. Verificar disponibilidade de ingressos
       const eventoSnap = await transaction.get(eventoRef);
 
@@ -122,6 +123,7 @@ export const comprarIngressos = async ({
         eventoHora: eventoData.horaInicio,
         eventoLocal: eventoData.localEvento,
         eventoFoto: eventoData.imagemEvento,
+        categoria: eventoData.categoria || eventoData.tipoEvento || null,
         userId,
         userName,
         userEmail,
@@ -161,6 +163,16 @@ export const comprarIngressos = async ({
         mensagem: `${totalSolicitado} ingresso(s) comprado(s) com sucesso!`,
       };
     });
+
+    await agendarPedidoAvaliacaoEvento({
+      eventoId,
+      userId,
+      userEmail,
+    }).catch((error) => {
+      console.log("Erro ao agendar pedido de avaliação:", error);
+    });
+
+    return resultado;
   } catch (error) {
     console.error("Erro ao comprar ingressos:", error);
     throw error;

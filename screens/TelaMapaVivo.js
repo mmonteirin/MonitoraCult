@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
+  Linking,
   Platform,
   StatusBar,
 } from "react-native";
@@ -51,6 +52,10 @@ import HeatmapLegend from "../components/HeatmapLegend";
 import MapEventMarker from "../components/MapEventMarker";
 
 import EventosProximosPainel from "../components/EventosProximosPainel";
+import {
+  clusterMapEvents,
+  getDirectionsUrl,
+} from "../services/mapaVivoService";
 
 /* ───────────────────────────────────────────── */
 
@@ -132,6 +137,9 @@ export default function TelaMapaVivo({
 
   const [painelAberto, setPainelAberto] =
     useState(false);
+
+  const [region, setRegion] =
+    useState(null);
 
   const [liveIndicator] =
     useState(
@@ -251,6 +259,42 @@ export default function TelaMapaVivo({
       }
     }, [localizacao]);
 
+  const markers = React.useMemo(
+    () => clusterMapEvents(eventos, region),
+    [eventos, region]
+  );
+
+  const abrirCluster = useCallback(
+    (cluster) => {
+      mapRef.current?.animateToRegion(
+        {
+          latitude: cluster.coordinate.latitude,
+          longitude: cluster.coordinate.longitude,
+          latitudeDelta: Math.max(
+            0.008,
+            (region?.latitudeDelta || REGION_DELTA.latitudeDelta) / 2.2
+          ),
+          longitudeDelta: Math.max(
+            0.008,
+            (region?.longitudeDelta || REGION_DELTA.longitudeDelta) / 2.2
+          ),
+        },
+        500
+      );
+    },
+    [region]
+  );
+
+  const abrirRota = useCallback(
+    async (evento) => {
+      const url = getDirectionsUrl(evento, localizacao);
+      if (!url) return;
+
+      await Linking.openURL(url);
+    },
+    [localizacao]
+  );
+
   /* ───────────────────────────────────────── */
 
   if (
@@ -366,6 +410,9 @@ export default function TelaMapaVivo({
             ...localizacao,
             ...REGION_DELTA,
           }}
+          onRegionChangeComplete={
+            setRegion
+          }
           showsUserLocation
           showsMyLocationButton={
             false
@@ -417,43 +464,63 @@ export default function TelaMapaVivo({
 
           {/* MARCADORES */}
 
-          {eventos.map(
-            (evento) =>
+          {markers.map(
+            (marker) =>
               Marker ? (
                 <Marker
-                  key={evento.id}
-                  coordinate={{
-                    latitude:
-                      evento
-                        .location
-                        .latitude,
-
-                    longitude:
-                      evento
-                        .location
-                        .longitude,
-                  }}
+                  key={marker.id}
+                  coordinate={
+                    marker.coordinate
+                  }
                   onPress={() =>
-                    focarEvento(
-                      evento
-                    )
+                    marker.type ===
+                    "cluster"
+                      ? abrirCluster(
+                          marker
+                        )
+                      : focarEvento(
+                          marker.evento
+                        )
                   }
                   tracksViewChanges={
                     false
                   }
                 >
-                  <MapEventMarker
-                    {...evento}
-                    isSelected={
-                      eventoSelecionado?.id ===
-                      evento.id
-                    }
-                    onPress={() =>
-                      focarEvento(
-                        evento
-                      )
-                    }
-                  />
+                  {marker.type ===
+                  "cluster" ? (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      style={
+                        styles.clusterMarker
+                      }
+                      onPress={() =>
+                        abrirCluster(
+                          marker
+                        )
+                      }
+                    >
+                      <Text
+                        style={
+                          styles.clusterText
+                        }
+                      >
+                        {marker.count}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <MapEventMarker
+                      {...marker.evento}
+                      isSelected={
+                        eventoSelecionado?.id ===
+                        marker.evento.id
+                      }
+                      onPress={() =>
+                        focarEvento(
+                          marker.evento
+                        )
+                      }
+                    />
+                  )}
                 </Marker>
               ) : null
           )}
@@ -563,10 +630,20 @@ export default function TelaMapaVivo({
 
         <TouchableOpacity
           style={styles.fab}
-          onPress={refresh}
+          onPress={() =>
+            eventoSelecionado
+              ? abrirRota(
+                  eventoSelecionado
+                )
+              : refresh()
+          }
         >
           <MaterialCommunityIcons
-            name="refresh"
+            name={
+              eventoSelecionado
+                ? "directions"
+                : "refresh"
+            }
             size={22}
             color={
               Colors.textPrimary
@@ -655,6 +732,9 @@ export default function TelaMapaVivo({
             }
             onPress={
               focarEvento
+            }
+            onDirections={
+              abrirRota
             }
           />
         )}
@@ -796,6 +876,35 @@ const styles =
       borderWidth: 1,
       borderColor:
         Colors.border,
+    },
+
+    clusterMarker: {
+      width: 54,
+      height: 54,
+      borderRadius: 27,
+      backgroundColor:
+        Colors.primary,
+      justifyContent:
+        "center",
+      alignItems: "center",
+      borderWidth: 3,
+      borderColor:
+        "rgba(255,255,255,0.85)",
+      shadowColor:
+        Colors.primary,
+      shadowOpacity: 0.35,
+      shadowRadius: 10,
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      elevation: 8,
+    },
+
+    clusterText: {
+      color: "#FFF",
+      fontSize: 16,
+      fontWeight: "900",
     },
 
     painel: {

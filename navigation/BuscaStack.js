@@ -5,6 +5,8 @@ import EventoDetalhes from "../screens/EventoDetalhes";
 import PerfilDeclararOcorrencia from "../screens/PerfilDeclararOcorrencia";
 import EventoApp from "../screens/EventoApp";
 import TelaIngressos from "../screens/TelaIngressos";
+import PerfilPublico from "../screens/PerfilPublico";
+import TelaAgendaEventos from "../screens/TelaAgendaEventos";
 
 const Stack = createStackNavigator();
 
@@ -24,6 +26,16 @@ export default function BuscaStack() {
 			<Stack.Screen
 				name="TelaIngressos"
 				component={TelaIngressos}
+			/>
+
+			<Stack.Screen
+				name="PerfilPublico"
+				component={PerfilPublico}
+			/>
+
+			<Stack.Screen
+				name="AgendaEventos"
+				component={TelaAgendaEventos}
 			/>
 
 			<Stack.Screen

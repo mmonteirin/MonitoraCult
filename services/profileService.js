@@ -9,6 +9,21 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
+const parseDate = (value) => {
+  if (!value) return null;
+  if (value?.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+
+  const brDate = String(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (brDate) {
+    const [, day, month, year] = brDate;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 /**
  * Obter perfil público de um usuário
  */
@@ -26,8 +41,10 @@ export const getPublicProfile = async (userId) => {
     // Remover dados sensíveis
     const publicProfile = {
       uid: userSnap.id,
-      displayName: userData.displayName || "Usuário",
-      photoURL: userData.photoURL || "https://i.pravatar.cc/100",
+      displayName: userData.displayName || userData.nome || "Usuário",
+      nome: userData.nome || userData.displayName || "Usuário",
+      photoURL: userData.photoURL || userData.foto || "https://i.pravatar.cc/100",
+      foto: userData.foto || userData.photoURL || "https://i.pravatar.cc/100",
       bio: userData.bio || "",
       bio_links: userData.bio_links || [],
       isVerified: userData.isVerified || false,
@@ -57,6 +74,38 @@ export const getPublicProfile = async (userId) => {
   } catch (error) {
     console.log("Erro ao buscar perfil público:", error);
     throw error;
+  }
+};
+
+export const getAttendedEvents = async (userId, maxItems = 30) => {
+  try {
+    const comprasRef = collection(db, "usuarios", userId, "compras");
+    const comprasQuery = query(
+      comprasRef,
+      orderBy("dataCompra", "desc")
+    );
+
+    const snapshot = await getDocs(comprasQuery);
+    const now = new Date();
+
+    return snapshot.docs
+      .map((document) => ({
+        id: document.id,
+        ...document.data(),
+      }))
+      .filter((compra) => {
+        const dataEvento =
+          parseDate(compra.dataValidade) || parseDate(compra.eventoData);
+        return (
+          compra.status === "confirmado" &&
+          dataEvento &&
+          dataEvento <= now
+        );
+      })
+      .slice(0, maxItems);
+  } catch (error) {
+    console.log("Erro ao buscar eventos frequentados:", error);
+    return [];
   }
 };
 

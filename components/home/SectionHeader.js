@@ -1,256 +1,95 @@
 import React from "react";
+
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
 } from "react-native";
 
-import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import EventCard from "./EventCard";
-import SectionHeader from "./SectionHeader";
+import {
+  Colors,
+  Typography,
+} from "../../styles/Colors";
 
-import { Colors } from "../../styles/Colors";
-import { getRecommendationReason } from "./homeUtils";
-
-export default function RecommendationSection({
-  eventos = [],
-  signals = {},
-  onPress = () => {},
+export default function SectionHeader({
+  title,
+  subtitle,
+  actionLabel,
+  icon = "arrow-right",
+  onAction,
 }) {
-  if (!Array.isArray(eventos) || eventos.length === 0) {
-    return null;
-  }
-
-  const categoriesCount = Object.keys(
-    signals?.categories || {}
-  ).length;
-
-  const placesCount = Object.keys(
-    signals?.places || {}
-  ).length;
-
-  const likesCount =
-    signals?.likedSet?.size || 0;
-
   return (
     <View style={styles.container}>
-      <SectionHeader
-        title="Recomendado para você"
-        subtitle="IA baseada nos seus gostos, locais e interações"
-      />
+      <View style={styles.copy}>
+        <Text style={styles.title}>{title}</Text>
 
-      <BlurView
-        intensity={18}
-        tint="dark"
-        style={styles.aiBanner}
-      >
-        <View style={styles.aiHeader}>
-          <View style={styles.aiIcon}>
-            <MaterialCommunityIcons
-              name="creation"
-              size={18}
-              color={Colors.background}
-            />
-          </View>
-
-          <View style={styles.aiCopy}>
-            <Text style={styles.aiTitle}>
-              Recomendação Inteligente
-            </Text>
-
-            <Text style={styles.aiSubtitle}>
-              Aprendendo com seus eventos favoritos
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.refreshButton}
-          >
-            <MaterialCommunityIcons
-              name="refresh"
-              size={18}
-              color={Colors.textSecondary}
-            />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.metricsRow}>
-          <View style={styles.metricCard}>
-            <Text style={styles.metricValue}>
-              {categoriesCount}
-            </Text>
-
-            <Text style={styles.metricLabel}>
-              categorias
-            </Text>
-          </View>
-
-          <View style={styles.metricCard}>
-            <Text style={styles.metricValue}>
-              {placesCount}
-            </Text>
-
-            <Text style={styles.metricLabel}>
-              locais
-            </Text>
-          </View>
-
-          <View style={styles.metricCard}>
-            <Text style={styles.metricValue}>
-              {likesCount}
-            </Text>
-
-            <Text style={styles.metricLabel}>
-              likes
-            </Text>
-          </View>
-        </View>
-      </BlurView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
-        decelerationRate="fast"
-        snapToAlignment="start"
-      >
-        {eventos.map((item, index) => (
-          <EventCard
-            key={item.id}
-            item={item}
-            index={index}
-            compact
-            reason={getRecommendationReason(
-              item,
-              signals
-            )}
-            onPress={onPress}
-          />
-        ))}
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <MaterialCommunityIcons
-          name="star-circle"
-          size={15}
-          color={Colors.primaryLight}
-        />
-
-        <Text style={styles.footerText}>
-          As recomendações melhoram conforme você usa o app
-        </Text>
+        {!!subtitle && (
+          <Text style={styles.subtitle}>{subtitle}</Text>
+        )}
       </View>
+
+      {!!onAction && (
+        <TouchableOpacity
+          activeOpacity={0.85}
+          style={styles.action}
+          onPress={onAction}
+        >
+          {!!actionLabel && (
+            <Text style={styles.actionText}>
+              {actionLabel}
+            </Text>
+          )}
+
+          <MaterialCommunityIcons
+            name={icon}
+            size={18}
+            color={Colors.primaryLight}
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 6,
-  },
-
-  aiBanner: {
-    marginHorizontal: 18,
-    marginBottom: 18,
-    borderRadius: 24,
-    overflow: "hidden",
-    padding: 18,
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-
-  aiHeader: {
+    paddingHorizontal: 18,
+    marginTop: 24,
+    marginBottom: 14,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-
-  aiIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: Colors.primaryLight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  aiCopy: {
+  copy: {
     flex: 1,
-    marginLeft: 12,
+    paddingRight: 12,
   },
-
-  aiTitle: {
-    color: Colors.textPrimary,
-    fontSize: 17,
-    fontWeight: "800",
-  },
-
-  aiSubtitle: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    marginTop: 3,
-  },
-
-  refreshButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.overlayLight,
-  },
-
-  metricsRow: {
-    flexDirection: "row",
-    marginTop: 18,
-  },
-
-  metricCard: {
-    flex: 1,
-    minHeight: 72,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: Colors.overlayLight,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    marginRight: 10,
-  },
-
-  metricValue: {
+  title: {
     color: Colors.textPrimary,
     fontSize: 22,
-    fontWeight: "800",
+    fontFamily: Typography.bold,
   },
-
-  metricLabel: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    marginTop: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  subtitle: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    marginTop: 4,
+    fontFamily: Typography.regular,
   },
-
-  row: {
-    paddingLeft: 18,
-    paddingRight: 6,
-  },
-
-  footer: {
+  action: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 22,
-    marginTop: 14,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: Colors.glass,
   },
-
-  footerText: {
-    color: Colors.textSecondary,
+  actionText: {
+    color: Colors.primaryLight,
     fontSize: 12,
-    marginLeft: 8,
-    fontWeight: "600",
+    fontFamily: Typography.semiBold,
   },
 });

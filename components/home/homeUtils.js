@@ -139,6 +139,11 @@ export function normalizeEvento(item) {
 
     score: item.score || 0,
 
+    mediaAvaliacoes:
+      item.avaliacoesResumo?.media ||
+      item.mediaAvaliacoes ||
+      0,
+
     dataInicio,
 
     capacidade,
@@ -269,6 +274,9 @@ export function getTicketSignal(evento) {
 export function buildUserSignals({
   likes = [],
   interactions = [],
+  likedEvents = [],
+  subscribedEvents = [],
+  attendedEvents = [],
 }) {
   const likedSet = new Set(likes);
 
@@ -277,6 +285,57 @@ export function buildUserSignals({
   const places = {};
 
   const eventIds = {};
+
+  const boostCategory = (categoria, weight) => {
+    if (!categoria) return;
+    categories[categoria] =
+      (categories[categoria] || 0) + weight;
+  };
+
+  const boostPlace = (local, weight) => {
+    if (!local) return;
+    places[local] =
+      (places[local] || 0) + weight;
+  };
+
+  likedEvents.forEach((evento) => {
+    boostCategory(evento.categoria, 7);
+    boostPlace(evento.local, 3);
+  });
+
+  subscribedEvents.forEach((evento) => {
+    boostCategory(
+      evento.categoria ||
+        evento.tipoEvento,
+      8
+    );
+    boostPlace(
+      evento.localEvento ||
+        evento.nomeLocal ||
+        evento.local,
+      4
+    );
+    if (evento.eventoId || evento.id) {
+      eventIds[evento.eventoId || evento.id] =
+        (eventIds[
+          evento.eventoId || evento.id
+        ] || 0) + 6;
+    }
+  });
+
+  attendedEvents.forEach((evento) => {
+    boostCategory(
+      evento.categoria ||
+        evento.tipoEvento,
+      10
+    );
+    boostPlace(
+      evento.eventoLocal ||
+        evento.localEvento ||
+        evento.local,
+      6
+    );
+  });
 
   interactions.forEach((interaction) => {
     const weight =
@@ -295,17 +354,17 @@ export function buildUserSignals({
         : 2;
 
     if (interaction.categoria) {
-      categories[interaction.categoria] =
-        (categories[
-          interaction.categoria
-        ] || 0) + weight;
+      boostCategory(
+        interaction.categoria,
+        weight
+      );
     }
 
     if (interaction.local) {
-      places[interaction.local] =
-        (places[
-          interaction.local
-        ] || 0) + weight;
+      boostPlace(
+        interaction.local,
+        weight
+      );
     }
 
     if (interaction.eventoId) {
@@ -341,6 +400,11 @@ export function scoreRecommendation(
       ? 8
       : 0;
 
+  const repeatPenalty =
+    signals.eventIds[evento.id]
+      ? -6
+      : 0;
+
   const distanceScore =
     typeof evento.distancia === "number"
       ? Math.max(
@@ -357,6 +421,9 @@ export function scoreRecommendation(
     ? 10
     : 0;
 
+  const ratingBoost =
+    Number(evento.mediaAvaliacoes || 0) * 2;
+
   return (
     evento.score +
     categoryScore * 5 +
@@ -364,7 +431,9 @@ export function scoreRecommendation(
     likedScore +
     distanceScore +
     trendingBoost +
-    featuredBoost
+    featuredBoost +
+    ratingBoost +
+    repeatPenalty
   );
 }
 
@@ -383,7 +452,7 @@ export function getRecommendationReason(
   if (
     signals.places[evento.local]
   ) {
-    return `Porque você foi ao ${evento.local}`;
+    return `Conecta com ${evento.local}`;
   }
 
   if (

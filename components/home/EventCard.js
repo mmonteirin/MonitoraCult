@@ -37,6 +37,17 @@ export default function EventCard({
   const countdown = getCountdownInfo(item);
 
   const ticketSignal = getTicketSignal(item);
+  const mediaAvaliacoes = Number(
+    item.avaliacoesResumo?.media ??
+      item.mediaAvaliacoes ??
+      item.notaMedia ??
+      0
+  );
+  const totalAvaliacoes = Number(
+    item.avaliacoesResumo?.total ??
+      item.totalAvaliacoes ??
+      0
+  );
 
   return (
     <Animated.View
@@ -135,7 +146,9 @@ export default function EventCard({
               />
 
               <Text style={styles.ratingText}>
-                {Math.round(item.score)}
+                {totalAvaliacoes > 0
+                  ? mediaAvaliacoes.toFixed(1)
+                  : Math.round(item.score)}
               </Text>
             </View>
           </View>

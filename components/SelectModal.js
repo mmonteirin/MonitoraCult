@@ -9,9 +9,15 @@ import {
   Easing,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Colors,
+  Radius,
+  Typography,
+} from "../styles/Colors";
 
 export default function SelectModal({
   label,
@@ -64,32 +70,28 @@ export default function SelectModal({
   return (
     <>
       {/* LABEL */}
-      <Text style={{ color: "#fff", marginBottom: 8 }}>
+      <Text style={styles.label}>
         {label}
       </Text>
 
       {/* INPUT */}
       <TouchableOpacity
         onPress={() => setVisible(true)}
-        style={{
-          backgroundColor: "#13291d",
-          padding: 16,
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: "#1f3d2a",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
+        style={styles.trigger}
       >
-        <Text style={{ color: value ? "#fff" : "#777" }}>
+        <Text
+          style={[
+            styles.triggerText,
+            !value && styles.placeholder,
+          ]}
+        >
           {value || "Selecione..."}
         </Text>
 
         <MaterialCommunityIcons
           name="chevron-down"
           size={22}
-          color="#3cc962"
+          color={Colors.primaryLight}
         />
       </TouchableOpacity>
 
@@ -97,51 +99,33 @@ export default function SelectModal({
       <Modal visible={visible} transparent animationType="none">
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            justifyContent: "center",
-            padding: 20,
-          }}
+          style={styles.overlay}
         >
           <Animated.View
-            style={{
-              backgroundColor: "#13291d",
-              borderRadius: 20,
-              padding: 15,
+            style={[
+              styles.modal,
+              {
               opacity,
               transform: [{ translateY }, { scale }],
-              maxHeight: "70%",
-            }}
+              },
+            ]}
           >
             {/* 🔍 BUSCA */}
             <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#0c1f11",
-                borderRadius: 12,
-                paddingHorizontal: 10,
-                marginBottom: 12,
-              }}
+              style={styles.searchBox}
             >
               <MaterialCommunityIcons
                 name="magnify"
                 size={20}
-                color="#777"
+                color={Colors.textMuted}
               />
 
               <TextInput
                 placeholder="Buscar..."
-                placeholderTextColor="#777"
+                placeholderTextColor={Colors.textMuted}
                 value={search}
                 onChangeText={setSearch}
-                style={{
-                  flex: 1,
-                  color: "#fff",
-                  padding: 10,
-                  marginLeft: 6,
-                }}
+                style={styles.searchInput}
               />
             </View>
 
@@ -156,18 +140,16 @@ export default function SelectModal({
                     onSelect(item);
                     setVisible(false);
                   }}
-                  style={{
-                    padding: 14,
-                    borderRadius: 12,
-                    marginBottom: 6,
-                    backgroundColor: ativo ? "#3cc962" : "transparent",
-                  }}
+                  style={[
+                    styles.option,
+                    ativo && styles.optionActive,
+                  ]}
                 >
                   <Text
-                    style={{
-                      color: ativo ? "#0c1f11" : "#fff",
-                      fontWeight: ativo ? "bold" : "normal",
-                    }}
+                    style={[
+                      styles.optionText,
+                      ativo && styles.optionTextActive,
+                    ]}
                   >
                     {item}
                   </Text>
@@ -178,13 +160,9 @@ export default function SelectModal({
             {/* ❌ FECHAR */}
             <TouchableOpacity
               onPress={() => setVisible(false)}
-              style={{
-                marginTop: 10,
-                padding: 12,
-                alignItems: "center",
-              }}
+              style={styles.cancelButton}
             >
-              <Text style={{ color: "#aaa" }}>Cancelar</Text>
+              <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
           </Animated.View>
         </KeyboardAvoidingView>
@@ -192,3 +170,84 @@ export default function SelectModal({
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  label: {
+    color: Colors.textSecondary,
+    marginBottom: 8,
+    fontFamily: Typography.medium,
+    fontSize: 13,
+  },
+  trigger: {
+    backgroundColor: Colors.surface,
+    padding: 16,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  triggerText: {
+    color: Colors.textPrimary,
+    fontFamily: Typography.medium,
+  },
+  placeholder: {
+    color: Colors.textMuted,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: Colors.overlayStronger,
+    justifyContent: "center",
+    padding: 20,
+  },
+  modal: {
+    backgroundColor: Colors.backgroundElevated,
+    borderRadius: Radius.xl,
+    padding: 15,
+    maxHeight: "70%",
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+  },
+  searchBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surfaceMuted,
+    borderRadius: Radius.md,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  searchInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    padding: 10,
+    marginLeft: 6,
+    fontFamily: Typography.regular,
+  },
+  option: {
+    padding: 14,
+    borderRadius: Radius.md,
+    marginBottom: 6,
+  },
+  optionActive: {
+    backgroundColor: Colors.primary,
+  },
+  optionText: {
+    color: Colors.textPrimary,
+    fontFamily: Typography.regular,
+  },
+  optionTextActive: {
+    fontFamily: Typography.bold,
+  },
+  cancelButton: {
+    marginTop: 10,
+    padding: 12,
+    alignItems: "center",
+  },
+  cancelText: {
+    color: Colors.textSecondary,
+    fontFamily: Typography.medium,
+  },
+});

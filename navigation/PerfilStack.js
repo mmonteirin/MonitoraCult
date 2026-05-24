@@ -8,6 +8,8 @@ import EventoDetalhes from "../screens/EventoDetalhes";
 import PerfilEditar from "../screens/PerfilEditar";
 import ResetPassword from "../screens/ResetPassword";
 import EventoHome from "../screens/EventoHome"; // 👈 volta simples
+import PerfilPublico from "../screens/PerfilPublico";
+import TelaAgendaEventos from "../screens/TelaAgendaEventos";
 
 const Stack = createStackNavigator();
 
@@ -19,6 +21,8 @@ export default function PerfilStack() {
     >
       <Stack.Screen name="PerfilHome" component={PerfilGeral} />
       <Stack.Screen name="PerfilEditar" component={PerfilEditar} />
+      <Stack.Screen name="PerfilPublico" component={PerfilPublico} />
+      <Stack.Screen name="AgendaEventos" component={TelaAgendaEventos} />
       <Stack.Screen name="Cadastro" component={PerfilCadastro} />
       <Stack.Screen name="ResetPassword" component={ResetPassword} />
       <Stack.Screen name="Ocorrencias" component={PerfilHistorico} />

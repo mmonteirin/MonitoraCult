@@ -35,11 +35,20 @@ import EventoStack from "./EventoStack";
 import PerfilStack from "./PerfilStack";
 import ComunidadeStack from "./ComunidadeStack";
 
-import { Colors } from "../styles/Colors";
+import {
+	Colors,
+	Radius,
+	Shadows,
+	Typography,
+} from "../styles/Colors";
 
 const Tab = createBottomTabNavigator();
 
 const colors = Colors;
+const shadowFor = (shadow) =>
+	Platform.OS === "web"
+		? shadow.web
+		: shadow.default;
 
 function CustomTabIcon({
 	focused,
@@ -104,12 +113,21 @@ function CustomTabIcon({
 						]
 					),
 
-				shadowOpacity:
-					progress.value *
-					0.35,
-
-				shadowRadius:
-					progress.value * 18,
+				...(Platform.OS === "web"
+					? {
+							boxShadow:
+								focused
+									? `0px 8px 18px ${colors.purpleGlow}`
+									: "none",
+					  }
+					: {
+							shadowOpacity:
+								progress.value *
+								0.35,
+							shadowRadius:
+								progress.value *
+								18,
+					  }),
 			};
 		});
 
@@ -259,16 +277,7 @@ export default function TabNavigator() {
 
 					elevation: 0,
 
-					shadowColor: "#000",
-
-					shadowOffset: {
-						width: 0,
-						height: 16,
-					},
-
-					shadowOpacity: 0.2,
-
-					shadowRadius: 24,
+					...shadowFor(Shadows.card),
 				},
 
 				/* GLASS */
@@ -437,17 +446,17 @@ const styles = StyleSheet.create({
 	blurContainer: {
 		flex: 1,
 
-		borderRadius: 32,
+		borderRadius: Radius.xxl,
 
 		overflow: "hidden",
 
 		borderWidth: 1,
 
 		borderColor:
-			"rgba(255,255,255,0.08)",
+			Colors.glassBorder,
 
 		backgroundColor:
-			"rgba(10,10,18,0.78)",
+			"rgba(7,11,20,0.82)",
 	},
 
 	topHighlight: {
@@ -512,20 +521,22 @@ const styles = StyleSheet.create({
 		borderWidth: 1,
 
 		borderColor:
-			"rgba(255,255,255,0.04)",
+			Colors.glassBorder,
 
 		backgroundColor:
-			"rgba(255,255,255,0.03)",
+			Colors.glass,
 
-		shadowColor:
-			colors.primary,
+		...(Platform.OS !== "web" && {
+			shadowColor:
+				colors.primary,
+		}),
 	},
 
 	/* LABEL */
 	label: {
 		fontSize: 11,
 
-		fontWeight: "700",
+		fontFamily: Typography.semiBold,
 
 		marginTop: 6,
 	},

@@ -1,142 +1,374 @@
-import { createContext, useContext, useEffect, useState, useMemo } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useState,
+	useMemo,
+} from "react";
+
+import {
+	onAuthStateChanged,
+	signOut,
+} from "firebase/auth";
+
+import {
+	doc,
+	getDoc,
+} from "firebase/firestore";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { auth, db } from "../firebaseConfig";
+import {
+	auth,
+	db,
+} from "../firebaseConfig";
 
-const AuthContext = createContext({});
+const AuthContext =
+	createContext({});
 
-export function AuthProvider({ children }) {
-	const [user, setUser] = useState(null);
-	const [profile, setProfile] = useState(null);
-	const [loading, setLoading] = useState(true);
+export function AuthProvider({
+	children,
+}) {
+	const [user, setUser] =
+		useState(null);
 
-	// ✅ REMOVIDO: setPersistence com browserSessionPersistence
-	// Causava o "Maximum update depth exceeded" no ambiente React Native/web
-	// A persistência já é configurada corretamente no firebaseConfig.js
+	const [profile, setProfile] =
+		useState(null);
 
-	const buildUserData = (userAuth, dbData = {}) => {
+	const [loading, setLoading] =
+		useState(true);
+
+	/* =====================================================
+	   BUILD USER DATA
+	===================================================== */
+
+	const buildUserData = (
+		userAuth,
+		dbData = {}
+	) => {
 		return {
 			uid: userAuth.uid,
-			email: userAuth.email,
+
+			email:
+				userAuth.email || "",
+
 			nome:
 				dbData.nome ||
 				userAuth.displayName ||
-				userAuth.email?.split("@")[0] ||
+				userAuth.email?.split(
+					"@"
+				)[0] ||
 				"Usuário",
-			foto: dbData.foto || userAuth.photoURL || "https://i.pravatar.cc/150",
-			role: (dbData.role || "user").toLowerCase(),
-			areaAtuacao: dbData.areaAtuacao || null,
-			localAtuacao: dbData.localAtuacao || null,
-			cnpj: dbData.cnpj || null,
+
+			foto:
+				dbData.foto ||
+				userAuth.photoURL ||
+				"https://i.pravatar.cc/150",
+
+			role: (
+				dbData.role || "user"
+			).toLowerCase(),
+
+			areaAtuacao:
+				dbData.areaAtuacao ||
+				null,
+
+			localAtuacao:
+				dbData.localAtuacao ||
+				null,
+
+			cnpj:
+				dbData.cnpj || null,
 		};
 	};
 
-	// ✅ Carrega cache para UX rápida — apenas na montagem (sem deps problemáticas)
+	/* =====================================================
+	   LOAD CACHE
+	===================================================== */
+
 	useEffect(() => {
-		const loadCache = async () => {
-			try {
-				const cached = await AsyncStorage.getItem("@auth_user");
-				if (cached) {
-					setProfile(JSON.parse(cached));
+		const loadCache =
+			async () => {
+				try {
+					const cached =
+						await AsyncStorage.getItem(
+							"@auth_user"
+						);
+
+					if (cached) {
+						setProfile(
+							JSON.parse(
+								cached
+							)
+						);
+					}
+				} catch (error) {
+					console.log(
+						"Erro cache:",
+						error
+					);
 				}
+			};
+
+		loadCache();
+	}, []);
+
+	/* =====================================================
+	   FIREBASE AUTH
+	===================================================== */
+
+	useEffect(() => {
+		const unsubscribe =
+			onAuthStateChanged(
+				auth,
+				async (
+					userAuth
+				) => {
+					console.log(
+						"Firebase state changed:",
+						userAuth?.email
+					);
+
+					/* SEM LOGIN */
+					if (!userAuth) {
+						setUser(
+							null
+						);
+
+						setProfile(
+							null
+						);
+
+						await AsyncStorage.removeItem(
+							"@auth_user"
+						);
+
+						setLoading(
+							false
+						);
+
+						return;
+					}
+
+					try {
+						setUser(
+							userAuth
+						);
+
+						/* GARANTE UID */
+						if (
+							!userAuth.uid
+						) {
+							setLoading(
+								false
+							);
+
+							return;
+						}
+
+						const docRef =
+							doc(
+								db,
+								"users",
+								userAuth.uid
+							);
+
+						const snap =
+							await getDoc(
+								docRef
+							);
+
+						let dbData =
+							{};
+
+						/* DOC EXISTE */
+						if (
+							snap.exists()
+						) {
+							dbData =
+								snap.data();
+						} else {
+							console.log(
+								"Usuário sem documento no Firestore"
+							);
+						}
+
+						const userData =
+							buildUserData(
+								userAuth,
+								dbData
+							);
+
+						setProfile(
+							userData
+						);
+
+						await AsyncStorage.setItem(
+							"@auth_user",
+							JSON.stringify(
+								userData
+							)
+						);
+					} catch (
+						error
+					) {
+						console.log(
+							"ERRO FIRESTORE AUTH:",
+							error
+						);
+
+						/* FALLBACK */
+						setProfile(
+							{
+								uid:
+									userAuth.uid,
+
+								email:
+									userAuth.email,
+
+								nome:
+									userAuth.displayName ||
+									"Usuário",
+
+								role:
+									"user",
+
+								foto:
+									userAuth.photoURL ||
+									"https://i.pravatar.cc/150",
+							}
+						);
+					}
+
+					setLoading(
+						false
+					);
+				}
+			);
+
+		return unsubscribe;
+	}, []);
+
+	/* =====================================================
+	   LOGOUT
+	===================================================== */
+
+	const logout =
+		async () => {
+			try {
+				await AsyncStorage.removeItem(
+					"@auth_user"
+				);
+
+				await signOut(auth);
+
+				setUser(null);
+
+				setProfile(null);
+
+				return true;
 			} catch (error) {
-				console.log("Erro cache:", error);
+				console.log(
+					error
+				);
+
+				throw error;
 			}
 		};
-		loadCache();
-	}, []); // ✅ array vazio: executa só uma vez, sem loop
 
-	// ✅ Listener global do Firebase — também só na montagem
-	useEffect(() => {
-		const unsubscribe = onAuthStateChanged(auth, async (userAuth) => {
-			console.log("Firebase state changed:", userAuth?.email);
+	/* =====================================================
+	   REFRESH PROFILE
+	===================================================== */
 
-			if (!userAuth) {
-				setUser(null);
-				setProfile(null);
-				await AsyncStorage.removeItem("@auth_user");
-				setLoading(false);
-				return;
-			}
-
-			setUser(userAuth);
-
+	const refreshProfile =
+		async () => {
 			try {
-				const docRef = doc(db, "users", userAuth.uid);
-				const snap = await getDoc(docRef);
+				const currentUser =
+					auth.currentUser;
 
-				const dbData = snap.exists() ? snap.data() : {};
-				const userData = buildUserData(userAuth, dbData);
+				if (
+					!currentUser
+				)
+					return;
 
-				setProfile(userData);
-				await AsyncStorage.setItem("@auth_user", JSON.stringify(userData));
+				const docRef =
+					doc(
+						db,
+						"users",
+						currentUser.uid
+					);
+
+				const snap =
+					await getDoc(
+						docRef
+					);
+
+				let dbData = {};
+
+				if (
+					snap.exists()
+				) {
+					dbData =
+						snap.data();
+				}
+
+				const userData =
+					buildUserData(
+						currentUser,
+						dbData
+					);
+
+				setProfile(
+					userData
+				);
+
+				await AsyncStorage.setItem(
+					"@auth_user",
+					JSON.stringify(
+						userData
+					)
+				);
 			} catch (error) {
-				console.log(error);
+				console.log(
+					"Erro refresh profile:",
+					error
+				);
 			}
+		};
 
-			setLoading(false);
-		});
+	/* =====================================================
+	   CONTEXT VALUE
+	===================================================== */
 
-		return unsubscribe; // ✅ cleanup correto: cancela o listener ao desmontar
-	}, []); // ✅ array vazio: sem dependências que causem re-execução
-
-	/* 🔓 LOGOUT */
-	const logout = async () => {
-		try {
-			await AsyncStorage.removeItem("@auth_user");
-			await signOut(auth);
-			setUser(null);
-			setProfile(null);
-			return true;
-		} catch (error) {
-			console.log(error);
-			throw error;
-		}
-	};
-
-	/* 🔄 ATUALIZA PERFIL EM TEMPO REAL */
-	const refreshProfile = async () => {
-		try {
-			const currentUser = auth.currentUser;
-
-			if (!currentUser) return;
-
-			const docRef = doc(db, "users", currentUser.uid);
-
-			const snap = await getDoc(docRef);
-
-			const dbData = snap.exists() ? snap.data() : {};
-
-			const userData = buildUserData(currentUser, dbData);
-
-			setProfile(userData);
-
-			await AsyncStorage.setItem("@auth_user", JSON.stringify(userData));
-		} catch (error) {
-			console.log("Erro refresh profile:", error);
-		}
-	};
-
-	// ✅ MEMOIZAÇÃO: Evita re-criar objeto de contexto em cada render
-	// Só recria quando profile muda
 	const value = useMemo(
 		() => ({
 			user,
+
 			profile,
 
-			uid: user?.uid || "",
+			uid:
+				user?.uid || "",
 
-			email: profile?.email || user?.email || "",
+			email:
+				profile?.email ||
+				user?.email ||
+				"",
 
-			nome: profile?.nome || "",
+			nome:
+				profile?.nome ||
+				"",
 
-			foto: profile?.foto || null,
+			foto:
+				profile?.foto ||
+				null,
 
-			role: profile?.role || "user",
+			role:
+				profile?.role ||
+				"user",
 
-			isAdmin: profile?.role === "admin",
+			isAdmin:
+				profile?.role ===
+				"admin",
 
 			loading,
 
@@ -144,12 +376,24 @@ export function AuthProvider({ children }) {
 
 			refreshProfile,
 		}),
-		[user, profile, loading]
+		[
+			user,
+			profile,
+			loading,
+		]
 	);
 
-	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+	return (
+		<AuthContext.Provider
+			value={value}
+		>
+			{children}
+		</AuthContext.Provider>
+	);
 }
 
 export function useAuth() {
-	return useContext(AuthContext);
+	return useContext(
+		AuthContext
+	);
 }

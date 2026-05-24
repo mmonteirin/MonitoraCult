@@ -32,15 +32,12 @@ import { MotiView } from "moti";
 
 import {
 	collection,
-	addDoc,
 	onSnapshot,
 	query,
 	orderBy,
 	serverTimestamp,
 	where,
 	getDocs,
-	deleteDoc,
-	doc,
 } from "firebase/firestore";
 
 import { auth, db } from "../firebaseConfig";
@@ -54,6 +51,10 @@ import {
 	toggleEventoLike,
 	incrementEventoViews,
 } from "../services/eventosAppService";
+import {
+	adicionarAvaliacaoEvento,
+	removerAvaliacaoEvento,
+} from "../services/avaliacaoService";
 
 const { width } = Dimensions.get("window");
 
@@ -481,62 +482,17 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				const avaliacaoData =
-					{
-						userId:
-							user.uid,
-
-						nome:
-							user.displayName ||
-							"Anônimo",
-
-						foto:
-							user.photoURL ||
-							"https://i.pravatar.cc/100",
-
-						nota:
-							notaSelecionada,
-
-						comentario:
-							censurarTexto(
-								comentario.trim()
-							),
-
-						createdAt:
-							serverTimestamp(),
-					};
-
-				const ref =
-					await addDoc(
-						collection(
-							db,
-							"eventos",
-							eventoId,
-							"avaliacoes"
-						),
-						avaliacaoData
-					);
-
-				await addDoc(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
+				await adicionarAvaliacaoEvento({
+					eventoId,
+					user,
+					nota: notaSelecionada,
+					comentario: censurarTexto(
+						comentario.trim()
 					),
-					{
-						avaliacaoId:
-							ref.id,
-
-						...avaliacaoData,
-
-						eventoId,
-
-						tituloEvento:
-							evento.tituloEvento ||
-							"Evento",
-					}
-				);
+					tituloEvento:
+						evento.tituloEvento ||
+						"Evento",
+				});
 
 				setComentario(
 					""
@@ -578,44 +534,11 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				await deleteDoc(
-					doc(
-						db,
-						"eventos",
-						eventoId,
-						"avaliacoes",
-						avaliacaoId
-					)
-				);
-
-				const q = query(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
-					),
-					where(
-						"avaliacaoId",
-						"==",
-						avaliacaoId
-					)
-				);
-
-				const snap =
-					await getDocs(q);
-
-				for (const d of snap.docs) {
-					await deleteDoc(
-						doc(
-							db,
-							"users",
-							user.uid,
-							"avaliacoes",
-							d.id
-						)
-					);
-				}
+				await removerAvaliacaoEvento({
+					eventoId,
+					avaliacaoId,
+					userId: user.uid,
+				});
 
 				setJaAvaliou(
 					false
