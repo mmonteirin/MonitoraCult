@@ -1,15 +1,3 @@
-/**
- * homeUtils.js  —  Utilitários da Home + Motor de Recomendação
- *
- * Alterações v2 (sistema de recomendação personalizada):
- *  • buildUserSignals: adicionado campo `historySummary` para UI de diagnóstico
- *  • scoreRecommendation: novos sinais — penalidade por evento já visto, boost
- *    proporcional à força de afinidade, bônus de novidade temporal
- *  • getRecommendationReason: agora retorna o motivo mais específico disponível
- *  • NEW getProfileStrength: retorna 0-100 indicando riqueza do perfil do usuário
- *  • NEW getTopAffinities: top-N categorias e locais do usuário para exibição
- */
-
 import { Colors } from "../../styles/Colors";
 
 const DEFAULT_IMAGE = "https://placehold.co/600x400?text=Evento";

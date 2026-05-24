@@ -88,7 +88,7 @@ export default function EventoHome({ navigation }) {
 								>
 									<BlurView intensity={30} tint="dark" style={styles.badge}>
 										<MaterialCommunityIcons
-											name="sparkles"
+											name="book-open-variant"
 											size={16}
 											color="#A78BFA"
 										/>
