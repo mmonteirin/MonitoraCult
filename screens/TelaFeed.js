@@ -240,12 +240,18 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 						</TouchableOpacity>
 					</View>
 					{item.type === "evento" ? (
-						<TouchableOpacity style={s.actionBtn} onPress={() => onNotify(item)}>
+						<TouchableOpacity
+							style={[s.notifBtn, subscribedEvents[item.id] && s.notifBtnActive]}
+							onPress={() => onNotify(item)}
+						>
 							<MaterialCommunityIcons
-								name={subscribedEvents[item.id] ? "bell-ring" : "bell-outline"}
-								size={22}
-								color={subscribedEvents[item.id] ? Colors.primary : Colors.textMuted}
+								name={subscribedEvents[item.id] ? "bell-ring" : "bell-plus-outline"}
+								size={16}
+								color={subscribedEvents[item.id] ? Colors.primary : "#FFF"}
 							/>
+							<Text style={[s.notifBtnText, subscribedEvents[item.id] && s.notifBtnTextActive]}>
+								{subscribedEvents[item.id] ? "Inscrito" : "Notificar"}
+							</Text>
 						</TouchableOpacity>
 					) : null}
 				</View>
@@ -1138,6 +1144,10 @@ const s = StyleSheet.create({
 	actions: { paddingHorizontal: 6, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	actionsLeft: { flexDirection: "row", alignItems: "center" },
 	actionBtn: { padding: 8 },
+	notifBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.10)", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, gap: 6 },
+	notifBtnActive: { backgroundColor: "rgba(108,92,231,0.18)" },
+	notifBtnText: { color: "#FFF", fontWeight: "600", fontSize: 13 },
+	notifBtnTextActive: { color: Colors.primary },
 	metrics: { paddingHorizontal: 16, paddingBottom: 14 },
 	metricsLikes: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13 },
 	metricsComments: { color: Colors.textSecondary, fontSize: 13, marginTop: 4 },

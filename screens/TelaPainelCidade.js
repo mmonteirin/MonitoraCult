@@ -15,7 +15,11 @@ import {
 	ActivityIndicator,
 	StatusBar,
 	FlatList,
+	Platform,
+	Share,
 } from "react-native";
+
+import * as Clipboard from "expo-clipboard";
 
 import { Image } from "expo-image";
 
@@ -47,6 +51,8 @@ import { FlashList } from "@shopify/flash-list";
 import {
 	collection,
 	getDocs,
+	getDoc,
+	doc,
 	limit,
 	orderBy,
 	query,
@@ -241,7 +247,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 // FeedCard (padronizado com TelaFeed)
 // ──────────────────────────────────────────────
 const FeedCard = memo(
-	({ item, index, isLiked, isSubscribed, onLike, onNotification, onPress }) => {
+	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onPress }) => {
 		const scale = useSharedValue(1);
 		const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -313,7 +319,7 @@ const FeedCard = memo(
 									color={Colors.textPrimary}
 								/>
 							</TouchableOpacity>
-							<TouchableOpacity style={styles.actionBtn}>
+							<TouchableOpacity style={styles.actionBtn} onPress={() => onShare?.(item)}>
 								<MaterialCommunityIcons
 									name="share-variant-outline"
 									size={23}
@@ -321,13 +327,21 @@ const FeedCard = memo(
 								/>
 							</TouchableOpacity>
 						</View>
-						<TouchableOpacity style={styles.actionBtn} onPress={() => onNotification(item)}>
-							<MaterialCommunityIcons
-								name={isSubscribed ? "bell-ring" : "bell-outline"}
-								size={22}
-								color={isSubscribed ? Colors.primary : Colors.textMuted}
-							/>
-						</TouchableOpacity>
+						{item.type === "evento" ? (
+							<TouchableOpacity
+								style={[styles.notifBtn, isSubscribed && styles.notifBtnActive]}
+								onPress={() => onNotification(item)}
+							>
+								<MaterialCommunityIcons
+									name={isSubscribed ? "bell-ring" : "bell-plus-outline"}
+									size={16}
+									color={isSubscribed ? Colors.primary : "#FFF"}
+								/>
+								<Text style={[styles.notifBtnText, isSubscribed && styles.notifBtnTextActive]}>
+									{isSubscribed ? "Inscrito" : "Notificar"}
+								</Text>
+							</TouchableOpacity>
+						) : null}
 					</View>
 
 					{/* METRICS */}
@@ -463,18 +477,47 @@ export default function TelaPainelCidade() {
 				limit(12)
 			);
 			const snap = await getDocs(eventosQuery);
-			const lista = snap.docs.map((doc) => {
-				const d = doc.data();
+
+			const uidsSet = new Set();
+			snap.docs.forEach((d) => {
+				const uid = d.data().uidEvento || d.data().organizador?.uid;
+				if (uid) uidsSet.add(uid);
+			});
+
+			const perfilMap = {};
+			await Promise.all(
+				[...uidsSet].map(async (uid) => {
+					try {
+						const s = await getDoc(doc(db, "users", uid));
+						if (s.exists()) perfilMap[uid] = s.data();
+					} catch {}
+				})
+			);
+
+			const resolverFoto = (uid, fallback) => {
+				const p = perfilMap[uid];
+				return p?.fotoUrl || p?.foto || p?.photoURL || fallback || null;
+			};
+			const resolverNome = (uid, fallback) => {
+				const p = perfilMap[uid];
+				return p?.nome || p?.displayName || fallback || "Usuário";
+			};
+
+			const lista = snap.docs.map((d) => {
+				const data = d.data();
+				const uid = data.uidEvento || data.organizador?.uid;
 				return {
-					id: doc.id,
+					id: d.id,
 					type: "evento",
-					...d,
-					imagem: d.imagemEvento || DEFAULT_EVENT_IMAGE,
-					titulo: d.tituloEvento || "Evento",
-					local: d.localEvento || "Local",
-					categoria: d.categoria || "Evento",
-					score: d.likes || 0,
-					data: d.dataEvento || null,
+					...data,
+					imagem: data.imagemEvento || DEFAULT_EVENT_IMAGE,
+					titulo: data.tituloEvento || "Evento",
+					local: data.localEvento || "Local",
+					categoria: data.categoria || "Evento",
+					score: data.likes || 0,
+					data: data.dataEvento || null,
+					nomeUsuario: resolverNome(uid, data.organizador?.nome || "Organizador"),
+					fotoUsuario: resolverFoto(uid, data.organizador?.foto),
 				};
 			});
 			setEventos(lista);
@@ -554,6 +597,27 @@ export default function TelaPainelCidade() {
 		},
 		[user?.uid, subscribedEvents]
 	);
+
+	const handleShare = useCallback(async (item) => {
+		const titulo = item.titulo || item.tituloEvento || "Evento";
+		const texto = `${titulo}\n\n${item.descricao || ""}`;
+		const url = item.imagem || "https://monitoracult.com";
+
+		if (Platform.OS === "web") {
+			if (navigator.share) {
+				try { await navigator.share({ title: titulo, text: item.descricao, url }); return; } catch (_) {}
+			}
+			try { await Clipboard.setStringAsync(`${texto}\n\n${url}`); } catch (_) {}
+			return;
+		}
+		try {
+			await Share.share({
+				title: titulo,
+				message: Platform.OS === "android" ? `${texto}\n\n${url}` : texto,
+				url,
+			});
+		} catch (e) { console.log(e); }
+	}, []);
 
 	const eventosFiltrados = useMemo(() => {
 		if (categoriaAtiva === "Todos") return eventos;
@@ -954,6 +1018,7 @@ export default function TelaPainelCidade() {
 						isSubscribed={!!subscribedEvents[item.id]}
 						onLike={toggleLike}
 						onNotification={toggleNotification}
+						onShare={handleShare}
 						onPress={(evt) =>
 							navigation.navigate("HomeTabs", {
 								screen: "Eventos",
@@ -1461,6 +1526,26 @@ const styles = StyleSheet.create({
 	},
 	actionBtn: {
 		padding: 8,
+	},
+	notifBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(255,255,255,0.10)",
+		paddingHorizontal: 14,
+		paddingVertical: 9,
+		borderRadius: 20,
+		gap: 6,
+	},
+	notifBtnActive: {
+		backgroundColor: "rgba(108,92,231,0.18)",
+	},
+	notifBtnText: {
+		color: "#FFF",
+		fontWeight: "600",
+		fontSize: 13,
+	},
+	notifBtnTextActive: {
+		color: Colors.primary,
 	},
 	feedMetrics: {
 		paddingHorizontal: 16,
