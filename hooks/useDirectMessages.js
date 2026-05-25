@@ -8,6 +8,8 @@ import {
   escutarMensagens,
   escutarConversas,
   obterOuCriarConversa,
+  deletarConversaParaUsuario,
+  restaurarConversa,
 } from "../services/dmService";
 
 // ─── Hook: lista de conversas ─────────────────────────────────────────────────
@@ -73,7 +75,36 @@ export const useDirectMessages = (userId) => {
     [userId]
   );
 
-  return { conversas, loading, erro, naoLidas, iniciarConversa };
+  const deletarConversa = useCallback(
+    async (conversaId) => {
+      try {
+        const resultado = await deletarConversaParaUsuario(conversaId, userId);
+        if (resultado.success) {
+          // Remover da lista local
+          setConversas(prev => prev.filter(c => c.id !== conversaId));
+        }
+        return resultado;
+      } catch (err) {
+        console.error("Erro ao deletar conversa:", err);
+        return { success: false, error: err.message };
+      }
+    },
+    [userId]
+  );
+
+  const restaurarConversaFn = useCallback(
+    async (conversaId) => {
+      try {
+        return await restaurarConversa(conversaId, userId);
+      } catch (err) {
+        console.error("Erro ao restaurar conversa:", err);
+        return { success: false, error: err.message };
+      }
+    },
+    [userId]
+  );
+
+  return { conversas, loading, erro, naoLidas, iniciarConversa, deletarConversa, restaurarConversaFn };
 };
 
 // ─── Hook: conversa individual ────────────────────────────────────────────────

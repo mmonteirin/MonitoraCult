@@ -368,3 +368,65 @@ export const obterOuCriarConversa = async (
     return { success: false, error: error.message };
   }
 };
+
+// ✅ DELETAR CONVERSA PARA O USUÁRIO (soft delete)
+export const deletarConversaParaUsuario = async (conversaId, usuarioId) => {
+  try {
+    const conversaRef = doc(db, "conversas", conversaId);
+    
+    // Adiciona usuário na lista de users que deletaram para si
+    await updateDoc(conversaRef, {
+      [`usuariosComDeleção.${usuarioId}`]: true,
+      [`naoLido.${usuarioId}`]: 0,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao deletar conversa:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ✅ OBTER CONVERSAS ATIVAS (filtrando as deletadas pelo usuário)
+export const obterConversasAtivas = async (userId) => {
+  try {
+    const q = query(
+      collection(db, "conversas"),
+      where("participantes", "array-contains", userId)
+    );
+
+    const snapshot = await getDocs(q);
+    const conversas = [];
+
+    snapshot.forEach((doc) => {
+      const conversa = { id: doc.id, ...doc.data() };
+      
+      // Filtra conversas deletadas pelo usuário
+      const usuariosDeletou = conversa.usuariosComDeleção || {};
+      if (!usuariosDeletou[userId]) {
+        conversas.push(conversa);
+      }
+    });
+
+    return ordenarConversasPorAtividade(conversas);
+  } catch (error) {
+    console.error("Erro ao obter conversas ativas:", error);
+    return [];
+  }
+};
+
+// ✅ RESTAURAR CONVERSA (caso tenha sido deletada)
+export const restaurarConversa = async (conversaId, usuarioId) => {
+  try {
+    const conversaRef = doc(db, "conversas", conversaId);
+    
+    await updateDoc(conversaRef, {
+      [`usuariosComDeleção.${usuarioId}`]: false,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao restaurar conversa:", error);
+    return { success: false, error: error.message };
+  }
+};

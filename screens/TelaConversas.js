@@ -20,7 +20,7 @@ const TelaConversas = ({ navigation, route }) => {
   const { user } = useAuth();
   const userId = user?.uid;
   
-  const { conversas, loading, naoLidas, iniciarConversa } =
+  const { conversas, loading, naoLidas, iniciarConversa, deletarConversa } =
     useDirectMessages(userId);
 
   const handleConversaPress = useCallback(
@@ -37,29 +37,42 @@ const TelaConversas = ({ navigation, route }) => {
     navigation.navigate("BuscaUsuarios");
   }, [navigation]);
 
+  const handleDeleteConversa = useCallback(
+    async (conversaId) => {
+      const resultado = await deletarConversa(conversaId);
+      if (resultado.success) {
+        // Conversa foi deletada com sucesso (removida da lista)
+      }
+    },
+    [deletarConversa]
+  );
+
   return (
     <View style={styles.container}>
-      {/* HEADER */}
+      {/* HEADER MELHORADO */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.label}>Conversas</Text>
-          <Text style={styles.titulo}>Mensagens</Text>
-          <Text style={styles.subtitulo}>Fale com pessoas, criadores e organizadores.</Text>
-          {naoLidas > 0 && (
-            <View style={styles.badgeNaoLidas}>
-              <Text style={styles.badgeText}>{naoLidas}</Text>
-            </View>
-          )}
+          <Text style={styles.label}>Mensagens</Text>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.titulo}>Conversas</Text>
+            {naoLidas > 0 && (
+              <View style={styles.badgePrincipal}>
+                <Text style={styles.badgePrincipalText}>{naoLidas}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.subtitulo}>Suas conversas e mensagens diretas</Text>
         </View>
 
         <TouchableOpacity
           style={styles.btnNovaConversa}
           onPress={handleNovaConversa}
+          activeOpacity={0.8}
         >
           <MaterialCommunityIcons
             name="pencil-plus"
             size={24}
-            color={Colors.primary}
+            color="#FFF"
           />
         </TouchableOpacity>
       </View>
@@ -71,6 +84,7 @@ const TelaConversas = ({ navigation, route }) => {
         userId={userId}
         onConversaPress={handleConversaPress}
         onNovaConversa={handleNovaConversa}
+        onDeleteConversa={handleDeleteConversa}
       />
     </View>
   );
@@ -85,69 +99,72 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.surface,
     paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
   },
 
   headerContent: {
     flex: 1,
-    paddingRight: 14,
+  },
+
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
   },
 
   titulo: {
     fontSize: 28,
     fontWeight: "800",
     color: Colors.textPrimary,
-    marginTop: 2,
   },
 
   label: {
     color: Colors.primary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "800",
     textTransform: "uppercase",
-    letterSpacing: 0,
+    letterSpacing: 0.5,
   },
 
   subtitulo: {
     color: Colors.textMuted,
-    fontSize: 13,
-    marginTop: 5,
-    lineHeight: 18,
+    fontSize: 12,
+    marginTop: 6,
+    lineHeight: 16,
   },
 
-  badgeNaoLidas: {
+  badgePrincipal: {
     backgroundColor: Colors.primary,
-    alignSelf: "flex-start",
     minWidth: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 7,
-    marginTop: 10,
+    paddingHorizontal: 8,
   },
 
-  badgeText: {
+  badgePrincipalText: {
     color: "#fff",
     fontSize: 12,
     fontWeight: "700",
   },
 
   btnNovaConversa: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: Colors.primary,
+    marginTop: 2,
   },
 });
 

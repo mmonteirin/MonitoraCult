@@ -130,6 +130,431 @@ const getStarName = (media, index) => {
   return "star-outline";
 };
 
+// ─── Dashboard de Alcance ────────────────────────────────────────────────────
+
+const REACH_STEPS = [
+  {
+    key: "visualizacoes",
+    label: "Viram",
+    icon: "eye-outline",
+    color: "#38BDF8",
+    bg: "rgba(56,189,248,0.12)",
+    description: "Pessoas que visualizaram o evento",
+  },
+  {
+    key: "cliques",
+    label: "Clicaram",
+    icon: "cursor-default-click-outline",
+    color: "#A78BFA",
+    bg: "rgba(167,139,250,0.12)",
+    description: "Acessaram a página do evento",
+  },
+  {
+    key: "inscricoes",
+    label: "Inscreveram",
+    icon: "ticket-confirmation-outline",
+    color: "#34D399",
+    bg: "rgba(52,211,153,0.12)",
+    description: "Garantiram presença ou ingresso",
+  },
+  {
+    key: "comparecimentos",
+    label: "Foram",
+    icon: "map-marker-check-outline",
+    color: "#FBBF24",
+    bg: "rgba(251,191,36,0.12)",
+    description: "Compareceram ao evento",
+  },
+];
+
+function ReachDashboard({ alcance }) {
+  const dados = alcance || {};
+
+  const valores = REACH_STEPS.map((step) =>
+    Number(dados[step.key] || 0)
+  );
+
+  const maximo = Math.max(...valores, 1);
+
+  const taxaConversao =
+    valores[0] > 0
+      ? ((valores[2] / valores[0]) * 100).toFixed(1)
+      : "0.0";
+
+  const taxaComparecimento =
+    valores[2] > 0
+      ? ((valores[3] / valores[2]) * 100).toFixed(1)
+      : "0.0";
+
+  return (
+    <View style={reachStyles.wrapper}>
+      {/* Título */}
+      <View style={reachStyles.header}>
+        <View style={reachStyles.titleRow}>
+          <MaterialCommunityIcons
+            name="radar"
+            size={22}
+            color="#A78BFA"
+          />
+          <Text style={reachStyles.title}>
+            Dashboard de Alcance
+          </Text>
+        </View>
+        <Text style={reachStyles.subtitle}>
+          Funil de engajamento do evento
+        </Text>
+      </View>
+
+      {/* Cards de métricas */}
+      <View style={reachStyles.cardsRow}>
+        {REACH_STEPS.map((step, index) => {
+          const valor = valores[index];
+          const anterior = index > 0 ? valores[index - 1] : null;
+          const taxa =
+            anterior != null && anterior > 0
+              ? ((valor / anterior) * 100).toFixed(0)
+              : null;
+
+          return (
+            <BlurView
+              key={step.key}
+              intensity={22}
+              tint="dark"
+              style={reachStyles.metricCard}
+            >
+              {/* Ícone */}
+              <View
+                style={[
+                  reachStyles.iconWrap,
+                  { backgroundColor: step.bg },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={step.icon}
+                  size={20}
+                  color={step.color}
+                />
+              </View>
+
+              {/* Número */}
+              <Text style={reachStyles.metricValue}>
+                {valor.toLocaleString("pt-BR")}
+              </Text>
+
+              {/* Label */}
+              <Text style={reachStyles.metricLabel}>
+                {step.label}
+              </Text>
+
+              {/* Taxa de conversão do passo anterior */}
+              {taxa !== null && (
+                <View
+                  style={[
+                    reachStyles.taxaBadge,
+                    { backgroundColor: step.bg },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      reachStyles.taxaText,
+                      { color: step.color },
+                    ]}
+                  >
+                    {taxa}%
+                  </Text>
+                </View>
+              )}
+            </BlurView>
+          );
+        })}
+      </View>
+
+      {/* Funil visual */}
+      <BlurView
+        intensity={20}
+        tint="dark"
+        style={reachStyles.funnelCard}
+      >
+        <Text style={reachStyles.funnelTitle}>
+          Funil de Conversão
+        </Text>
+
+        {REACH_STEPS.map((step, index) => {
+          const valor = valores[index];
+          const pct = maximo > 0 ? (valor / maximo) * 100 : 0;
+
+          return (
+            <View key={step.key} style={reachStyles.funnelRow}>
+              {/* Label */}
+              <View style={reachStyles.funnelLabelWrap}>
+                <MaterialCommunityIcons
+                  name={step.icon}
+                  size={14}
+                  color={step.color}
+                />
+                <Text style={reachStyles.funnelLabel}>
+                  {step.label}
+                </Text>
+              </View>
+
+              {/* Barra */}
+              <View style={reachStyles.funnelBarTrack}>
+                <LinearGradient
+                  colors={[step.color, step.color + "99"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    reachStyles.funnelBarFill,
+                    { width: `${pct}%` },
+                  ]}
+                />
+              </View>
+
+              {/* Valor */}
+              <Text style={reachStyles.funnelValue}>
+                {valor.toLocaleString("pt-BR")}
+              </Text>
+            </View>
+          );
+        })}
+      </BlurView>
+
+      {/* Indicadores síntese */}
+      <View style={reachStyles.synthRow}>
+        <BlurView
+          intensity={20}
+          tint="dark"
+          style={reachStyles.synthCard}
+        >
+          <MaterialCommunityIcons
+            name="filter-outline"
+            size={18}
+            color="#34D399"
+          />
+          <Text style={reachStyles.synthValue}>
+            {taxaConversao}%
+          </Text>
+          <Text style={reachStyles.synthLabel}>
+            Conversão{"\n"}Geral
+          </Text>
+        </BlurView>
+
+        <BlurView
+          intensity={20}
+          tint="dark"
+          style={reachStyles.synthCard}
+        >
+          <MaterialCommunityIcons
+            name="walk"
+            size={18}
+            color="#FBBF24"
+          />
+          <Text style={reachStyles.synthValue}>
+            {taxaComparecimento}%
+          </Text>
+          <Text style={reachStyles.synthLabel}>
+            Taxa de{"\n"}Comparecimento
+          </Text>
+        </BlurView>
+
+        <BlurView
+          intensity={20}
+          tint="dark"
+          style={reachStyles.synthCard}
+        >
+          <MaterialCommunityIcons
+            name="account-multiple-outline"
+            size={18}
+            color="#38BDF8"
+          />
+          <Text style={reachStyles.synthValue}>
+            {(valores[0] - valores[2]).toLocaleString("pt-BR")}
+          </Text>
+          <Text style={reachStyles.synthLabel}>
+            Viram mas não{"\n"}inscreveram
+          </Text>
+        </BlurView>
+      </View>
+    </View>
+  );
+}
+
+const reachStyles = StyleSheet.create({
+  wrapper: {
+    marginTop: 22,
+  },
+
+  header: {
+    marginBottom: 14,
+  },
+
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  title: {
+    color: "#FFF",
+    fontSize: 24,
+    fontWeight: "800",
+    marginLeft: 8,
+  },
+
+  subtitle: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  cardsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+
+  metricCard: {
+    flex: 1,
+    borderRadius: 22,
+    padding: 14,
+    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+  },
+
+  iconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+
+  metricValue: {
+    color: "#FFF",
+    fontSize: 18,
+    fontWeight: "900",
+  },
+
+  metricLabel: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 11,
+    marginTop: 3,
+    textAlign: "center",
+  },
+
+  taxaBadge: {
+    marginTop: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+
+  taxaText: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+
+  funnelCard: {
+    marginTop: 16,
+    borderRadius: 26,
+    padding: 20,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+  },
+
+  funnelTitle: {
+    color: "rgba(255,255,255,0.55)",
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 16,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+
+  funnelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+
+  funnelLabelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 90,
+    gap: 6,
+  },
+
+  funnelLabel: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 13,
+    marginLeft: 6,
+  },
+
+  funnelBarTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    overflow: "hidden",
+    marginHorizontal: 10,
+  },
+
+  funnelBarFill: {
+    height: "100%",
+    borderRadius: 999,
+    minWidth: 4,
+  },
+
+  funnelValue: {
+    color: "#FFF",
+    fontSize: 13,
+    fontWeight: "700",
+    width: 52,
+    textAlign: "right",
+  },
+
+  synthRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 14,
+    gap: 10,
+  },
+
+  synthCard: {
+    flex: 1,
+    borderRadius: 22,
+    padding: 16,
+    alignItems: "center",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
+    gap: 6,
+  },
+
+  synthValue: {
+    color: "#FFF",
+    fontSize: 20,
+    fontWeight: "900",
+    marginTop: 4,
+  },
+
+  synthLabel: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 16,
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function AdmEventoDashIndividual({
   navigation,
   route,
@@ -149,6 +574,8 @@ export default function AdmEventoDashIndividual({
   const [avaliacoes, setAvaliacoes] = useState([]);
 
   const [ocorrencias, setOcorrencias] = useState([]);
+
+  const [alcance, setAlcance] = useState(null);
 
   const [loading, setLoading] = useState(true);
 
@@ -171,6 +598,7 @@ export default function AdmEventoDashIndividual({
           vendasData,
           avaliacoesSnap,
           ocorrenciasSnap,
+          alcanceSnap,
         ] = await Promise.all([
           getDoc(eventoRef),
           obterEstatisticasVendas(eventoId),
@@ -196,6 +624,7 @@ export default function AdmEventoDashIndividual({
               orderBy("createdAt", "desc")
             )
           ),
+          getDoc(doc(db, "eventos", eventoId, "metricas", "alcance")),
         ]);
 
         if (!mounted) return;
@@ -208,6 +637,21 @@ export default function AdmEventoDashIndividual({
         }
 
         setVendas(vendasData || null);
+
+        setAlcance(
+          alcanceSnap.exists()
+            ? alcanceSnap.data()
+            : {
+                visualizacoes: evento?.visualizacoes || 0,
+                cliques: evento?.cliques || 0,
+                inscricoes:
+                  evento?.inscricoes ||
+                  vendas?.totalIngressosVendidos ||
+                  evento?.ingressosVendidos ||
+                  0,
+                comparecimentos: evento?.comparecimentos || 0,
+              }
+        );
 
         setAvaliacoes(
           avaliacoesSnap.docs.map((document) => ({
@@ -594,6 +1038,9 @@ export default function AdmEventoDashIndividual({
           </BlurView>
         </View>
 
+        {/* ALCANCE */}
+        <ReachDashboard alcance={alcance} />
+
         {/* AVALIAÇÕES */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -707,6 +1154,35 @@ export default function AdmEventoDashIndividual({
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.actionButton}
+              onPress={() =>
+                navigation.navigate("AdmQRScanner", {
+                  eventoId,
+                  eventoNome: evento.tituloEvento || "Evento",
+                })
+              }
+            >
+              <LinearGradient
+                colors={[
+                  "#16A34A",
+                  "#15803D",
+                ]}
+                style={styles.actionGradient}
+              >
+                <MaterialCommunityIcons
+                  name="qrcode-scan"
+                  size={24}
+                  color="#FFF"
+                />
+
+                <Text style={styles.actionText}>
+                  Scanner QR{"\n"}Check-in
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.actionButton}
             >
               <LinearGradient
                 colors={[
@@ -746,29 +1222,6 @@ export default function AdmEventoDashIndividual({
 
                 <Text style={styles.actionText}>
                   Relatórios
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.actionButton}
-            >
-              <LinearGradient
-                colors={[
-                  "#059669",
-                  "#047857",
-                ]}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons
-                  name="account-group"
-                  size={24}
-                  color="#FFF"
-                />
-
-                <Text style={styles.actionText}>
-                  Equipe
                 </Text>
               </LinearGradient>
             </TouchableOpacity>

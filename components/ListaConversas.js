@@ -3,7 +3,7 @@
  * Exibe todas as conversas do usuário com último mensagem
  */
 
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
   StyleSheet,
   Image,
   ActivityIndicator,
+  Alert,
+  Animated,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
@@ -34,7 +36,9 @@ const formatarHora = (timestamp) => {
 };
 
 // ✅ Item de conversa
-const ConversaItem = memo(({ conversa, onPress, userId }) => {
+const ConversaItem = memo(({ conversa, onPress, userId, onDelete }) => {
+  const [showOptions, setShowOptions] = useState(false);
+
   // Identificar outro usuário
   const participantes = conversa.participantes || [];
   const outroUserId =
@@ -46,66 +50,120 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
   const nome = outroPerfil.nome || conversa.nomeOutro || `Usuário ${outroUserId.slice(0, 4)}`;
   const avatar = outroPerfil.avatar || conversa.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId || "user"}`;
 
-  return (
-    <TouchableOpacity
-      style={[styles.conversaItem, naoLidas > 0 && styles.conversaNaoLida]}
-      onPress={() => onPress?.(conversa)}
-      activeOpacity={0.7}
-    >
-      {/* Avatar */}
-      <Image
-        source={{
-          uri: avatar,
-        }}
-        style={styles.avatar}
-      />
+  const handleDelete = () => {
+    Alert.alert(
+      "Excluir conversa",
+      `Tem certeza que deseja remover a conversa com ${nome}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: () => {
+            onDelete?.(conversa.id);
+            setShowOptions(false);
+          },
+        },
+      ]
+    );
+  };
 
-      {/* Info */}
-      <View style={styles.info}>
-        <View style={styles.header}>
+  return (
+    <View style={styles.itemWrapper}>
+      <TouchableOpacity
+        style={[styles.conversaItem, naoLidas > 0 && styles.conversaNaoLida]}
+        onPress={() => {
+          setShowOptions(false);
+          onPress?.(conversa);
+        }}
+        activeOpacity={0.7}
+      >
+        {/* Avatar */}
+        <Image
+          source={{
+            uri: avatar,
+          }}
+          style={styles.avatar}
+        />
+
+        {/* Info */}
+        <View style={styles.info}>
+          <View style={styles.header}>
+            <Text
+              style={[
+                styles.nome,
+                naoLidas > 0 && styles.nomeNaoLido,
+              ]}
+              numberOfLines={1}
+            >
+              {nome}
+            </Text>
+            <Text
+              style={[
+                styles.hora,
+                naoLidas > 0 && styles.horaNaoLida,
+              ]}
+            >
+              {formatarHora(conversa.ultimaAtividade)}
+            </Text>
+          </View>
+
           <Text
             style={[
-              styles.nome,
-              naoLidas > 0 && styles.nomeNaoLido,
+              styles.ultimaMensagem,
+              naoLidas > 0 && styles.ultimaMensagemNaoLida,
             ]}
             numberOfLines={1}
           >
-            {nome}
-          </Text>
-          <Text
-            style={[
-              styles.hora,
-              naoLidas > 0 && styles.horaNaoLida,
-            ]}
-          >
-            {formatarHora(conversa.ultimaAtividade)}
+            {ultimoFoiEle ? "" : "Você: "}{conversa.ultimaMensagem || "Nenhuma mensagem"}
           </Text>
         </View>
 
-        <Text
-          style={[
-            styles.ultimaMensagem,
-            naoLidas > 0 && styles.ultimaMensagemNaoLida,
-          ]}
-          numberOfLines={1}
-        >
-          {ultimoFoiEle ? "" : "Você: "}{conversa.ultimaMensagem || "Nenhuma mensagem"}
-        </Text>
-      </View>
+        {/* Badge de não lidas */}
+        {naoLidas > 0 && (
+          <View style={styles.badgeNaoLidas}>
+            <Text style={styles.badgeNaoLidasText}>{naoLidas}</Text>
+          </View>
+        )}
 
-      {/* Badge de não lidas */}
-      {naoLidas > 0 && (
-        <View style={styles.badgeNaoLidas}>
-          <Text style={styles.badgeNaoLidasText}>{naoLidas}</Text>
+        {/* Botão de menu */}
+        <TouchableOpacity
+          style={styles.menuBtn}
+          onPress={() => setShowOptions(!showOptions)}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="dots-vertical"
+            size={20}
+            color={Colors.textMuted}
+          />
+        </TouchableOpacity>
+      </TouchableOpacity>
+
+      {/* Menu de opções */}
+      {showOptions && (
+        <View style={styles.optionsMenu}>
+          <TouchableOpacity
+            style={styles.optionItem}
+            onPress={handleDelete}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={18}
+              color="#EF4444"
+            />
+            <Text style={styles.optionText}>Excluir conversa</Text>
+          </TouchableOpacity>
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   );
 });
 
 // ✅ Componente principal
 const ListaConversas = memo(
-  ({ conversas, loading, userId, onConversaPress, onNovaConversa }) => {
+  ({ conversas, loading, userId, onConversaPress, onNovaConversa, onDeleteConversa }) => {
     if (loading) {
       return (
         <View style={styles.loader}>
@@ -143,6 +201,7 @@ const ListaConversas = memo(
             conversa={item}
             onPress={onConversaPress}
             userId={userId}
+            onDelete={onDeleteConversa}
           />
         )}
         keyExtractor={(item) => item.id}
@@ -161,11 +220,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  itemWrapper: {
+    marginHorizontal: 14,
+    marginVertical: 5,
+  },
+
   conversaItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 14,
-    marginVertical: 5,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
@@ -242,6 +304,38 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 11,
     fontWeight: "700",
+  },
+
+  menuBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+
+  optionsMenu: {
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    marginTop: 4,
+    marginHorizontal: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    overflow: "hidden",
+  },
+
+  optionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+
+  optionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#EF4444",
   },
 
   separador: {
