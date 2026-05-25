@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   Image,
@@ -14,6 +15,7 @@ import { Colors } from "../styles/Colors";
 import { useAuth } from "../context/AuthContext";
 import { useConversation } from "../hooks/useDirectMessages";
 import { obterOuCriarConversa } from "../services/dmService";
+import { getPublicProfile } from "../services/profileService";
 import ChatViewer from "../components/ChatViewer";
 
 const TelaMensagens = ({ navigation, route }) => {
@@ -59,6 +61,20 @@ const TelaMensagens = ({ navigation, route }) => {
 
   const { mensagens, loading, enviando, enviar, deletar, editar } =
     useConversation(userId, conversaId);
+
+  // ── Buscar perfil real do Firestore ──────────────────────────────────────
+  const [outroPerfil, setOutroPerfil] = useState(null);
+  useEffect(() => {
+    const outroId = outroUsuario?.id;
+    if (!outroId) return;
+    getPublicProfile(outroId)
+      .then((perfil) => setOutroPerfil(perfil))
+      .catch(() => setOutroPerfil(null));
+  }, [outroUsuario?.id]);
+
+  // ── Estado da busca ─────────────────────────────────────────────────────
+  const [buscaAberta, setBuscaAberta] = useState(false);
+  const [termoBusca, setTermoBusca] = useState("");
 
   // ── Criar conversa se veio de BuscaUsuarios ────────────────────────────────
   useEffect(() => {
@@ -155,14 +171,18 @@ const TelaMensagens = ({ navigation, route }) => {
   }
 
   // ── Render principal ───────────────────────────────────────────────────────
+  const nomeOutro =
+    outroPerfil?.displayName ||
+    outroPerfil?.nome ||
+    outroUsuario?.nome ||
+    `Usuário ${String(outroUsuario?.id || "").slice(0, 4)}`;
+
   const avatarUri =
+    outroPerfil?.photoURL ||
+    outroPerfil?.foto ||
     outroUsuario?.avatar ||
     outroUsuario?.foto ||
     `https://i.pravatar.cc/100?u=${outroUsuario?.id || "user"}`;
-
-  const nomeOutro =
-    outroUsuario?.nome ||
-    `Usuário ${String(outroUsuario?.id || "").slice(0, 4)}`;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -190,6 +210,19 @@ const TelaMensagens = ({ navigation, route }) => {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerBtn}
+            onPress={() => {
+              setBuscaAberta(!buscaAberta);
+              if (buscaAberta) setTermoBusca("");
+            }}
+          >
+            <MaterialCommunityIcons
+              name="magnify"
+              size={22}
+              color={buscaAberta ? Colors.primary : Colors.textMuted}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
             onPress={() =>
               Alert.alert("Chamada de vídeo", "Recurso em breve!")
             }
@@ -207,6 +240,34 @@ const TelaMensagens = ({ navigation, route }) => {
         </View>
       </View>
 
+      {/* BARRA DE BUSCA */}
+      {buscaAberta && (
+        <View style={styles.barraBusca}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={Colors.textMuted}
+          />
+          <TextInput
+            style={styles.inputBusca}
+            placeholder="Buscar mensagens..."
+            placeholderTextColor={Colors.textMuted}
+            value={termoBusca}
+            onChangeText={setTermoBusca}
+            autoFocus
+          />
+          {termoBusca.length > 0 && (
+            <TouchableOpacity onPress={() => setTermoBusca("")}>
+              <MaterialCommunityIcons
+                name="close-circle"
+                size={18}
+                color={Colors.textMuted}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {/* CHAT */}
       <ChatViewer
         mensagens={mensagens}
@@ -217,6 +278,7 @@ const TelaMensagens = ({ navigation, route }) => {
         onEnviar={handleEnviar}
         onDelete={handleDeletar}
         onEdit={handleEditar}
+        termoBusca={termoBusca}
       />
     </View>
   );
@@ -290,6 +352,24 @@ const styles = StyleSheet.create({
   },
   headerBtn: {
     padding: 8,
+  },
+
+  // BUSCA
+  barraBusca: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    gap: 8,
+  },
+  inputBusca: {
+    flex: 1,
+    fontSize: 14,
+    color: Colors.textPrimary,
+    paddingVertical: 4,
   },
 });
 
