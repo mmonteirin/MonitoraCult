@@ -13,11 +13,14 @@ import {
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 import { useConversation } from "../hooks/useDirectMessages";
 import ChatViewer from "../components/ChatViewer";
 
 const TelaMensagens = ({ navigation, route }) => {
+  const insets = useSafeAreaInsets();
   const { conversaId, conversa, auth } = route?.params;
   const userId = auth?.currentUser?.uid;
 
@@ -36,64 +39,9 @@ const TelaMensagens = ({ navigation, route }) => {
       : conversa.participantes[0]
   );
 
-  // ✅ Configurar header
   useEffect(() => {
-    navigation.setOptions({
-      headerShown: true,
-      headerStyle: {
-        backgroundColor: Colors.surface,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-      },
-      headerTitle: () => (
-        <View style={styles.headerTitle}>
-          <Image
-            source={{
-              uri: `https://i.pravatar.cc/100?u=${outroUserId}`,
-            }}
-            style={styles.headerAvatar}
-          />
-          <View>
-            <Text style={styles.headerNome}>
-              Usuário {outroUserId.slice(0, 4)}
-            </Text>
-            <Text style={styles.headerStatus}>Online</Text>
-          </View>
-        </View>
-      ),
-      headerRight: () => (
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.btnHeader}
-            onPress={() => handleCall("video")}
-          >
-            <MaterialCommunityIcons
-              name="video"
-              size={22}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.btnHeader}
-            onPress={() => handleCall("audio")}
-          >
-            <MaterialCommunityIcons
-              name="phone"
-              size={22}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnHeader}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={22}
-              color={Colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, outroUserId]);
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   const handleCall = (tipo) => {
     Alert.alert(
@@ -153,8 +101,45 @@ const TelaMensagens = ({ navigation, route }) => {
     [editar]
   );
 
+  const nomeOutro = conversa?.nomeOutro || conversa?.outroNome || `Usuário ${String(outroUserId || "").slice(0, 4)}`;
+  const avatarOutro = conversa?.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId}`;
+
   return (
     <View style={styles.container}>
+      {/* HEADER */}
+      <LinearGradient
+        colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
+        style={[styles.header, { paddingTop: insets.top + 10 }]}
+      >
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.headerUser}
+          activeOpacity={0.8}
+        >
+          <Image source={{ uri: avatarOutro }} style={styles.headerAvatar} />
+          <View>
+            <Text style={styles.headerNome} numberOfLines={1}>{nomeOutro}</Text>
+            <Text style={styles.headerStatus}>Online</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => handleCall("video")}>
+            <MaterialCommunityIcons name="video" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionBtn} onPress={() => handleCall("audio")}>
+            <MaterialCommunityIcons name="phone" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
       <ChatViewer
         mensagens={mensagens}
         loading={loading}
@@ -175,39 +160,69 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  headerTitle: {
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 10,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+  },
+
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+
+  headerUser: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
   },
 
   headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.card,
   },
 
   headerNome: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: Colors.textPrimary,
+    maxWidth: 160,
   },
 
   headerStatus: {
     fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 2,
+    color: Colors.success,
+    marginTop: 1,
   },
 
-  headerRight: {
+  headerActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginRight: 12,
   },
 
-  btnHeader: {
-    padding: 8,
+  headerActionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
   },
 });
 

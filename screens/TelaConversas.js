@@ -14,12 +14,15 @@ import {
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
-  const auth = route?.params?.auth; // Obtém auth via params
+  const insets = useSafeAreaInsets();
+  const auth = route?.params?.auth;
   const userId = auth?.currentUser?.uid;
   
   const { conversas, loading, naoLidas, iniciarConversa } =
@@ -47,27 +50,37 @@ const TelaConversas = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.titulo}>Mensagens</Text>
+      <LinearGradient
+        colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
+        style={[styles.header, { paddingTop: insets.top + 14 }]}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            style={styles.backBtn}
+            onPress={() => navigation.goBack()}
+          >
+            <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mensagens</Text>
+          <TouchableOpacity
+            style={styles.headerActionBtn}
+            activeOpacity={0.8}
+            onPress={handleNovaConversa}
+          >
+            <MaterialCommunityIcons name="pencil-plus" size={22} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.headerSubRow}>
+          <Text style={styles.subtitulo}>Suas conversas diretas</Text>
           {naoLidas > 0 && (
             <View style={styles.badgeNaoLidas}>
               <Text style={styles.badgeText}>{naoLidas}</Text>
             </View>
           )}
         </View>
-
-        <TouchableOpacity
-          style={styles.btnNovaConversa}
-          onPress={handleNovaConversa}
-        >
-          <MaterialCommunityIcons
-            name="pencil-plus"
-            size={24}
-            color={Colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* LISTA */}
       <ListaConversas
@@ -88,46 +101,71 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+
+  headerTop: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    alignItems: "center",
+    marginBottom: 12,
   },
 
-  headerContent: {
-    flex: 1,
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+
+  headerTitle: {
+    color: Colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+
+  headerActionBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+  },
+
+  headerSubRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
 
-  titulo: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: Colors.textPrimary,
+  subtitulo: {
+    color: Colors.textMuted,
+    fontSize: 13,
   },
 
   badgeNaoLidas: {
     backgroundColor: Colors.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    paddingHorizontal: 9,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
     alignItems: "center",
   },
 
   badgeText: {
     color: "#fff",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-  },
-
-  btnNovaConversa: {
-    padding: 8,
   },
 });
 

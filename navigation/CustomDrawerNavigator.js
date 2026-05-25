@@ -10,6 +10,7 @@ import {
   Image,
   Animated,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
   Modal,
@@ -354,132 +355,52 @@ export default function CustomDrawerContent(props) {
         </Text>
       </View>
 
-      {/* MODAL LOGOUT */}
+      {/* MODAL LOGOUT — padrão TelaPerfil */}
       <Modal
         visible={showLogoutModal}
         transparent
         animationType="fade"
         statusBarTranslucent
+        onRequestClose={() => setShowLogoutModal(false)}
       >
-        <View
-          style={
-            styles.modalOverlay
-          }
-        >
-          <BlurView
-            intensity={55}
-            tint="dark"
-            style={
-              styles.modalCard
-            }
-          >
-            {/* ÍCONE */}
+        <View style={styles.modalOverlay}>
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLogoutModal(false)} />
+          <BlurView intensity={50} tint="dark" style={styles.modalCard}>
             <LinearGradient
-              colors={[
-                "#EF4444",
-                "#DC2626",
-              ]}
-              style={
-                styles.modalIcon
-              }
+              colors={["rgba(239,68,68,0.15)", "rgba(127,29,29,0.05)"]}
+              style={styles.modalGradient}
             >
-              <MaterialCommunityIcons
-                name="logout-variant"
-                size={34}
-                color="#FFF"
-              />
+              <View style={styles.modalIcon}>
+                <MaterialCommunityIcons name="logout" size={34} color="#EF4444" />
+              </View>
+
+              <Text style={styles.modalTitle}>Sair da conta?</Text>
+              <Text style={styles.modalText}>Você realmente deseja encerrar sua sessão?</Text>
+
+              <View style={styles.modalButtons}>
+                <Pressable style={styles.cancelBtn} onPress={() => setShowLogoutModal(false)}>
+                  <Text style={styles.cancelText}>Cancelar</Text>
+                </Pressable>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.confirmBtn}
+                  onPress={executeLogout}
+                  disabled={loadingLogout}
+                >
+                  <LinearGradient colors={["#EF4444", "#DC2626"]} style={styles.confirmGradient}>
+                    {loadingLogout ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <>
+                        <MaterialCommunityIcons name="logout" size={18} color="#FFF" />
+                        <Text style={styles.confirmText}>Sair</Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </LinearGradient>
-
-            {/* TÍTULO */}
-            <Text
-              style={
-                styles.modalTitle
-              }
-            >
-              Sair da Conta
-            </Text>
-
-            {/* TEXTO */}
-            <Text
-              style={
-                styles.modalText
-              }
-            >
-              Deseja realmente sair da
-              sua conta?
-            </Text>
-
-            {/* BOTÕES */}
-            <View
-              style={
-                styles.modalButtons
-              }
-            >
-              {/* CANCELAR */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={
-                  styles.cancelButton
-                }
-                onPress={() =>
-                  setShowLogoutModal(
-                    false
-                  )
-                }
-              >
-                <Text
-                  style={
-                    styles.cancelText
-                  }
-                >
-                  Cancelar
-                </Text>
-              </TouchableOpacity>
-
-              {/* SAIR */}
-              <TouchableOpacity
-                activeOpacity={0.9}
-                disabled={
-                  loadingLogout
-                }
-                onPress={
-                  executeLogout
-                }
-                style={{ flex: 1 }}
-              >
-                <LinearGradient
-                  colors={[
-                    "#EF4444",
-                    "#B91C1C",
-                  ]}
-                  style={
-                    styles.confirmButton
-                  }
-                >
-                  {loadingLogout ? (
-                    <ActivityIndicator
-                      color="#FFF"
-                    />
-                  ) : (
-                    <>
-                      <MaterialCommunityIcons
-                        name="logout"
-                        size={18}
-                        color="#FFF"
-                      />
-
-                      <Text
-                        style={
-                          styles.confirmText
-                        }
-                      >
-                        Sair
-                      </Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
           </BlurView>
         </View>
       </Modal>
@@ -635,123 +556,77 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  /* MODAL */
+  /* MODAL — padrão TelaPerfil */
   modalOverlay: {
     flex: 1,
-    backgroundColor:
-      "rgba(0,0,0,0.72)",
-
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
-
     paddingHorizontal: 24,
   },
-
   modalCard: {
     width: "100%",
-
     borderRadius: 30,
-
     overflow: "hidden",
-
-    padding: 26,
-
-    backgroundColor:
-      "rgba(15,15,25,0.92)",
-
     borderWidth: 1,
-    borderColor:
-      "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255,255,255,0.08)",
   },
-
+  modalGradient: {
+    padding: 28,
+    alignItems: "center",
+  },
   modalIcon: {
-    width: 74,
-    height: 74,
-
-    borderRadius: 24,
-
+    width: 78,
+    height: 78,
+    borderRadius: 30,
+    backgroundColor: "rgba(239,68,68,0.12)",
     justifyContent: "center",
     alignItems: "center",
-
-    alignSelf: "center",
-
-    marginBottom: 20,
+    marginBottom: 18,
   },
-
   modalTitle: {
     color: "#FFF",
-
     fontSize: 22,
     fontWeight: "bold",
-
-    textAlign: "center",
   },
-
   modalText: {
-    color:
-      "rgba(255,255,255,0.7)",
-
-    fontSize: 15,
-
+    color: "rgba(255,255,255,0.65)",
     textAlign: "center",
-
-    lineHeight: 23,
-
     marginTop: 10,
+    fontSize: 14,
+    lineHeight: 22,
   },
-
   modalButtons: {
     flexDirection: "row",
-
-    marginTop: 28,
-
-    gap: 14,
+    marginTop: 26,
+    width: "100%",
   },
-
-  cancelButton: {
+  cancelBtn: {
     flex: 1,
-
-    height: 56,
-
+    height: 52,
     borderRadius: 18,
-
+    backgroundColor: "rgba(255,255,255,0.06)",
     justifyContent: "center",
     alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.08)",
-
-    borderWidth: 1,
-    borderColor:
-      "rgba(255,255,255,0.05)",
+    marginRight: 10,
   },
-
   cancelText: {
     color: "#FFF",
-
-    fontWeight: "700",
-
-    fontSize: 15,
+    fontWeight: "600",
   },
-
-  confirmButton: {
-    height: 56,
-
+  confirmBtn: {
+    flex: 1,
+  },
+  confirmGradient: {
+    height: 52,
     borderRadius: 18,
-
     flexDirection: "row",
-
     justifyContent: "center",
     alignItems: "center",
-
     gap: 8,
   },
-
   confirmText: {
     color: "#FFF",
-
     fontWeight: "bold",
-
-    fontSize: 15,
   },
 });

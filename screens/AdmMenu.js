@@ -336,18 +336,20 @@ export default function AdmMenu() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* MODAL LOGOUT */}
+        {/* MODAL LOGOUT — padrão TelaPerfil */}
         <Modal
           visible={showLogoutModal}
           transparent
           animationType="fade"
           statusBarTranslucent
+          onRequestClose={() => setShowLogoutModal(false)}
         >
           <View
             style={
               styles.modalOverlay
             }
           >
+            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLogoutModal(false)} />
             <BlurView
               intensity={50}
               tint="dark"
@@ -356,7 +358,7 @@ export default function AdmMenu() {
               <LinearGradient
                 colors={[
                   "rgba(239,68,68,0.15)",
-                  "rgba(127,29,29,0.04)",
+                  "rgba(127,29,29,0.05)",
                 ]}
                 style={
                   styles.modalGradient

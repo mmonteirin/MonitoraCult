@@ -254,14 +254,16 @@ export default function TelaPerfil({ navigation }) {
 				</View>
 			</ScrollView>
 
-			{/* 🔥 MODAL PERSONALIZADO */}
+			{/* MODAL PADRONIZADO */}
 			<Modal
 				visible={showLogoutModal}
 				transparent
 				animationType="fade"
 				statusBarTranslucent
+				onRequestClose={() => setShowLogoutModal(false)}
 			>
 				<View style={styles.modalOverlay}>
+					<Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLogoutModal(false)} />
 					<BlurView
 						intensity={50}
 						tint="dark"
