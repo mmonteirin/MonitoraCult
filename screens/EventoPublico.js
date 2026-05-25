@@ -1,43 +1,48 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 
 import {
   View,
-  FlatList,
-  TouchableOpacity,
-  Image,
   Text,
-  StyleSheet,
-  ActivityIndicator,
   ImageBackground,
-  Modal,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  Alert,
+  Dimensions,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { getEventos } from "../services/mapaCulturalService";
-import GlobalStyles from "../styles/GlobalStyles";
 
-const { colors } = GlobalStyles;
+const { width } = Dimensions.get("window");
 
-export default function EventoPublico({ navigation }) {
-  const insets = useSafeAreaInsets();
+export default function EventosPublicos() {
 
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* MODAL */
-  const [modalVisible, setModalVisible] =
-    useState(false);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
-    carregar();
+    carregarEventos();
   }, []);
 
-  const carregar = async () => {
+  const carregarEventos = async () => {
     try {
+
       const response = await getEventos();
 
       const lista = Array.isArray(response)
@@ -46,545 +51,908 @@ export default function EventoPublico({ navigation }) {
           response?.results ||
           [];
 
-      const tratados = lista.map(
-        (item, index) => {
-          const imagem =
-            item?.image?.url ||
-            item?.files?.header?.url ||
-            null;
+      const hoje = new Date();
+
+      const limite60 = new Date();
+
+      limite60.setDate(
+        hoje.getDate() + 60
+      );
+
+      const tratados = lista
+        .map((item, index) => {
+
+          const occurrence =
+            item?.occurrences?.[0];
+
+          const inicio =
+            occurrence?.startDate ||
+            occurrence?.startsOn ||
+            occurrence?.start;
+
+          const dataEvento =
+            inicio
+              ? new Date(inicio)
+              : null;
 
           return {
-            id: item.id || index,
+
+            id:
+              item.id ||
+              String(index),
 
             titulo:
-              item.name || "Evento",
-
-            imagem,
-
-            possuiImagem: !!imagem,
+              item.name ||
+              "Evento Cultural",
 
             local:
               item?.location?.name ||
-              "Local não informado",
+              item?.location ||
+              "Fortaleza",
 
             descricao:
               item?.shortDescription ||
-              item?.description ||
-              "Descubra mais detalhes sobre este evento.",
+              "Evento cultural disponível.",
 
-            original: item,
+            imagem:
+              item?.files?.avatar?.url ||
+              item?.files?.header?.url ||
+              item?.files?.[0]?.url ||
+              "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+
+            dataObj:
+              dataEvento,
+
+            data:
+
+              dataEvento
+                ? dataEvento.toLocaleDateString(
+                    "pt-BR",
+                    {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )
+                : "Em breve",
+
+            status:
+
+              dataEvento &&
+              dataEvento > hoje
+
+                ? "confirmado"
+                : "pendente",
+
           };
-        }
-      );
+
+        })
+
+        .filter((evento) => {
+
+          if (!evento.dataObj)
+            return false;
+
+          return (
+
+            evento.dataObj >= hoje &&
+
+            evento.dataObj <= limite60
+
+          );
+
+        })
+
+        .sort(
+
+          (a, b) =>
+
+            a.dataObj - b.dataObj
+
+        );
 
       setEventos(tratados);
-    } catch (e) {
-      console.log(e);
+
+    } catch (error) {
+
+      console.log(
+        "Erro API:",
+        error
+      );
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
-  const abrirEvento = () => {
-    setModalVisible(true);
+  const cancelarInscricao = (id) => {
+
+    Alert.alert(
+      "Cancelar inscrição",
+      "Deseja cancelar sua inscrição?",
+      [
+        {
+          text: "Não",
+          style: "cancel",
+        },
+
+        {
+          text: "Sim",
+          style: "destructive",
+
+          onPress: () => {
+
+            setEventos((prev) =>
+              prev.filter(
+                (item) =>
+                  item.id !== id
+              )
+            );
+
+          },
+        },
+      ]
+    );
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      activeOpacity={0.92}
-      style={styles.card}
-      onPress={abrirEvento}
-    >
-      {/* IMAGEM OU FALLBACK */}
-      {item.possuiImagem ? (
-        <Image
-          source={{ uri: item.imagem }}
-          style={styles.img}
-        />
-      ) : (
-        <ImageBackground
-          source={require("../assets/fundoTelaLogin.png")}
-          style={styles.img}
-          resizeMode="cover"
+  const renderItem = useCallback(
+    ({ item, index }) => {
+
+      const confirmado =
+        item.status ===
+        "confirmado";
+
+      return (
+
+        <AnimatePresence
+          key={item.id}
         >
-          <LinearGradient
-            colors={[
-              "rgba(0,0,0,0.55)",
-              "rgba(0,0,0,0.80)",
-            ]}
-            style={styles.noImageOverlay}
+
+          <MotiView
+            from={{
+              opacity: 0,
+              translateY: 50,
+              scale: 0.95,
+            }}
+
+            animate={{
+              opacity: 1,
+              translateY: 0,
+              scale: 1,
+            }}
+
+            exit={{
+              opacity: 0,
+              translateX: width,
+            }}
+
+            transition={{
+              type: "timing",
+              duration: 600,
+              delay:
+                index * 120,
+            }}
           >
-            <MaterialCommunityIcons
-              name="image-off-outline"
-              size={42}
-              color="#FFF"
-            />
-
-            <Text style={styles.noImageText}>
-              Imagem não disponível
-            </Text>
-          </LinearGradient>
-        </ImageBackground>
-      )}
-
-      {/* OVERLAY */}
-      <LinearGradient
-        colors={[
-          "transparent",
-          "rgba(0,0,0,0.35)",
-          "rgba(0,0,0,0.96)",
-        ]}
-        style={styles.overlay}
-      />
-
-      {/* BADGE */}
-      <View style={styles.badge}>
-        <MaterialCommunityIcons
-          name="earth"
-          size={14}
-          color="#FFF"
-        />
-
-        <Text style={styles.badgeText}>
-          Evento Público
-        </Text>
-      </View>
-
-      {/* INFO */}
-      <View style={styles.info}>
-        <Text
-          style={styles.titulo}
-          numberOfLines={2}
-        >
-          {item.titulo}
-        </Text>
-
-        <View style={styles.locationRow}>
-          <MaterialCommunityIcons
-            name="map-marker"
-            size={15}
-            color="#DDD"
-          />
-
-          <Text
-            style={styles.local}
-            numberOfLines={1}
-          >
-            {item.local}
-          </Text>
-        </View>
-
-        <Text
-          style={styles.descricao}
-          numberOfLines={2}
-        >
-          {item.descricao}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator
-          size="large"
-          color={colors.primary}
-        />
-
-        <Text style={styles.loadingText}>
-          Carregando eventos...
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      {/* HEADER */}
-      <LinearGradient
-        colors={[
-          "#111827",
-          "#1E293B",
-          "#0F172A",
-        ]}
-        style={[
-          styles.header,
-          {
-            paddingTop:
-              insets.top + 10,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() =>
-            navigation.goBack()
-          }
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={24}
-            color="#FFF"
-          />
-        </TouchableOpacity>
-
-        <View>
-          <Text style={styles.headerTitle}>
-            Eventos Públicos
-          </Text>
-
-          <Text
-            style={styles.headerSubtitle}
-          >
-            Explore eventos culturais e
-            experiências
-          </Text>
-        </View>
-      </LinearGradient>
-
-      {/* LISTA */}
-      <FlatList
-        data={eventos}
-        keyExtractor={(item) =>
-          item.id.toString()
-        }
-        renderItem={renderItem}
-        contentContainerStyle={
-          styles.list
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
-      />
-
-      {/* MODAL */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-      >
-        <View style={styles.modalOverlay}>
-          <BlurView
-            intensity={60}
-            tint="dark"
-            style={styles.modalCard}
-          >
-            <View style={styles.modalIcon}>
-              <MaterialCommunityIcons
-                name="earth"
-                size={38}
-                color="#FFF"
-              />
-            </View>
-
-            <Text style={styles.modalTitle}>
-              Evento Público
-            </Text>
-
-            <Text style={styles.modalText}>
-              Procure mais informações no
-              site da Secretaria da Cultura
-              do Ceará.
-            </Text>
 
             <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() =>
-                setModalVisible(false)
-              }
+              activeOpacity={0.95}
+              style={styles.card}
             >
-              <Text
+
+              <ImageBackground
+                source={{
+                  uri: item.imagem,
+                }}
                 style={
-                  styles.modalButtonText
+                  styles.imagem
                 }
               >
-                Entendi
-              </Text>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </Modal>
-    </View>
+
+                <LinearGradient
+                  colors={[
+                    "rgba(139,92,246,0.28)",
+                    "transparent",
+                  ]}
+                  style={
+                    styles.glow
+                  }
+                />
+
+                <LinearGradient
+                  colors={[
+                    "transparent",
+                    "rgba(0,0,0,0.35)",
+                    "rgba(0,0,0,0.96)",
+                  ]}
+                  style={
+                    styles.overlayCard
+                  }
+                >
+
+                  <MotiView
+                    from={{
+                      opacity: 0,
+                      scale: 0.8,
+                    }}
+
+                    animate={{
+                      opacity: 1,
+                      scale: 1,
+                    }}
+
+                    style={[
+                      styles.status,
+
+                      confirmado
+                        ? styles.confirmado
+                        : styles.pendente,
+                    ]}
+                  >
+
+                    <View
+                      style={
+                        styles.statusDot
+                      }
+                    />
+
+                    <Text
+                      style={
+                        styles.statusText
+                      }
+                    >
+                      {confirmado
+                        ? "Confirmado"
+                        : "Pendente"}
+                    </Text>
+
+                  </MotiView>
+
+                  <TouchableOpacity
+  activeOpacity={0.9}
+  style={styles.floatingBtn}
+>
+  <BlurView
+    intensity={70}
+    tint="dark"
+    style={styles.floatingBlur}
+  >
+    <MaterialCommunityIcons
+      name="heart-outline"
+      size={20}
+      color="#FFF"
+    />
+  </BlurView>
+</TouchableOpacity>
+
+</LinearGradient>
+</ImageBackground>
+
+<BlurView
+  intensity={55}
+  tint="dark"
+  style={styles.conteudo}
+>
+
+<Text
+  style={styles.titulo}
+  numberOfLines={1}
+>
+  {item.titulo}
+</Text>
+
+<View style={styles.infoContainer}>
+
+<View style={styles.infoCard}>
+
+<View style={styles.iconBox}>
+<MaterialCommunityIcons
+name="calendar-month-outline"
+size={16}
+color="#A78BFA"
+/>
+</View>
+
+<Text style={styles.infoText}>
+{item.data}
+</Text>
+
+</View>
+
+<View style={styles.infoCard}>
+
+<View style={styles.iconBox}>
+<MaterialCommunityIcons
+name="map-marker-outline"
+size={16}
+color="#60A5FA"
+/>
+</View>
+
+<Text
+style={styles.infoText}
+numberOfLines={1}
+>
+{item.local}
+</Text>
+
+</View>
+
+</View>
+
+<View style={styles.actions}>
+
+<TouchableOpacity
+activeOpacity={0.9}
+style={styles.botaoEvento}
+>
+
+<LinearGradient
+colors={[
+"#8B5CF6",
+"#6D28D9",
+]}
+style={styles.gradientBtn}
+>
+
+<MaterialCommunityIcons
+name="eye-outline"
+size={18}
+color="#FFF"
+/>
+
+<Text style={styles.textoBtn}>
+Ver Evento
+</Text>
+
+</LinearGradient>
+
+</TouchableOpacity>
+
+<TouchableOpacity
+activeOpacity={0.7}
+onPress={() =>
+cancelarInscricao(
+item.id
+)
+}
+style={styles.cancelarBtn}
+>
+
+<MaterialCommunityIcons
+name="close-circle-outline"
+size={18}
+color="#EF4444"
+/>
+
+<Text style={styles.cancelar}>
+Cancelar
+</Text>
+
+</TouchableOpacity>
+
+</View>
+
+</BlurView>
+</TouchableOpacity>
+</MotiView>
+</AnimatePresence>
+
+      );
+
+    },
+    []
   );
+
+if (loading) {
+
+return (
+
+<View style={styles.loadingContainer}>
+
+<ActivityIndicator
+size="large"
+color="#8B5CF6"
+/>
+
+<Text style={styles.loadingText}>
+Carregando eventos...
+</Text>
+
+</View>
+
+);
+
+}
+
+return (
+
+<View style={styles.container}>
+
+<StatusBar
+barStyle="light-content"
+/>
+
+<ImageBackground
+source={require("../assets/fundoTelaLogin.png")}
+style={styles.bg}
+resizeMode="cover"
+>
+
+<LinearGradient
+colors={[
+"rgba(5,8,18,0.97)",
+"rgba(10,12,24,0.96)",
+"rgba(22,14,50,0.96)",
+]}
+style={styles.overlayScreen}
+>
+
+<View style={styles.glowTop}/>
+<View style={styles.glowBottom}/>
+
+<ScrollView
+showsVerticalScrollIndicator={false}
+contentContainerStyle={{
+paddingBottom:
+tabBarHeight + 40,
+}}
+>
+
+<View
+style={[
+styles.header,
+{
+paddingTop:
+insets.top + 10,
+},
+]}
+>
+
+<MotiView
+from={{
+opacity:0,
+translateY:25,
+}}
+animate={{
+opacity:1,
+translateY:0,
+}}
+transition={{
+type:"timing",
+duration:700,
+}}
+>
+
+<LinearGradient
+colors={[
+"#8B5CF6",
+"#5B21B6",
+]}
+style={styles.heroGradient}
+>
+
+<MaterialCommunityIcons
+name="ticket-confirmation-outline"
+size={38}
+color="#FFF"
+/>
+
+</LinearGradient>
+
+<Text style={styles.headerTitle}>
+Eventos Públicos
+</Text>
+
+<Text style={styles.headerSub}>
+Eventos mais recentes dos
+próximos 60 dias.
+</Text>
+
+</MotiView>
+
+</View>
+
+<View style={styles.listContainer}>
+
+{eventos.map(
+(item,index)=>
+renderItem({
+item,
+index,
+})
+)}
+
+{!eventos.length && (
+
+<MotiView
+from={{
+opacity:0,
+scale:0.9,
+}}
+animate={{
+opacity:1,
+scale:1,
+}}
+style={styles.emptyContainer}
+>
+
+<LinearGradient
+colors={[
+"rgba(139,92,246,0.25)",
+"rgba(255,255,255,0.03)",
+]}
+style={styles.emptyIconBox}
+>
+
+<MaterialCommunityIcons
+name="calendar-remove-outline"
+size={68}
+color="rgba(255,255,255,0.4)"
+/>
+
+</LinearGradient>
+
+<Text style={styles.empty}>
+Nenhum evento encontrado
+</Text>
+
+<Text style={styles.emptySub}>
+Sem eventos disponíveis
+nos próximos 60 dias.
+</Text>
+
+</MotiView>
+
+)}
+
+</View>
+
+</ScrollView>
+</LinearGradient>
+</ImageBackground>
+</View>
+
+);
+
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#0B1120",
-  },
 
-  /* HEADER */
-  header: {
-    paddingHorizontal: 18,
-    paddingBottom: 18,
+container:{
+flex:1,
+backgroundColor:"#070B14",
+},
+
+loadingContainer:{
+flex:1,
+justifyContent:"center",
+alignItems:"center",
+backgroundColor:"#070B14",
+},
+
+loadingText:{
+color:"#FFF",
+marginTop:16,
+fontSize:15,
+fontWeight:"700",
+},
+
+bg:{
+flex:1,
+},
+
+overlayScreen:{
+flex:1,
+},
+
+glowTop:{
+position:"absolute",
+top:-120,
+right:-80,
+width:300,
+height:300,
+borderRadius:200,
+backgroundColor:"rgba(124,58,237,0.18)",
+},
+
+glowBottom:{
+position:"absolute",
+bottom:-140,
+left:-80,
+width:260,
+height:260,
+borderRadius:200,
+backgroundColor:"rgba(59,130,246,0.10)",
+},
+
+header:{
+paddingHorizontal:24,
+paddingBottom:24,
+},
+
+heroGradient:{
+width:90,
+height:90,
+borderRadius:30,
+justifyContent:"center",
+alignItems:"center",
+marginBottom:22,
+
+shadowColor:"#8B5CF6",
+shadowOpacity:0.45,
+shadowRadius:20,
+
+shadowOffset:{
+width:0,
+height:10,
+},
+
+elevation:12,
+},
+
+headerTitle:{
+color:"#FFF",
+fontSize:
+width < 380
+? 34
+: 40,
+
+fontWeight:"800",
+letterSpacing:-0.5,
+},
+
+headerSub:{
+color:"rgba(255,255,255,0.70)",
+marginTop:12,
+fontSize:15,
+lineHeight:24,
+maxWidth:"95%",
+},
+
+listContainer:{
+paddingHorizontal:20,
+paddingTop:10,
+},
+
+card:{
+borderRadius:32,
+overflow:"hidden",
+marginBottom:24,
+
+backgroundColor:
+"rgba(255,255,255,0.06)",
+
+borderWidth:1,
+borderColor:
+"rgba(255,255,255,0.06)",
+
+shadowColor:"#000",
+shadowOpacity:0.25,
+shadowRadius:18,
+
+shadowOffset:{
+width:0,
+height:10,
+},
+
+elevation:12,
+},
 
-    flexDirection: "row",
-    alignItems: "center",
+imagem:{
+height:240,
+justifyContent:"flex-end",
+},
+
+glow:{
+...StyleSheet.absoluteFillObject,
+},
+
+overlayCard:{
+flex:1,
+justifyContent:"space-between",
+padding:18,
+},
+
+status:{
+alignSelf:"flex-start",
+
+flexDirection:"row",
+alignItems:"center",
+
+paddingHorizontal:14,
+paddingVertical:8,
 
-    gap: 14,
+borderRadius:20,
+},
 
-    borderBottomWidth: 1,
-    borderBottomColor:
-      "rgba(255,255,255,0.05)",
-  },
+confirmado:{
+backgroundColor:
+"rgba(34,197,94,0.95)",
+},
 
-  backButton: {
-    width: 42,
-    height: 42,
+pendente:{
+backgroundColor:
+"rgba(245,158,11,0.95)",
+},
 
-    borderRadius: 14,
+statusDot:{
+width:8,
+height:8,
+borderRadius:4,
 
-    justifyContent: "center",
-    alignItems: "center",
+backgroundColor:"#FFF",
 
-    backgroundColor:
-      "rgba(255,255,255,0.08)",
-  },
+marginRight:8,
+},
 
-  headerTitle: {
-    color: "#FFF",
-    fontSize: 24,
-    fontWeight: "800",
-  },
+statusText:{
+color:"#FFF",
+fontSize:12,
+fontWeight:"800",
+},
 
-  headerSubtitle: {
-    color:
-      "rgba(255,255,255,0.65)",
-    marginTop: 3,
-    fontSize: 13,
-  },
+floatingBtn:{
+position:"absolute",
+top:18,
+right:18,
 
-  /* LIST */
-  list: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+borderRadius:22,
+overflow:"hidden",
+},
 
-  /* CARD */
-  card: {
-    height: 250,
+floatingBlur:{
+width:46,
+height:46,
 
-    borderRadius: 28,
+justifyContent:"center",
+alignItems:"center",
 
-    marginBottom: 22,
+backgroundColor:
+"rgba(0,0,0,0.28)",
+},
 
-    overflow: "hidden",
+conteudo:{
+padding:20,
+backgroundColor:
+"rgba(12,12,18,0.72)",
+},
 
-    backgroundColor: "#111827",
+titulo:{
+color:"#FFF",
+fontSize:24,
+fontWeight:"800",
+marginBottom:18,
+},
 
-    shadowColor: "#000",
+infoContainer:{
+gap:12,
+},
 
-    shadowOffset: {
-      width: 0,
-      height: 12,
-    },
+infoCard:{
+flexDirection:"row",
+alignItems:"center",
 
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
+backgroundColor:
+"rgba(255,255,255,0.05)",
 
-    elevation: 12,
-  },
+borderRadius:16,
 
-  img: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-  },
+paddingHorizontal:14,
+paddingVertical:12,
+},
 
-  noImageOverlay: {
-    flex: 1,
+iconBox:{
+width:30,
+height:30,
+borderRadius:10,
 
-    justifyContent: "center",
-    alignItems: "center",
+backgroundColor:
+"rgba(255,255,255,0.06)",
 
-    gap: 10,
-  },
+justifyContent:"center",
+alignItems:"center",
+},
 
-  noImageText: {
-    color: "#FFF",
-    fontWeight: "600",
-    fontSize: 14,
-  },
+infoText:{
+flex:1,
 
-  overlay: {
-    position: "absolute",
+color:
+"rgba(255,255,255,0.78)",
 
-    bottom: 0,
+marginLeft:12,
 
-    height: "100%",
-    width: "100%",
-  },
+fontSize:13,
+},
 
-  /* BADGE */
-  badge: {
-    position: "absolute",
-    top: 16,
-    left: 16,
+actions:{
+flexDirection:"row",
+justifyContent:"space-between",
+alignItems:"center",
 
-    flexDirection: "row",
-    alignItems: "center",
+marginTop:24,
+},
 
-    gap: 6,
+botaoEvento:{
+borderRadius:18,
+overflow:"hidden",
+},
 
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+gradientBtn:{
+flexDirection:"row",
+alignItems:"center",
 
-    borderRadius: 30,
+paddingVertical:14,
+paddingHorizontal:20,
+},
 
-    backgroundColor:
-      "rgba(0,0,0,0.50)",
+textoBtn:{
+color:"#FFF",
 
-    borderWidth: 1,
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
+fontWeight:"800",
+fontSize:13,
 
-  badgeText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
+marginLeft:8,
+},
 
-  /* INFO */
-  info: {
-    position: "absolute",
-    bottom: 0,
+cancelarBtn:{
+flexDirection:"row",
+alignItems:"center",
+},
 
-    padding: 20,
+cancelar:{
+color:"#EF4444",
 
-    width: "100%",
-  },
+fontWeight:"800",
+fontSize:14,
 
-  titulo: {
-    color: "#FFF",
+marginLeft:6,
+},
 
-    fontWeight: "800",
+emptyContainer:{
+alignItems:"center",
 
-    fontSize: 23,
+marginTop:100,
 
-    marginBottom: 10,
-  },
+paddingHorizontal:30,
+},
 
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
+emptyIconBox:{
+width:130,
+height:130,
 
-    gap: 5,
+borderRadius:65,
 
-    marginBottom: 8,
-  },
+justifyContent:"center",
+alignItems:"center",
 
-  local: {
-    color: "#DDD",
-    fontSize: 13,
-    flex: 1,
-  },
+marginBottom:26,
+},
 
-  descricao: {
-    color:
-      "rgba(255,255,255,0.78)",
-    fontSize: 13,
-    lineHeight: 20,
-  },
+empty:{
+color:"#FFF",
 
-  /* LOADING */
-  loading: {
-    flex: 1,
+textAlign:"center",
 
-    justifyContent: "center",
-    alignItems: "center",
+fontSize:18,
+fontWeight:"700",
 
-    backgroundColor: "#0B1120",
-  },
+lineHeight:28,
+},
 
-  loadingText: {
-    marginTop: 16,
-    color: "#AAA",
-    fontSize: 14,
-  },
+emptySub:{
+color:
+"rgba(255,255,255,0.55)",
 
-  /* MODAL */
-  modalOverlay: {
-    flex: 1,
-    backgroundColor:
-      "rgba(0,0,0,0.70)",
+marginTop:10,
 
-    justifyContent: "center",
-    alignItems: "center",
+textAlign:"center",
 
-    padding: 24,
-  },
+fontSize:14,
 
-  modalCard: {
-    width: "100%",
+lineHeight:22,
+},
 
-    borderRadius: 30,
-
-    padding: 28,
-
-    alignItems: "center",
-
-    overflow: "hidden",
-
-    backgroundColor:
-      "rgba(20,20,30,0.88)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.06)",
-  },
-
-  modalIcon: {
-    width: 82,
-    height: 82,
-
-    borderRadius: 41,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    backgroundColor:
-      colors.primary,
-
-    marginBottom: 22,
-  },
-
-  modalTitle: {
-    color: "#FFF",
-    fontSize: 24,
-    fontWeight: "800",
-    marginBottom: 10,
-  },
-
-  modalText: {
-    color:
-      "rgba(255,255,255,0.75)",
-
-    textAlign: "center",
-
-    lineHeight: 24,
-
-    fontSize: 15,
-  },
-
-  modalButton: {
-    marginTop: 24,
-
-    backgroundColor:
-      colors.primary,
-
-    paddingHorizontal: 34,
-    paddingVertical: 14,
-
-    borderRadius: 18,
-  },
-
-  modalButtonText: {
-    color: "#FFF",
-    fontWeight: "700",
-    fontSize: 15,
-  },
 });

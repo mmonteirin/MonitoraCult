@@ -32,26 +32,31 @@ import { MotiView } from "moti";
 
 import {
 	collection,
-	addDoc,
 	onSnapshot,
 	query,
 	orderBy,
 	serverTimestamp,
 	where,
 	getDocs,
-	deleteDoc,
-	doc,
 } from "firebase/firestore";
 
 import { auth, db } from "../firebaseConfig";
 
 import { Colors } from "../styles/Colors";
 
+import ConfirmModal from "../components/ConfirmModal";
+
+import EventoShareCard from "../components/EventoShareCard";
+
 import {
 	getUserLikes,
 	toggleEventoLike,
 	incrementEventoViews,
 } from "../services/eventosAppService";
+import {
+	adicionarAvaliacaoEvento,
+	removerAvaliacaoEvento,
+} from "../services/avaliacaoService";
 
 const { width } = Dimensions.get("window");
 
@@ -231,6 +236,9 @@ export default function EventoDetalhes({
 	const [modalMessage, setModalMessage] =
 		useState("");
 
+	const [showShare, setShowShare] =
+		useState(false);
+
 	const showModal = (
 		title,
 		message
@@ -244,13 +252,35 @@ export default function EventoDetalhes({
 	/* DADOS */
 	/* ───────────────────────────── */
 
-	const precoBase =
-		evento?.precoInteira ?? 50;
+	const precoBase = Number(
+		evento?.precoInteira ??
+			evento?.preco ??
+			evento?.valor ??
+			0
+	);
+
+	const eventoGratuito =
+		evento?.gratuito === true ||
+		evento?.tipoEvento === "gratuito" ||
+		precoBase === 0;
+
+	const eventoComIngressos =
+		evento?.ingressosAtivos !== false &&
+		(evento?.tipoEvento === "gratuito" ||
+			evento?.tipoEvento === "pago" ||
+			evento?.capacidade > 0 ||
+			evento?.precoInteira !== undefined ||
+			evento?.preco !== undefined);
 
 	const capacidadeRestante =
-		(evento?.capacidade || 0) -
-		(evento?.ingressosVendidos ||
-			0);
+		evento?.capacidade > 0
+			? Math.max(
+					0,
+					(evento?.capacidade || 0) -
+						(evento?.ingressosVendidos ||
+							0)
+			  )
+			: null;
 
 	/* ───────────────────────────── */
 	/* EFFECTS */
@@ -457,62 +487,17 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				const avaliacaoData =
-					{
-						userId:
-							user.uid,
-
-						nome:
-							user.displayName ||
-							"Anônimo",
-
-						foto:
-							user.photoURL ||
-							"https://i.pravatar.cc/100",
-
-						nota:
-							notaSelecionada,
-
-						comentario:
-							censurarTexto(
-								comentario.trim()
-							),
-
-						createdAt:
-							serverTimestamp(),
-					};
-
-				const ref =
-					await addDoc(
-						collection(
-							db,
-							"eventos",
-							eventoId,
-							"avaliacoes"
-						),
-						avaliacaoData
-					);
-
-				await addDoc(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
+				await adicionarAvaliacaoEvento({
+					eventoId,
+					user,
+					nota: notaSelecionada,
+					comentario: censurarTexto(
+						comentario.trim()
 					),
-					{
-						avaliacaoId:
-							ref.id,
-
-						...avaliacaoData,
-
-						eventoId,
-
-						tituloEvento:
-							evento.tituloEvento ||
-							"Evento",
-					}
-				);
+					tituloEvento:
+						evento.tituloEvento ||
+						"Evento",
+				});
 
 				setComentario(
 					""
@@ -554,44 +539,11 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				await deleteDoc(
-					doc(
-						db,
-						"eventos",
-						eventoId,
-						"avaliacoes",
-						avaliacaoId
-					)
-				);
-
-				const q = query(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
-					),
-					where(
-						"avaliacaoId",
-						"==",
-						avaliacaoId
-					)
-				);
-
-				const snap =
-					await getDocs(q);
-
-				for (const d of snap.docs) {
-					await deleteDoc(
-						doc(
-							db,
-							"users",
-							user.uid,
-							"avaliacoes",
-							d.id
-						)
-					);
-				}
+				await removerAvaliacaoEvento({
+					eventoId,
+					avaliacaoId,
+					userId: user.uid,
+				});
 
 				setJaAvaliou(
 					false
@@ -719,6 +671,35 @@ export default function EventoDetalhes({
 								size={
 									22
 								}
+								color="#FFF"
+							/>
+						</BlurView>
+					</TouchableOpacity>
+
+					{/* Botão compartilhar */}
+					<TouchableOpacity
+						activeOpacity={0.8}
+						style={[
+							styles.back,
+							styles.shareBtn,
+							{
+								top:
+									insets.top +
+									10,
+							},
+						]}
+						onPress={() =>
+							setShowShare(true)
+						}
+					>
+						<BlurView
+							intensity={40}
+							tint="dark"
+							style={styles.blurBtn}
+						>
+							<MaterialCommunityIcons
+								name="share-variant"
+								size={22}
 								color="#FFF"
 							/>
 						</BlurView>
@@ -913,8 +894,7 @@ export default function EventoDetalhes({
 
 					{/* INGRESSOS */}
 
-					{evento?.precoInteira !==
-						undefined && (
+					{eventoComIngressos && (
 						<View
 							style={
 								styles.ingressoSection
@@ -959,10 +939,10 @@ export default function EventoDetalhes({
 											styles.dispText
 										}
 									>
-										{
-											capacidadeRestante
-										}{" "}
-										vagas
+										{capacidadeRestante ===
+										null
+											? "Disponível"
+											: `${capacidadeRestante} vagas`}
 									</Text>
 								</View>
 							</View>
@@ -980,8 +960,7 @@ export default function EventoDetalhes({
 									styles.precoValor
 								}
 							>
-								{precoBase ===
-								0
+								{eventoGratuito
 									? "Gratuito"
 									: `R$ ${Number(
 											precoBase
@@ -1004,6 +983,18 @@ export default function EventoDetalhes({
 										showModal(
 											"Login necessário",
 											"Faça login para comprar ingressos."
+										);
+
+										return;
+									}
+
+									if (
+										capacidadeRestante ===
+										0
+									) {
+										showModal(
+											"Ingressos esgotados",
+											"Não há ingressos disponíveis para este evento."
 										);
 
 										return;
@@ -1047,7 +1038,9 @@ export default function EventoDetalhes({
 											styles.btnComprarText
 										}
 									>
-										Comprar Ingressos
+										{eventoGratuito
+											? "Reservar ingresso gratuito"
+											: "Comprar ingressos"}
 									</Text>
 
 									<MaterialCommunityIcons
@@ -1350,89 +1343,21 @@ export default function EventoDetalhes({
 			</ScrollView>
 
 			{/* MODAL */}
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalTitle}
+				message={modalMessage}
+				type="info"
+				confirmText="OK"
+				onConfirm={() => setModalVisible(false)}
+			/>
 
-			<Modal
-				transparent
-				animationType="fade"
-				visible={
-					modalVisible
-				}
-				onRequestClose={() =>
-					setModalVisible(
-						false
-					)
-				}
-			>
-				<View
-					style={
-						styles.modalOverlay
-					}
-				>
-					<View
-						style={
-							styles.modalBox
-						}
-					>
-						<View
-							style={
-								styles.modalIcon
-							}
-						>
-							<MaterialCommunityIcons
-								name="information"
-								size={42}
-								color="#A855F7"
-							/>
-						</View>
-
-						<Text
-							style={
-								styles.modalTitle
-							}
-						>
-							{
-								modalTitle
-							}
-						</Text>
-
-						<Text
-							style={
-								styles.modalMessage
-							}
-						>
-							{
-								modalMessage
-							}
-						</Text>
-
-						<TouchableOpacity
-							onPress={() =>
-								setModalVisible(
-									false
-								)
-							}
-						>
-							<LinearGradient
-								colors={[
-									"#7C3AED",
-									"#A855F7",
-								]}
-								style={
-									styles.modalButton
-								}
-							>
-								<Text
-									style={
-										styles.modalButtonText
-									}
-								>
-									OK
-								</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			{/* SHARE CARD */}
+			<EventoShareCard
+				visible={showShare}
+				onClose={() => setShowShare(false)}
+				evento={evento}
+			/>
 		</View>
 	);
 }
@@ -1474,6 +1399,11 @@ const styles =
 			left: 18,
 			borderRadius: 18,
 			overflow: "hidden",
+		},
+
+		shareBtn: {
+			left: undefined,
+			right: 18,
 		},
 
 		blurBtn: {
@@ -1857,68 +1787,5 @@ const styles =
 
 		/* MODAL */
 
-		modalOverlay: {
-			flex: 1,
-			backgroundColor:
-				"rgba(0,0,0,0.75)",
-			justifyContent:
-				"center",
-			alignItems:
-				"center",
-			padding: 24,
-		},
 
-		modalBox: {
-			width: "100%",
-			backgroundColor:
-				"#111827",
-			borderRadius: 30,
-			padding: 28,
-			alignItems:
-				"center",
-			borderWidth: 1,
-			borderColor:
-				"rgba(255,255,255,0.06)",
-		},
-
-		modalIcon: {
-			width: 84,
-			height: 84,
-			borderRadius: 28,
-			backgroundColor:
-				"rgba(168,85,247,0.14)",
-			alignItems:
-				"center",
-			justifyContent:
-				"center",
-			marginBottom: 20,
-		},
-
-		modalTitle: {
-			color: "#FFF",
-			fontSize: 22,
-			fontWeight: "900",
-			marginBottom: 10,
-		},
-
-		modalMessage: {
-			color:
-				"rgba(255,255,255,0.72)",
-			fontSize: 15,
-			lineHeight: 24,
-			textAlign: "center",
-		},
-
-		modalButton: {
-			paddingHorizontal: 46,
-			paddingVertical: 15,
-			borderRadius: 18,
-			marginTop: 26,
-		},
-
-		modalButtonText: {
-			color: "#FFF",
-			fontWeight: "800",
-			fontSize: 15,
-		},
 	});

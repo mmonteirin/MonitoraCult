@@ -22,15 +22,35 @@ import { Colors } from "../styles/Colors";
 // ✅ Component
 const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
   const { user } = useAuth();
-  const { seguindo, loading, toggleFollow } = useFollow(
-    creator?.id || creator?.userId,
-    user?.uid
+  const targetUserId =
+    creator?.targetUserId ||
+    creator?.followerId ||
+    creator?.uid ||
+    creator?.userId ||
+    creator?.id;
+  const targetUserData = {
+    displayName:
+      creator?.targetName ||
+      creator?.followerName ||
+      creator?.nome ||
+      creator?.displayName ||
+      "Usuário",
+    photoURL:
+      creator?.targetPhoto ||
+      creator?.followerPhoto ||
+      creator?.foto ||
+      creator?.photoURL ||
+      "",
+  };
+  const { isFollowing, loading, toggleFollow } = useFollow(
+    targetUserId,
+    targetUserData
   );
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
-    setIsOwnProfile(user?.uid === creator?.id || user?.uid === creator?.userId);
-  }, [user?.uid, creator]);
+    setIsOwnProfile(user?.uid === targetUserId);
+  }, [user?.uid, targetUserId]);
 
   const handleFollowToggle = async () => {
     if (isOwnProfile) {
@@ -41,7 +61,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
     await toggleFollow();
   };
 
-  const seguidor Count = creator?.seguidores || 0;
+  const seguidorCount = creator?.seguidores || creator?.followers || 0;
   const postCount = creator?.posts || 0;
 
   return (
@@ -59,9 +79,11 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
         <Image
           source={{
             uri:
+              creator?.targetPhoto ||
+              creator?.followerPhoto ||
               creator?.foto ||
               creator?.photoURL ||
-              `https://i.pravatar.cc/150?u=${creator?.id}`,
+              `https://i.pravatar.cc/150?u=${targetUserId}`,
           }}
           style={styles.avatar}
         />
@@ -69,7 +91,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
         {/* INFO PRINCIPAL */}
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>
-            {creator?.nome || creator?.displayName || "Usuário"}
+            {targetUserData.displayName}
           </Text>
 
           {creator?.categoria && (
@@ -126,7 +148,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
             <MaterialCommunityIcons name="pencil" size={16} color="#fff" />
             <Text style={styles.actionButtonText}>Editar Perfil</Text>
           </>
-        ) : seguindo ? (
+        ) : isFollowing ? (
           <>
             <MaterialCommunityIcons
               name="check"
@@ -166,7 +188,7 @@ const SeguindoList = memo(({ usuarios, title, onNavigateProfile }) => {
       <Text style={styles.listTitle}>{title}</Text>
       {usuarios.slice(0, 5).map((user) => (
         <SeguidoresCard
-          key={user.id || user.userId}
+          key={user.id || user.userId || user.targetUserId || user.followerId}
           creator={user}
           onNavigateProfile={() => onNavigateProfile?.(user)}
         />

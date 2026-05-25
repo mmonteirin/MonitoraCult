@@ -1,6 +1,11 @@
 import React from "react";
-import { View, Text, TextInput } from "react-native";
+import { StyleSheet, View, Text, TextInput } from "react-native";
 import { Controller } from "react-hook-form";
+import {
+  Colors,
+  Radius,
+  Typography,
+} from "../styles/Colors";
 
 export default function AppInput({
   control,
@@ -15,27 +20,23 @@ export default function AppInput({
       name={name}
       rules={rules}
       render={({ field: { onChange, value }, fieldState: { error } }) => (
-        <View style={{ marginBottom: 12 }}>
-          <Text style={{ color: "#888", fontSize: 12 }}>{label}</Text>
+        <View style={styles.container}>
+          <Text style={styles.label}>{label}</Text>
 
           <TextInput
             value={value}
             onChangeText={onChange}
             {...props}
-            placeholderTextColor="#555"
-            style={{
-              backgroundColor: "#13291d",
-              color: "#fff",
-              borderRadius: 12,
-              padding: 14,
-              marginTop: 4,
-              borderWidth: error ? 1 : 0,
-              borderColor: "red",
-            }}
+            placeholderTextColor={Colors.textMuted}
+            style={[
+              styles.input,
+              error && styles.inputError,
+              props.style,
+            ]}
           />
 
           {error && (
-            <Text style={{ color: "red", fontSize: 11 }}>
+            <Text style={styles.error}>
               {error.message}
             </Text>
           )}
@@ -44,3 +45,36 @@ export default function AppInput({
     />
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 14,
+  },
+  label: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontFamily: Typography.medium,
+    marginBottom: 7,
+  },
+  input: {
+    minHeight: 52,
+    backgroundColor: Colors.surface,
+    color: Colors.textPrimary,
+    borderRadius: Radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    fontFamily: Typography.regular,
+    fontSize: 14,
+  },
+  inputError: {
+    borderColor: Colors.error,
+  },
+  error: {
+    color: Colors.error,
+    fontSize: 11,
+    marginTop: 6,
+    fontFamily: Typography.medium,
+  },
+});

@@ -17,7 +17,10 @@ import {
   Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
+
+const TAB_BAR_CLEARANCE = 96;
 
 // ✅ Item de mensagem
 const MensagemItem = memo(
@@ -29,6 +32,26 @@ const MensagemItem = memo(
       const date = timestamp.toDate?.() || new Date(timestamp);
       return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     };
+
+    if (mensagem.deletado) {
+      return (
+        <View style={[styles.mensagemContainer, isPropia && styles.mensagemPropia]}>
+          <View style={[styles.bolha, styles.bolhaDeletada]}>
+            <View style={styles.deletadaRow}>
+              <MaterialCommunityIcons
+                name="cancel"
+                size={14}
+                color={Colors.textMuted}
+              />
+              <Text style={styles.textoDeletado}>Mensagem apagada</Text>
+            </View>
+            <Text style={styles.horaMensagem}>
+              {formatarHora(mensagem.createdAt)}
+            </Text>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <View style={[styles.mensagemContainer, isPropia && styles.mensagemPropia]}>
@@ -74,8 +97,8 @@ const MensagemItem = memo(
           </Text>
 
           {/* Indicadores */}
-          <View style={styles.rodapeMensagem}>
-            <Text style={styles.horaMensagem}>
+          <View style={[styles.rodapeMensagem, isPropia && styles.rodapeMensagemPropia]}>
+            <Text style={[styles.horaMensagem, isPropia ? styles.horaMensagemPropia : styles.horaMensagemAlheio]}>
               {formatarHora(mensagem.createdAt)}
             </Text>
 
@@ -163,10 +186,22 @@ const ChatViewer = memo(
     onDelete,
     onEdit,
     nomePerfil,
+    termoBusca,
   }) => {
     const [texto, setTexto] = useState("");
     const [editandoId, setEditandoId] = useState(null);
     const flatListRef = useRef(null);
+    const insets = useSafeAreaInsets();
+    const bottomClearance = TAB_BAR_CLEARANCE + insets.bottom;
+
+    // ✅ Filtrar mensagens pela busca
+    const mensagensFiltradas = termoBusca
+      ? mensagens.filter(
+          (m) =>
+            !m.deletado &&
+            m.texto?.toLowerCase().includes(termoBusca.toLowerCase())
+        )
+      : mensagens;
 
     // ✅ Auto-scroll para última mensagem
     useEffect(() => {
@@ -205,7 +240,7 @@ const ChatViewer = memo(
           <View style={styles.loader}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : mensagens.length === 0 ? (
+        ) : mensagensFiltradas.length === 0 ? (
           <View style={styles.vazio}>
             <MaterialCommunityIcons
               name="message-outline"
@@ -218,7 +253,7 @@ const ChatViewer = memo(
         ) : (
           <FlatList
             ref={flatListRef}
-            data={mensagens}
+            data={mensagensFiltradas}
             renderItem={({ item }) => (
               <MensagemItem
                 mensagem={item}
@@ -234,7 +269,7 @@ const ChatViewer = memo(
         )}
 
         {/* INPUT */}
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { marginBottom: bottomClearance }]}>
           {editandoId && (
             <View style={styles.editandoInfo}>
               <MaterialCommunityIcons
@@ -256,9 +291,9 @@ const ChatViewer = memo(
           <View style={styles.inputRow}>
             <TouchableOpacity style={styles.btnAnexo}>
               <MaterialCommunityIcons
-                name="plus-circle"
-                size={24}
-                color={Colors.primary}
+                name="image-plus"
+                size={22}
+                color={Colors.textMuted}
               />
             </TouchableOpacity>
 
@@ -309,6 +344,7 @@ const styles = StyleSheet.create({
   mensagensContainer: {
     paddingHorizontal: 12,
     paddingVertical: 16,
+    paddingBottom: 24,
   },
 
   mensagemContainer: {
@@ -331,16 +367,21 @@ const styles = StyleSheet.create({
   bolha: {
     maxWidth: "75%",
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingVertical: 9,
+    borderRadius: 18,
+    borderWidth: 1,
   },
 
   bolhaPropia: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+    borderBottomRightRadius: 6,
   },
 
   bolhaAlheio: {
     backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderBottomLeftRadius: 6,
   },
 
   nomeRemetente: {
@@ -375,6 +416,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     marginTop: 4,
+  },
+
+  rodapeMensagemPropia: {
+    justifyContent: "flex-end",
   },
 
   horaMensagem: {
@@ -424,13 +469,34 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
   },
 
+  bolhaDeletada: {
+    backgroundColor: "transparent",
+    borderColor: Colors.textMuted,
+    opacity: 0.7,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+
+  deletadaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  textoDeletado: {
+    fontSize: 13,
+    color: Colors.textMuted,
+    fontStyle: "italic",
+  },
+
   // INPUT
   inputContainer: {
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     backgroundColor: Colors.surface,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === "ios" ? 14 : 10,
   },
 
   editandoInfo: {
@@ -458,7 +524,14 @@ const styles = StyleSheet.create({
   },
 
   btnAnexo: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
 
   input: {
@@ -471,6 +544,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     maxHeight: 100,
+    minHeight: 40,
     fontSize: 14,
   },
 

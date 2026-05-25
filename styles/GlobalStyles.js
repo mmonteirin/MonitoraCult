@@ -1,21 +1,78 @@
-import { StyleSheet, Dimensions } from "react-native";
-import { Colors } from "./Colors";
+import { StyleSheet, Dimensions, Platform } from "react-native";
+import {
+  Colors,
+  Gradients,
+  Radius,
+  Shadows,
+  Spacing,
+  Typography,
+} from "./Colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const shadowFor = (shadow) =>
+  Platform.OS === "web" ? shadow.web : shadow.default;
 
-/* 🎨 GLOBAL STYLES */
 const GlobalStyles = StyleSheet.create({
-  /* 🔐 AUTH */
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  screenContent: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: 120,
+  },
+
+  headerBand: {
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
+    borderBottomLeftRadius: Radius.xxl,
+    borderBottomRightRadius: Radius.xxl,
+  },
+
+  glassPanel: {
+    backgroundColor: Colors.glass,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    borderRadius: Radius.xl,
+    overflow: "hidden",
+  },
+
+  card: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    ...shadowFor(Shadows.card),
+  },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  title: {
+    color: Colors.textPrimary,
+    fontFamily: Typography.bold,
+    fontSize: 24,
+  },
+
+  subtitle: {
+    color: Colors.textSecondary,
+    fontFamily: Typography.regular,
+    fontSize: 14,
+  },
+
   authContainer: {
     flexGrow: 1,
     backgroundColor: Colors.background,
-    padding: 20,
+    padding: Spacing.xl,
     justifyContent: "center",
   },
 
   authTitle: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
     color: Colors.textPrimary,
     marginBottom: 25,
     textAlign: "center",
@@ -25,15 +82,17 @@ const GlobalStyles = StyleSheet.create({
     color: Colors.primary,
     marginBottom: 6,
     fontSize: 13,
+    fontFamily: Typography.medium,
   },
 
   authInput: {
     backgroundColor: Colors.surface,
     color: Colors.textPrimary,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     marginBottom: 15,
     fontSize: 14,
+    fontFamily: Typography.regular,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -41,14 +100,14 @@ const GlobalStyles = StyleSheet.create({
   authButton: {
     backgroundColor: Colors.primary,
     paddingVertical: 15,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     alignItems: "center",
     marginTop: 10,
   },
 
   authButtonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
   authError: {
@@ -60,22 +119,21 @@ const GlobalStyles = StyleSheet.create({
 
   authLink: {
     color: Colors.primary,
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
-  /* 👤 PERFIL */
   profileContainer: {
     flex: 1,
     backgroundColor: Colors.background,
-    padding: 20,
+    padding: Spacing.xl,
   },
 
   profileHeader: {
     alignItems: "center",
     marginBottom: 30,
     backgroundColor: Colors.surface,
-    padding: 20,
-    borderRadius: 18,
+    padding: Spacing.xl,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -92,7 +150,7 @@ const GlobalStyles = StyleSheet.create({
   profileName: {
     color: Colors.textPrimary,
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
   profileEmail: {
@@ -107,12 +165,11 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 13,
   },
 
-  /* 🔍 SEARCH */
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.surface,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     paddingHorizontal: 15,
     height: 55,
     marginBottom: 20,
@@ -125,6 +182,7 @@ const GlobalStyles = StyleSheet.create({
     flex: 1,
     color: Colors.textPrimary,
     fontSize: 14,
+    fontFamily: Typography.regular,
   },
 
   sectionTitle: {
@@ -132,25 +190,23 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 10,
     marginTop: 10,
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
-  /* 🧩 CARDS */
   cardCategory: {
     backgroundColor: Colors.surface,
     width: "48%",
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
   },
 
-  /* 📍 EVENTOS */
   eventCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 20,
+    borderRadius: Radius.xl,
     marginHorizontal: 20,
     marginBottom: 20,
     overflow: "hidden",
@@ -159,27 +215,25 @@ const GlobalStyles = StyleSheet.create({
   eventTitle: {
     color: Colors.textPrimary,
     fontSize: 18,
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
   eventInfoText: {
     color: Colors.textSecondary,
   },
 
-  /* 🎯 BUTTON */
   button: {
     backgroundColor: Colors.primary,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     alignItems: "center",
   },
 
   buttonText: {
     color: "#fff",
-    fontWeight: "bold",
+    fontFamily: Typography.bold,
   },
 
-  /* ❌ ERROR */
   error: {
     color: Colors.error,
     textAlign: "center",
@@ -187,21 +241,18 @@ const GlobalStyles = StyleSheet.create({
     fontSize: 13,
   },
 
-  /* 📭 EMPTY */
   emptyState: {
     color: Colors.textSecondary,
     textAlign: "center",
     marginTop: 50,
   },
 
-  /* ➖ DIVIDER */
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
     marginVertical: 15,
   },
 
-  /* ⏳ LOADING */
   loadingSpinner: {
     flex: 1,
     justifyContent: "center",
@@ -209,7 +260,6 @@ const GlobalStyles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
-  /* 🏠 TELA INICIO (mantida compatível) */
   telaInicioContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -218,7 +268,7 @@ const GlobalStyles = StyleSheet.create({
   telaInicioCardDestaque: {
     width: SCREEN_WIDTH * 0.68,
     height: 220,
-    borderRadius: 16,
+    borderRadius: Radius.lg,
     overflow: "hidden",
     backgroundColor: Colors.card,
   },
@@ -226,13 +276,22 @@ const GlobalStyles = StyleSheet.create({
   telaInicioCardCompacto: {
     width: 130,
     height: 160,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     overflow: "hidden",
     backgroundColor: Colors.card,
   },
 });
 
-/* 🔥 IMPORTANTE: manter compatibilidade */
 GlobalStyles.colors = Colors;
+GlobalStyles.gradients = Gradients;
+GlobalStyles.radius = Radius;
+GlobalStyles.spacing = Spacing;
+GlobalStyles.typography = Typography;
+GlobalStyles.shadows = Shadows;
+
+GlobalStyles.search_container = GlobalStyles.searchContainer;
+GlobalStyles.search_input = GlobalStyles.searchInput;
+GlobalStyles.event_card = GlobalStyles.eventCard;
+GlobalStyles.event_title = GlobalStyles.eventTitle;
 
 export default GlobalStyles;

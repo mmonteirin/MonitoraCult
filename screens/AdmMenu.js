@@ -45,9 +45,7 @@ export default function AdmMenu() {
     useState(false);
 
   const goToAdmin = (screen) => {
-    navigation.navigate("Admin", {
-      screen,
-    });
+    navigation.navigate(screen);
   };
 
   const handleLogout = async () => {
@@ -290,15 +288,15 @@ export default function AdmMenu() {
             />
 
             <MenuCard
-              icon="help-circle"
-              label="Ajuda"
-              subtitle="Suporte"
+              icon="headset"
+              label="Atendimento"
+              subtitle="Fila de suporte"
               gradient={[
                 "#EA580C",
                 "#C2410C",
               ]}
               onPress={() =>
-                goToAdmin("Ajuda")
+                goToAdmin("AdmSuporte")
               }
             />
           </View>
@@ -336,20 +334,18 @@ export default function AdmMenu() {
           </TouchableOpacity>
         </ScrollView>
 
-        {/* MODAL LOGOUT — padrão TelaPerfil */}
+        {/* MODAL LOGOUT */}
         <Modal
           visible={showLogoutModal}
           transparent
           animationType="fade"
           statusBarTranslucent
-          onRequestClose={() => setShowLogoutModal(false)}
         >
           <View
             style={
               styles.modalOverlay
             }
           >
-            <Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowLogoutModal(false)} />
             <BlurView
               intensity={50}
               tint="dark"
@@ -358,7 +354,7 @@ export default function AdmMenu() {
               <LinearGradient
                 colors={[
                   "rgba(239,68,68,0.15)",
-                  "rgba(127,29,29,0.05)",
+                  "rgba(127,29,29,0.04)",
                 ]}
                 style={
                   styles.modalGradient

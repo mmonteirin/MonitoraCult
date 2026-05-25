@@ -18,7 +18,7 @@ import { Colors } from "../styles/Colors";
 import { TIPOS_INGRESSO } from "../services/ingressoServiceV2";
 
 const TipoIngressoItem = memo(
-  ({ tipo, preco, onAdionar, onRemover, quantidadeNoCarrinho }) => {
+  ({ tipo, preco, onAdionar, onRemover, quantidadeNoCarrinho, gratuito }) => {
     const tipoConfig = TIPOS_INGRESSO[tipo.toUpperCase()];
     const desconto = tipoConfig?.desconto || 0;
     const precoComDesconto = preco * (1 - desconto);
@@ -39,11 +39,13 @@ const TipoIngressoItem = memo(
           </View>
 
           <View style={styles.preco}>
-            {desconto > 0 && (
+            {!gratuito && desconto > 0 && (
               <Text style={styles.precoOriginal}>R$ {preco.toFixed(2)}</Text>
             )}
-            <Text style={styles.precoFinal}>R$ {precoComDesconto.toFixed(2)}</Text>
-            {economiza > 0 && (
+            <Text style={styles.precoFinal}>
+              {gratuito ? "Gratuito" : `R$ ${precoComDesconto.toFixed(2)}`}
+            </Text>
+            {!gratuito && economiza > 0 && (
               <Text style={styles.economiza}>Economiza R$ {economiza.toFixed(2)}</Text>
             )}
           </View>
@@ -84,6 +86,7 @@ const SeletorIngressos = ({
   carrinho = [],
   onAdionar,
   onRemover,
+  gratuito = false,
 }) => {
   const tipos = Object.keys(TIPOS_INGRESSO);
 
@@ -98,13 +101,16 @@ const SeletorIngressos = ({
         onAdionar={(tipo, preco) => onAdionar(tipo, 1, preco)}
         onRemover={() => onRemover(tipo)}
         quantidadeNoCarrinho={noCarrinho?.quantidade || 0}
+        gratuito={gratuito}
       />
     );
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🎫 Escolha seus ingressos</Text>
+      <Text style={styles.title}>
+        {gratuito ? "Escolha seus ingressos gratuitos" : "Escolha seus ingressos"}
+      </Text>
 
       <FlatList
         data={tipos}

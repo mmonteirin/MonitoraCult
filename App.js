@@ -1,8 +1,14 @@
+/**
+ * App.js — MonitoraCult
+ * Adicionado: NotificationProvider em volta do NavigationContainer
+ */
+
 import { NavigationContainer } from "@react-navigation/native";
 import { AuthProvider } from "./context/AuthContext";
 import { CadastroProvider } from "./context/CadastroContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import AppNavigator from "./navigation/AppNavigator";
-import { navigationRef } from "./navigation/NavigationService"; // ✅ corrigido
+import { navigationRef } from "./navigation/NavigationService";
 
 import { useFonts } from "expo-font";
 import {
@@ -13,6 +19,29 @@ import {
   SectionList,
   View,
 } from "react-native";
+import { Colors, Typography } from "./styles/Colors";
+
+// Tema global do React Navigation.
+// A chave `fonts` é obrigatória: componentes internos como HeaderTitle e
+// DrawerItem acessam theme.fonts.bold / theme.fonts.medium diretamente.
+// Sem ela ocorre: "Cannot read properties of undefined (reading 'bold')"
+const navigationTheme = {
+  dark: true,
+  colors: {
+    primary: Colors.primary,
+    background: Colors.background,
+    card: Colors.surface,
+    text: Colors.textPrimary,
+    border: Colors.border,
+    notification: Colors.primary,
+  },
+  fonts: {
+    regular: { fontFamily: Typography.regular, fontWeight: "400" },
+    medium:  { fontFamily: Typography.medium,  fontWeight: "500" },
+    bold:    { fontFamily: Typography.bold,    fontWeight: "700" },
+    heavy:   { fontFamily: Typography.bold,    fontWeight: "900" },
+  },
+};
 
 const boundedScrollProps = {
   alwaysBounceVertical: false,
@@ -44,7 +73,7 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator />
+        <ActivityIndicator color={Colors.primary} />
       </View>
     );
   }
@@ -52,9 +81,16 @@ export default function App() {
   return (
     <AuthProvider>
       <CadastroProvider>
-        <NavigationContainer ref={navigationRef}>
-          <AppNavigator />
-        </NavigationContainer>
+        {/*
+          ✅ NotificationProvider precisa ficar dentro de AuthProvider
+          (pois usa useAuth internamente) e FORA do NavigationContainer
+          para que o contexto fique disponível em toda a árvore.
+        */}
+        <NotificationProvider>
+          <NavigationContainer ref={navigationRef} theme={navigationTheme}>
+            <AppNavigator />
+          </NavigationContainer>
+        </NotificationProvider>
       </CadastroProvider>
     </AuthProvider>
   );

@@ -36,13 +36,11 @@ export default function EventoHome({ navigation }) {
 		<View style={styles.container}>
 			<StatusBar barStyle="light-content" />
 
-			{/* BACKGROUND */}
 			<ImageBackground
 				source={require("../assets/fundoTelaLogin.png")}
 				style={styles.bg}
 				resizeMode="cover"
 			>
-				{/* OVERLAY */}
 				<LinearGradient
 					colors={[
 						"rgba(5,8,18,0.96)",
@@ -51,7 +49,6 @@ export default function EventoHome({ navigation }) {
 					]}
 					style={styles.overlay}
 				>
-					{/* GLOW */}
 					<View style={styles.glowTop} />
 					<View style={styles.glowBottom} />
 
@@ -61,7 +58,6 @@ export default function EventoHome({ navigation }) {
 							paddingBottom: tabBarHeight + 35,
 						}}
 					>
-						{/* HEADER */}
 						<View
 							style={[
 								styles.header,
@@ -70,9 +66,7 @@ export default function EventoHome({ navigation }) {
 								},
 							]}
 						>
-							{/* TOP */}
 							<View style={styles.headerTop}>
-								{/* VOLTAR */}
 								<TouchableOpacity
 									onPress={() => navigation.goBack()}
 									activeOpacity={0.8}
@@ -87,19 +81,21 @@ export default function EventoHome({ navigation }) {
 									</BlurView>
 								</TouchableOpacity>
 
-								{/* BADGE */}
+								{/* CULTURA VIVA */}
 								<TouchableOpacity
 									activeOpacity={0.8}
 									onPress={() => navigation.navigate("TelaCulturaViva")}
 								>
 									<BlurView intensity={30} tint="dark" style={styles.badge}>
 										<MaterialCommunityIcons
-											name="sparkles"
+											name="book-open-variant"
 											size={16}
 											color="#A78BFA"
 										/>
 
-										<Text style={styles.badgeText}>Cultura Viva</Text>
+										<Text style={styles.badgeText}>
+											Cultura Viva
+										</Text>
 									</BlurView>
 								</TouchableOpacity>
 							</View>
@@ -218,7 +214,10 @@ export default function EventoHome({ navigation }) {
 									onPress={() => navigation.navigate("EventosApp")}
 								>
 									<LinearGradient
-										colors={["rgba(124,58,237,0.20)", "rgba(91,33,182,0.05)"]}
+										colors={[
+											"rgba(124,58,237,0.20)",
+											"rgba(91,33,182,0.05)",
+										]}
 										style={styles.cardGlow}
 									/>
 
@@ -235,12 +234,16 @@ export default function EventoHome({ navigation }) {
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>Eventos do App</Text>
+											<Text style={styles.cardTitle}>
+												Eventos do App
+											</Text>
 
 											<View style={styles.liveBadge}>
 												<View style={styles.liveDot} />
 
-												<Text style={styles.liveText}>AO VIVO</Text>
+												<Text style={styles.liveText}>
+													AO VIVO
+												</Text>
 											</View>
 										</View>
 
@@ -255,7 +258,9 @@ export default function EventoHome({ navigation }) {
 												color="#A78BFA"
 											/>
 
-											<Text style={styles.footerText}>Novos eventos hoje</Text>
+											<Text style={styles.footerText}>
+												Novos eventos hoje
+											</Text>
 										</View>
 									</View>
 
@@ -288,7 +293,10 @@ export default function EventoHome({ navigation }) {
 									onPress={() => navigation.navigate("EventosPublicos")}
 								>
 									<LinearGradient
-										colors={["rgba(6,182,212,0.18)", "rgba(37,99,235,0.04)"]}
+										colors={[
+											"rgba(6,182,212,0.18)",
+											"rgba(37,99,235,0.04)",
+										]}
 										style={styles.cardGlow}
 									/>
 
@@ -305,10 +313,14 @@ export default function EventoHome({ navigation }) {
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>Eventos Públicos</Text>
+											<Text style={styles.cardTitle}>
+												Eventos Públicos
+											</Text>
 
 											<View style={styles.cityBadge}>
-												<Text style={styles.cityText}>Fortaleza</Text>
+												<Text style={styles.cityText}>
+													Fortaleza
+												</Text>
 											</View>
 										</View>
 
@@ -358,7 +370,10 @@ export default function EventoHome({ navigation }) {
 									onPress={() => navigation.navigate("TelaMapaVivo")}
 								>
 									<LinearGradient
-										colors={["rgba(34,197,94,0.18)", "rgba(239,68,68,0.06)"]}
+										colors={[
+											"rgba(34,197,94,0.18)",
+											"rgba(239,68,68,0.06)",
+										]}
 										style={styles.cardGlow}
 									/>
 
@@ -375,7 +390,9 @@ export default function EventoHome({ navigation }) {
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>Mapa Vivo da Cultura</Text>
+											<Text style={styles.cardTitle}>
+												Mapa Vivo da Cultura
+											</Text>
 
 											<View style={styles.heatBadge}>
 												<MaterialCommunityIcons
@@ -384,13 +401,15 @@ export default function EventoHome({ navigation }) {
 													color="#FCA5A5"
 												/>
 
-												<Text style={styles.heatText}>HEATMAP</Text>
+												<Text style={styles.heatText}>
+													HEATMAP
+												</Text>
 											</View>
 										</View>
 
 										<Text style={styles.cardDesc}>
-											Veja eventos no mapa, calor cultural, filtros ao vivo e
-											check-in no local.
+											Veja eventos no mapa, calor cultural,
+											filtros ao vivo e check-in no local.
 										</Text>
 
 										<View style={styles.cardFooter}>
@@ -414,7 +433,7 @@ export default function EventoHome({ navigation }) {
 								</TouchableOpacity>
 							</MotiView>
 
-							{/* EXPLORE A CIDADE */}
+							{/* EXPLORE */}
 							<MotiView
 								from={{
 									opacity: 0,
@@ -431,7 +450,10 @@ export default function EventoHome({ navigation }) {
 							>
 								<View style={styles.infoCard}>
 									<LinearGradient
-										colors={["rgba(124,58,237,0.12)", "rgba(59,130,246,0.08)"]}
+										colors={[
+											"rgba(124,58,237,0.12)",
+											"rgba(59,130,246,0.08)",
+										]}
 										style={styles.infoGradient}
 									>
 										<View style={styles.infoLeft}>
@@ -444,7 +466,9 @@ export default function EventoHome({ navigation }) {
 											</View>
 
 											<View style={{ flex: 1 }}>
-												<Text style={styles.infoTitle}>Explore a cidade</Text>
+												<Text style={styles.infoTitle}>
+													Explore a cidade
+												</Text>
 
 												<Text style={styles.infoDesc}>
 													Descubra novos eventos perto de você
@@ -455,7 +479,11 @@ export default function EventoHome({ navigation }) {
 										<TouchableOpacity
 											activeOpacity={0.8}
 											style={styles.exploreBtn}
-											onPress={() => navigation.navigate("TelaExploreCidade")}
+											onPress={() =>
+												navigation.navigate(
+													"TelaExploreCidade"
+												)
+											}
 										>
 											<MaterialCommunityIcons
 												name="arrow-right"
@@ -644,7 +672,7 @@ const styles = StyleSheet.create({
 
 	iconBox: {
 		width: 68,
-		minHeight: 68,
+		height: 68,
 		borderRadius: 24,
 		justifyContent: "center",
 		alignItems: "center",

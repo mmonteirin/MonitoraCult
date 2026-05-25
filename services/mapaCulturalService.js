@@ -1,61 +1,142 @@
-const BASE_URL = "https://mapacultural.secult.ce.gov.br/api";
+const BASE_URL =
+  "https://mapacultural.secult.ce.gov.br/api";
 
-// ✅ Limites para evitar sobrecarga de RAM
+// Limites de segurança
 const EVENTOS_LIMIT = 50;
 const ESPACOS_LIMIT = 50;
 
-// 🔥 Buscar eventos com limite
-export const getEventos = async (offset = 0) => {
+const TIMEOUT = 10000;
+
+// ---------- FETCH SEGURO ----------
+
+const safeFetch = async (url) => {
+
+  const controller =
+    new AbortController();
+
+  const timeoutId =
+    setTimeout(
+      () => controller.abort(),
+      TIMEOUT
+    );
+
   try {
-    // ✅ Usando @limit para paginar e reduzir carga
-    const url = `${BASE_URL}/event/find?@select=id,name,shortDescription,location&@limit=${EVENTOS_LIMIT}&@offset=${offset}`;
 
-    const response = await fetch(url, {
-      timeout: 10000, // 10s timeout
-    });
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const json = await response.json();
+    const response =
+      await fetch(url, {
+        signal:
+          controller.signal,
+      });
 
-    // 🛠️ garante array
-    if (Array.isArray(json)) return json;
+    if (!response.ok) {
 
-    if (json?.data) return json.data;
+      throw new Error(
+        `HTTP ${response.status}`
+      );
 
-    if (json?.results) return json.results;
+    }
+
+    return await response.json();
+
+  } finally {
+
+    clearTimeout(
+      timeoutId
+    );
+
+  }
+
+};
+
+// ---------- NORMALIZADOR ----------
+
+const normalizeResponse =
+  (json) => {
+
+    if (
+      Array.isArray(json)
+    )
+      return json;
+
+    if (json?.data)
+      return json.data;
+
+    if (json?.results)
+      return json.results;
 
     return [];
+};
+
+// ---------- EVENTOS ----------
+
+export const getEventos =
+async (offset = 0) => {
+
+  try {
+
+    const url =
+
+`${BASE_URL}/event/find
+?@select=id,name,shortDescription,location,occurrences,files
+&@limit=${EVENTOS_LIMIT}
+&@offset=${offset}
+&@order=createTimestamp DESC`
+
+      .replace(/\n/g, "");
+
+    const json =
+      await safeFetch(
+        url
+      );
+
+    return normalizeResponse(
+      json
+    );
+
   } catch (error) {
-    console.log("Erro ao buscar eventos:", error);
+
+    console.log(
+      "Erro ao buscar eventos:",
+      error
+    );
+
     return [];
   }
 };
 
-// 🔥 Buscar espaços com limite
-export const getEspacos = async (offset = 0) => {
+// ---------- ESPAÇOS ----------
+
+export const getEspacos =
+async (offset = 0) => {
+
   try {
-    // ✅ Usando @limit para paginar e reduzir carga
-    const url = `${BASE_URL}/space/find?@select=id,name,location&@limit=${ESPACOS_LIMIT}&@offset=${offset}`;
 
-    const response = await fetch(url, {
-      timeout: 10000, // 10s timeout
-    });
-    
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    
-    const json = await response.json();
+    const url =
 
-    if (Array.isArray(json)) return json;
+`${BASE_URL}/space/find
+?@select=id,name,location,files
+&@limit=${ESPACOS_LIMIT}
+&@offset=${offset}
+&@order=createTimestamp DESC`
 
-    if (json?.data) return json.data;
+      .replace(/\n/g, "");
 
-    if (json?.results) return json.results;
+    const json =
+      await safeFetch(
+        url
+      );
 
-    return [];
+    return normalizeResponse(
+      json
+    );
+
   } catch (error) {
-    console.log("Erro ao buscar espaços:", error);
+
+    console.log(
+      "Erro ao buscar espaços:",
+      error
+    );
+
     return [];
   }
 };
-

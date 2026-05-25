@@ -21,6 +21,7 @@ import { MotiView } from "moti";
 
 import { useCadastro } from "../context/CadastroContext";
 import GlobalStyles from "../styles/GlobalStyles";
+import ConfirmModal from "../components/ConfirmModal";
 
 const { colors } = GlobalStyles;
 
@@ -394,129 +395,106 @@ export default function PerfilCadastroAdmin({ navigation }) {
       </LinearGradient>
 
       {/* ───────────────── MODAL VERIFICAÇÃO ───────────────── */}
-
-      <Modal visible={step === "verify"} transparent animationType="fade">
-        <View style={styles.modal}>
-          <BlurView intensity={80} tint="dark" style={styles.modalCard}>
+      <Modal visible={step === "verify"} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={50} tint="dark" style={styles.modalCard}>
             <LinearGradient
-              colors={[colors.primary, "#7B5CFF"]}
-              style={styles.modalIcon}
+              colors={["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"]}
+              style={styles.modalGradient}
             >
-              <Feather name="mail" size={28} color="#fff" />
-            </LinearGradient>
+              <View style={[styles.modalIcon, { backgroundColor: "rgba(108,92,231,0.12)" }]}>
+                <Feather name="mail" size={34} color="#6C5CE7" />
+              </View>
 
-            <Text style={styles.modalTitle}>
-              Código enviado!
-            </Text>
-
-            <Text style={styles.modalSubtitle}>
-              Verifique sua caixa de entrada em{"\n"}
-
-              <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                {form.email}
+              <Text style={styles.modalTitle}>
+                Código enviado!
               </Text>
-            </Text>
 
-            <Text style={styles.modalHint}>
-              Digite o código de 6 dígitos para concluir o cadastro.
-            </Text>
+              <Text style={styles.modalSubtitle}>
+                Verifique sua caixa de entrada em{"\n"}
+                <Text style={{ color: "#fff", fontWeight: "bold" }}>
+                  {form.email}
+                </Text>
+              </Text>
 
-            <View style={styles.codeInputContainer}>
-              <TextInput
-                value={form.verificationCode}
-                onChangeText={(t) =>
-                  handleChange("verificationCode", t)
-                }
-                keyboardType="numeric"
-                maxLength={6}
-                placeholder="000000"
-                placeholderTextColor="rgba(255,255,255,0.25)"
-                style={styles.codeInput}
-              />
-            </View>
+              <Text style={styles.modalHint}>
+                Digite o código de 6 dígitos para concluir o cadastro.
+              </Text>
 
-            {codeError ? (
-              <Text style={styles.error}>{codeError}</Text>
-            ) : null}
+              <View style={styles.codeInputContainer}>
+                <TextInput
+                  value={form.verificationCode}
+                  onChangeText={(t) =>
+                    handleChange("verificationCode", t)
+                  }
+                  keyboardType="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  placeholderTextColor="rgba(255,255,255,0.25)"
+                  style={styles.codeInput}
+                />
+              </View>
 
-            <TouchableOpacity
-              onPress={handleSubmit}
-              disabled={loadingCode}
-              style={{ width: "100%" }}
-            >
-              <LinearGradient
-                colors={[colors.primary, "#7B5CFF"]}
-                style={styles.modalBtn}
+              {codeError ? (
+                <Text style={styles.error}>{codeError}</Text>
+              ) : null}
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={styles.confirmBtn}
+                onPress={handleSubmit}
+                disabled={loadingCode}
               >
-                {loadingCode ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                    Confirmar código
-                  </Text>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={["#6C5CE7", "#5746D6"]}
+                  style={styles.confirmGradient}
+                >
+                  {loadingCode ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Feather name="check" size={18} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={styles.confirmText}>
+                        Confirmar código
+                      </Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={handleResendCode}
-              disabled={loadingCode}
-            >
-              <Text style={styles.resendText}>
-                Reenviar código
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleResendCode}
+                disabled={loadingCode}
+              >
+                <Text style={styles.resendText}>
+                  Reenviar código
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => {
-                setStep("form");
-                setCodeError("");
-              }}
-            >
-              <Text style={styles.changeEmail}>
-                Alterar email
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setStep("form");
+                  setCodeError("");
+                }}
+              >
+                <Text style={styles.changeEmail}>
+                  Alterar email
+                </Text>
+              </TouchableOpacity>
+            </LinearGradient>
           </BlurView>
         </View>
       </Modal>
 
       {/* ───────────────── MODAL SUCESSO ───────────────── */}
-
-      <Modal visible={step === "success"} transparent animationType="fade">
-        <View style={styles.modal}>
-          <BlurView intensity={80} tint="dark" style={styles.modalCard}>
-            <LinearGradient
-              colors={["#22c55e", "#16a34a"]}
-              style={styles.modalIcon}
-            >
-              <Feather name="check" size={28} color="#fff" />
-            </LinearGradient>
-
-            <Text style={styles.modalTitle}>
-              Organizador criado!
-            </Text>
-
-            <Text style={styles.modalSubtitle}>
-              O cadastro foi concluído com sucesso.
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Login")}
-              style={{ width: "100%" }}
-            >
-              <LinearGradient
-                colors={["#22c55e", "#16a34a"]}
-                style={styles.modalBtn}
-              >
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                  Ir para Login
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </BlurView>
-        </View>
-      </Modal>
+      <ConfirmModal
+        visible={step === "success"}
+        title="Organizador criado!"
+        message="O cadastro foi concluído com sucesso."
+        type="success"
+        confirmText="Ir para Login"
+        onConfirm={() => navigation.navigate("Login")}
+      />
     </ImageBackground>
   );
 }
@@ -625,26 +603,32 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  modal: {
+  modalOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0,0,0,0.65)",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    padding: 20,
+    paddingHorizontal: 24,
   },
 
   modalCard: {
-    padding: 20,
-    borderRadius: 20,
     width: "100%",
-    alignItems: "center",
+    borderRadius: 30,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+
+  modalGradient: {
+    padding: 28,
+    alignItems: "center",
+    width: "100%",
   },
 
   modalIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
+    width: 78,
+    height: 78,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
@@ -652,8 +636,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     color: "#fff",
-    fontSize: 20,
-    marginBottom: 10,
+    fontSize: 22,
     fontWeight: "bold",
     textAlign: "center",
   },
@@ -663,7 +646,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 10,
+    marginTop: 10,
   },
 
   modalHint: {
@@ -671,14 +654,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     lineHeight: 18,
-    marginBottom: 16,
+    marginTop: 8,
   },
 
   codeInputContainer: {
     width: "100%",
     backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 16,
-    marginTop: 10,
+    marginTop: 16,
     marginBottom: 14,
     paddingHorizontal: 18,
   },
@@ -688,20 +671,31 @@ const styles = StyleSheet.create({
     fontSize: 28,
     textAlign: "center",
     letterSpacing: 10,
-    paddingVertical: 18,
+    paddingVertical: 14,
   },
 
-  modalBtn: {
-    padding: 14,
-    borderRadius: 14,
+  confirmBtn: {
     width: "100%",
-    alignItems: "center",
     marginTop: 10,
+  },
+
+  confirmGradient: {
+    height: 52,
+    borderRadius: 18,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  confirmText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
   },
 
   resendText: {
     color: colors.primary,
-    marginTop: 16,
+    marginTop: 18,
     fontWeight: "bold",
   },
 

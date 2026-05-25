@@ -14,9 +14,9 @@ export const FollowButton = ({ targetUserId, targetUserData, onFollowChange }) =
   );
 
   const handlePress = async () => {
-    await toggleFollow();
+    const nextState = await toggleFollow();
     if (onFollowChange) {
-      onFollowChange(isFollowing);
+      onFollowChange(nextState);
     }
   };
 

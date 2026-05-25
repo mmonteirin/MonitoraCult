@@ -13,6 +13,8 @@ import PerfilDeclararOcorrencia from "../screens/PerfilDeclararOcorrencia";
 import TelaMapaVivo from "../screens/TelaMapaVivo";
 import MapaVivoEventoDetalhes from "../screens/MapaVivoEventoDetalhes";
 import MapaVivoCheckIn from "../screens/MapaVivoCheckIn";
+import PerfilPublico from "../screens/PerfilPublico";
+import TelaAgendaEventos from "../screens/TelaAgendaEventos";
 
 const Stack = createStackNavigator();
 
@@ -28,7 +30,9 @@ export default function EventoStack() {
 
       {/* DETALHES E AÇÕES */}
       <Stack.Screen name="Detalhes" component={EventoDetalhes} />
+      <Stack.Screen name="PerfilPublico" component={PerfilPublico} />
       <Stack.Screen name="Avaliacao" component={EventoAvaliacao} />
+      <Stack.Screen name="AgendaEventos" component={TelaAgendaEventos} />
       <Stack.Screen name="TelaCulturaViva" component={TelaCulturaViva} />
       <Stack.Screen name="TelaExploreCidade" component={TelaExploreCidade} />
       <Stack.Screen name="TelaMapaVivo" component={TelaMapaVivo} />

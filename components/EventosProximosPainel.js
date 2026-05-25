@@ -29,6 +29,7 @@ export default function EventosProximosPainel({
   onPress,
   onCheckIn,
   onDetalhes,
+  onDirections,
 }) {
   const ordenados = [...eventos]
     .filter((evento) => evento?.location)
@@ -125,11 +126,11 @@ export default function EventosProximosPainel({
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={styles.iconButton}
-                    onPress={() => onDetalhes?.(item)}
+                    onPress={() => onDirections?.(item)}
                     activeOpacity={0.8}
                   >
                     <MaterialCommunityIcons
-                      name="information-outline"
+                      name="directions"
                       size={18}
                       color={Colors.textPrimary}
                     />

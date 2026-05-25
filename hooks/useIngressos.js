@@ -17,10 +17,11 @@ export const useIngressos = () => {
   const [carrinho, setCarrinho] = useState([]);
   const isMountedRef = useRef(true);
 
-  // Cleanup
+  // Cleanup + limpa carrinho ao desmontar a tela
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
+      setCarrinho([]);
     };
   }, []);
 

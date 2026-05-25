@@ -10,322 +10,356 @@ import {
   where,
   orderBy,
   limit,
-  startAfter,
   serverTimestamp,
   arrayUnion,
   arrayRemove,
+  increment,
 } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
-
-/**
- * Serviço de Comunidade com Firestore
- * Gerencia Grupos, Fórum, Criadores em Destaque e Notícias
- */
 
 // ==================== GRUPOS ====================
 
 export const createCommunityGroup = async (groupData) => {
-  try {
-    const docRef = await addDoc(collection(db, "communityGroups"), {
-      ...groupData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      members: [auth.currentUser.uid],
-      membersCount: 1,
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro ao criar grupo:", error);
-    throw error;
-  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+
+  const docRef = await addDoc(collection(db, "communityGroups"), {
+    ...groupData,
+    createdBy: uid,
+    admins: [uid],
+    members: [uid],
+    membersCount: 1,
+    postsCount: 0,
+    isPrivate: groupData.isPrivate || false,
+    coverImage: groupData.coverImage || null,
+    tags: groupData.tags || [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return docRef.id;
 };
 
-export const getCommunityGroups = async (genre = null) => {
-  try {
-    let q = collection(db, "communityGroups");
-    
-    if (genre) {
-      q = query(q, where("genre", "==", genre), orderBy("membersCount", "desc"));
-    } else {
-      q = query(q, orderBy("membersCount", "desc"));
-    }
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Erro ao buscar grupos:", error);
-    throw error;
+export const getCommunityGroups = async (genre = null, searchText = null) => {
+  let q;
+  if (genre && genre !== "Todos") {
+    q = query(
+      collection(db, "communityGroups"),
+      where("genre", "==", genre),
+      orderBy("membersCount", "desc")
+    );
+  } else {
+    q = query(
+      collection(db, "communityGroups"),
+      orderBy("membersCount", "desc")
+    );
   }
+  const snap = await getDocs(q);
+  const groups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  if (searchText) {
+    const lower = searchText.toLowerCase();
+    return groups.filter(
+      (g) =>
+        g.name?.toLowerCase().includes(lower) ||
+        g.description?.toLowerCase().includes(lower)
+    );
+  }
+  return groups;
+};
+
+export const getMyGroups = async () => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) return [];
+  const q = query(
+    collection(db, "communityGroups"),
+    where("members", "array-contains", uid)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 export const getGroupDetails = async (groupId) => {
-  try {
-    const docSnap = await getDoc(doc(db, "communityGroups", groupId));
-    if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
-    }
-    return null;
-  } catch (error) {
-    console.error("Erro ao buscar detalhes do grupo:", error);
-    throw error;
-  }
+  const snap = await getDoc(doc(db, "communityGroups", groupId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
 export const joinGroup = async (groupId) => {
-  try {
-    const groupRef = doc(db, "communityGroups", groupId);
-    await updateDoc(groupRef, {
-      members: arrayUnion(auth.currentUser.uid),
-      membersCount: await getGroupMembersCount(groupId) + 1,
-    });
-  } catch (error) {
-    console.error("Erro ao entrar no grupo:", error);
-    throw error;
-  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  await updateDoc(doc(db, "communityGroups", groupId), {
+    members: arrayUnion(uid),
+    membersCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
 };
 
 export const leaveGroup = async (groupId) => {
-  try {
-    const groupRef = doc(db, "communityGroups", groupId);
-    await updateDoc(groupRef, {
-      members: arrayRemove(auth.currentUser.uid),
-      membersCount: Math.max(0, await getGroupMembersCount(groupId) - 1),
-    });
-  } catch (error) {
-    console.error("Erro ao sair do grupo:", error);
-    throw error;
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const group = await getGroupDetails(groupId);
+  if (group?.createdBy === uid) throw new Error("O criador não pode sair do grupo");
+  await updateDoc(doc(db, "communityGroups", groupId), {
+    members: arrayRemove(uid),
+    membersCount: increment(-1),
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const updateCommunityGroup = async (groupId, data) => {
+  const uid = auth.currentUser?.uid;
+  const group = await getGroupDetails(groupId);
+  if (!group?.admins?.includes(uid)) throw new Error("Sem permissão");
+  await updateDoc(doc(db, "communityGroups", groupId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  });
+};
+
+export const deleteCommunityGroup = async (groupId) => {
+  const uid = auth.currentUser?.uid;
+  const group = await getGroupDetails(groupId);
+  if (group?.createdBy !== uid) throw new Error("Sem permissão");
+  await deleteDoc(doc(db, "communityGroups", groupId));
+};
+
+export const isGroupMember = (group, uid) =>
+  Array.isArray(group?.members) && group.members.includes(uid);
+
+export const isGroupAdmin = (group, uid) =>
+  Array.isArray(group?.admins) && group.admins.includes(uid);
+
+// ==================== POSTS DO GRUPO ====================
+
+export const createGroupPost = async (groupId, postData) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+
+  const group = await getGroupDetails(groupId);
+  if (!isGroupMember(group, uid)) throw new Error("Você precisa ser membro para postar");
+
+  const docRef = await addDoc(
+    collection(db, "communityGroups", groupId, "posts"),
+    {
+      ...postData,
+      authorId: uid,
+      authorName: auth.currentUser.displayName || "Usuário",
+      authorPhoto: auth.currentUser.photoURL || null,
+      likesCount: 0,
+      commentsCount: 0,
+      likes: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+  );
+
+  await updateDoc(doc(db, "communityGroups", groupId), {
+    postsCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+
+  return docRef.id;
+};
+
+export const getGroupPosts = async (groupId, pageLimit = 20) => {
+  const q = query(
+    collection(db, "communityGroups", groupId, "posts"),
+    orderBy("createdAt", "desc"),
+    limit(pageLimit)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+export const likeGroupPost = async (groupId, postId) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const postRef = doc(db, "communityGroups", groupId, "posts", postId);
+  const postSnap = await getDoc(postRef);
+  const likes = postSnap.data()?.likes || [];
+  if (likes.includes(uid)) {
+    await updateDoc(postRef, { likes: arrayRemove(uid), likesCount: increment(-1) });
+    return false;
+  } else {
+    await updateDoc(postRef, { likes: arrayUnion(uid), likesCount: increment(1) });
+    return true;
   }
 };
 
-export const getGroupMembersCount = async (groupId) => {
-  try {
-    const docSnap = await getDoc(doc(db, "communityGroups", groupId));
-    return docSnap.exists() ? (docSnap.data().members?.length || 0) : 0;
-  } catch (error) {
-    console.error("Erro ao contar membros:", error);
-    return 0;
-  }
+export const deleteGroupPost = async (groupId, postId) => {
+  const uid = auth.currentUser?.uid;
+  const postSnap = await getDoc(doc(db, "communityGroups", groupId, "posts", postId));
+  if (postSnap.data()?.authorId !== uid) throw new Error("Sem permissão");
+  await deleteDoc(doc(db, "communityGroups", groupId, "posts", postId));
+  await updateDoc(doc(db, "communityGroups", groupId), {
+    postsCount: increment(-1),
+  });
+};
+
+export const addPostComment = async (groupId, postId, content) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const docRef = await addDoc(
+    collection(db, "communityGroups", groupId, "posts", postId, "comments"),
+    {
+      content,
+      authorId: uid,
+      authorName: auth.currentUser.displayName || "Usuário",
+      authorPhoto: auth.currentUser.photoURL || null,
+      createdAt: serverTimestamp(),
+    }
+  );
+  await updateDoc(doc(db, "communityGroups", groupId, "posts", postId), {
+    commentsCount: increment(1),
+  });
+  return docRef.id;
+};
+
+export const getPostComments = async (groupId, postId) => {
+  const q = query(
+    collection(db, "communityGroups", groupId, "posts", postId, "comments"),
+    orderBy("createdAt", "asc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 // ==================== FÓRUM ====================
 
 export const createForumThread = async (groupId, threadData) => {
-  try {
-    const docRef = await addDoc(
-      collection(db, "communityGroups", groupId, "forum"),
-      {
-        ...threadData,
-        authorId: auth.currentUser.uid,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        repliesCount: 0,
-        likesCount: 0,
-      }
-    );
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro ao criar tópico do fórum:", error);
-    throw error;
-  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const group = await getGroupDetails(groupId);
+  if (!isGroupMember(group, uid)) throw new Error("Você precisa ser membro");
+
+  const docRef = await addDoc(
+    collection(db, "communityGroups", groupId, "forum"),
+    {
+      ...threadData,
+      authorId: uid,
+      authorName: auth.currentUser.displayName || "Usuário",
+      authorPhoto: auth.currentUser.photoURL || null,
+      repliesCount: 0,
+      likesCount: 0,
+      likes: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+  );
+  return docRef.id;
 };
 
-export const getForumThreads = async (groupId, pageLimit = 10) => {
-  try {
-    const q = query(
-      collection(db, "communityGroups", groupId, "forum"),
-      orderBy("createdAt", "desc"),
-      limit(pageLimit)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Erro ao buscar tópicos do fórum:", error);
-    throw error;
-  }
+export const getForumThreads = async (groupId, pageLimit = 20) => {
+  const q = query(
+    collection(db, "communityGroups", groupId, "forum"),
+    orderBy("createdAt", "desc"),
+    limit(pageLimit)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 export const addForumReply = async (groupId, threadId, replyData) => {
-  try {
-    const docRef = await addDoc(
-      collection(db, "communityGroups", groupId, "forum", threadId, "replies"),
-      {
-        ...replyData,
-        authorId: auth.currentUser.uid,
-        createdAt: serverTimestamp(),
-      }
-    );
-    
-    // Atualizar contagem de respostas
-    const threadRef = doc(db, "communityGroups", groupId, "forum", threadId);
-    await updateDoc(threadRef, {
-      repliesCount: await getThreadRepliesCount(groupId, threadId) + 1,
-    });
-    
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro ao adicionar resposta:", error);
-    throw error;
-  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const docRef = await addDoc(
+    collection(db, "communityGroups", groupId, "forum", threadId, "replies"),
+    {
+      ...replyData,
+      authorId: uid,
+      authorName: auth.currentUser.displayName || "Usuário",
+      authorPhoto: auth.currentUser.photoURL || null,
+      createdAt: serverTimestamp(),
+    }
+  );
+  await updateDoc(doc(db, "communityGroups", groupId, "forum", threadId), {
+    repliesCount: increment(1),
+    updatedAt: serverTimestamp(),
+  });
+  return docRef.id;
 };
 
 export const getForumReplies = async (groupId, threadId) => {
-  try {
-    const q = query(
-      collection(db, "communityGroups", groupId, "forum", threadId, "replies"),
-      orderBy("createdAt", "asc")
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Erro ao buscar respostas:", error);
-    throw error;
-  }
+  const q = query(
+    collection(db, "communityGroups", groupId, "forum", threadId, "replies"),
+    orderBy("createdAt", "asc")
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-export const getThreadRepliesCount = async (groupId, threadId) => {
-  try {
-    const querySnapshot = await getDocs(
-      collection(db, "communityGroups", groupId, "forum", threadId, "replies")
-    );
-    return querySnapshot.size;
-  } catch (error) {
-    console.error("Erro ao contar respostas:", error);
-    return 0;
-  }
+export const getForumThreadDetails = async (groupId, threadId) => {
+  const snap = await getDoc(doc(db, "communityGroups", groupId, "forum", threadId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
-// ==================== CRIADORES EM DESTAQUE ====================
-
-export const createHighlightedCreator = async (creatorData) => {
-  try {
-    const docRef = await addDoc(collection(db, "highlightedCreators"), {
-      ...creatorData,
-      createdAt: serverTimestamp(),
-      viewsCount: 0,
-      likesCount: 0,
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro ao criar criador em destaque:", error);
-    throw error;
-  }
-};
+// ==================== CRIADORES ====================
 
 export const getHighlightedCreators = async () => {
-  try {
-    const q = query(
-      collection(db, "highlightedCreators"),
-      orderBy("viewsCount", "desc"),
-      limit(10)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Erro ao buscar criadores em destaque:", error);
-    throw error;
-  }
+  const q = query(
+    collection(db, "highlightedCreators"),
+    orderBy("viewsCount", "desc"),
+    limit(10)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
 export const incrementCreatorViews = async (creatorId) => {
-  try {
-    const creatorRef = doc(db, "highlightedCreators", creatorId);
-    await updateDoc(creatorRef, {
-      viewsCount: await getCreatorViewsCount(creatorId) + 1,
-    });
-  } catch (error) {
-    console.error("Erro ao incrementar visualizações:", error);
-  }
-};
-
-export const getCreatorViewsCount = async (creatorId) => {
-  try {
-    const docSnap = await getDoc(doc(db, "highlightedCreators", creatorId));
-    return docSnap.exists() ? (docSnap.data().viewsCount || 0) : 0;
-  } catch (error) {
-    console.error("Erro ao buscar contagem de visualizações:", error);
-    return 0;
-  }
+  await updateDoc(doc(db, "highlightedCreators", creatorId), {
+    viewsCount: increment(1),
+  });
 };
 
 // ==================== NOTÍCIAS ====================
 
 export const createCommunityNews = async (groupId, newsData) => {
-  try {
-    const docRef = await addDoc(
-      collection(db, "communityGroups", groupId, "news"),
-      {
-        ...newsData,
-        authorId: auth.currentUser.uid,
-        createdAt: serverTimestamp(),
-        viewsCount: 0,
-        likesCount: 0,
-      }
-    );
-    return docRef.id;
-  } catch (error) {
-    console.error("Erro ao criar notícia:", error);
-    throw error;
-  }
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const group = await getGroupDetails(groupId);
+  if (!isGroupAdmin(group, uid)) throw new Error("Apenas admins podem postar notícias");
+
+  const docRef = await addDoc(
+    collection(db, "communityGroups", groupId, "news"),
+    {
+      ...newsData,
+      authorId: uid,
+      authorName: auth.currentUser.displayName || "Redação",
+      viewsCount: 0,
+      likesCount: 0,
+      likes: [],
+      createdAt: serverTimestamp(),
+    }
+  );
+  return docRef.id;
 };
 
 export const getCommunityNews = async (groupId, pageLimit = 10) => {
-  try {
-    const q = query(
-      collection(db, "communityGroups", groupId, "news"),
-      orderBy("createdAt", "desc"),
-      limit(pageLimit)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("Erro ao buscar notícias:", error);
-    throw error;
+  const q = query(
+    collection(db, "communityGroups", groupId, "news"),
+    orderBy("createdAt", "desc"),
+    limit(pageLimit)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+};
+
+export const likeNews = async (groupId, newsId) => {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Usuário não autenticado");
+  const newsRef = doc(db, "communityGroups", groupId, "news", newsId);
+  const newsSnap = await getDoc(newsRef);
+  const likes = newsSnap.data()?.likes || [];
+  if (likes.includes(uid)) {
+    await updateDoc(newsRef, { likes: arrayRemove(uid), likesCount: increment(-1) });
+    return false;
+  } else {
+    await updateDoc(newsRef, { likes: arrayUnion(uid), likesCount: increment(1) });
+    return true;
   }
 };
 
 export const incrementNewsViews = async (groupId, newsId) => {
-  try {
-    const newsRef = doc(db, "communityGroups", groupId, "news", newsId);
-    const currentDoc = await getDoc(newsRef);
-    await updateDoc(newsRef, {
-      viewsCount: (currentDoc.data().viewsCount || 0) + 1,
-    });
-  } catch (error) {
-    console.error("Erro ao incrementar visualizações de notícia:", error);
-  }
-};
-
-export const likeNews = async (groupId, newsId) => {
-  try {
-    const newsRef = doc(db, "communityGroups", groupId, "news", newsId);
-    const currentDoc = await getDoc(newsRef);
-    const currentLikes = (currentDoc.data().likesCount || 0) + 1;
-    
-    await updateDoc(newsRef, {
-      likesCount: currentLikes,
-    });
-    return currentLikes;
-  } catch (error) {
-    console.error("Erro ao dar like em notícia:", error);
-    throw error;
-  }
+  await updateDoc(doc(db, "communityGroups", groupId, "news", newsId), {
+    viewsCount: increment(1),
+  });
 };

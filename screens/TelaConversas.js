@@ -3,30 +3,28 @@
  * Exibe lista de conversas com opções
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
+import { useAuth } from "../context/AuthContext";
 import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
-  const insets = useSafeAreaInsets();
-  const auth = route?.params?.auth;
-  const userId = auth?.currentUser?.uid;
-  
-  const { conversas, loading, naoLidas, iniciarConversa } =
-    useDirectMessages(userId);
+  const embedded = !!route?.params?.embedded;
+  const scrollY = route?.params?.scrollY;
+  const onNovaConversaExterno = route?.params?.onNovaConversa;
+
+  const { user } = useAuth();
+  const userId = user?.uid;
+
+  const { conversas, loading, deletarConversa } = useDirectMessages(userId);
 
   const handleConversaPress = useCallback(
     (conversa) => {
@@ -39,56 +37,70 @@ const TelaConversas = ({ navigation, route }) => {
   );
 
   const handleNovaConversa = useCallback(() => {
-    // Aqui você pode adicionar um modal para selecionar contato
-    Alert.alert(
-      "Nova Conversa",
-      "Selecione um contato para iniciar",
-      [{ text: "OK" }]
+    if (onNovaConversaExterno) {
+      onNovaConversaExterno();
+      return;
+    }
+    navigation.navigate("BuscaUsuarios");
+  }, [navigation, onNovaConversaExterno]);
+
+  const handleDeleteConversa = useCallback(
+    async (conversaId) => {
+      await deletarConversa(conversaId);
+    },
+    [deletarConversa]
+  );
+
+  if (embedded) {
+    return (
+      <View style={styles.containerEmbedded}>
+        <ListaConversas
+          conversas={conversas}
+          loading={loading}
+          userId={userId}
+          embedded
+          scrollY={scrollY}
+          onConversaPress={handleConversaPress}
+          onNovaConversa={handleNovaConversa}
+          onDeleteConversa={handleDeleteConversa}
+        />
+      </View>
     );
-  }, []);
+  }
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <LinearGradient
-        colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
-        style={[styles.header, { paddingTop: insets.top + 14 }]}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mensagens</Text>
-          <TouchableOpacity
-            style={styles.headerActionBtn}
-            activeOpacity={0.8}
-            onPress={handleNovaConversa}
-          >
-            <MaterialCommunityIcons name="pencil-plus" size={22} color={Colors.primary} />
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Text style={styles.label}>Mensagens</Text>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.titulo}>Conversas</Text>
+          </View>
+          <Text style={styles.subtitulo}>
+            Suas conversas e mensagens diretas
+          </Text>
         </View>
 
-        <View style={styles.headerSubRow}>
-          <Text style={styles.subtitulo}>Suas conversas diretas</Text>
-          {naoLidas > 0 && (
-            <View style={styles.badgeNaoLidas}>
-              <Text style={styles.badgeText}>{naoLidas}</Text>
-            </View>
-          )}
-        </View>
-      </LinearGradient>
+        <TouchableOpacity
+          style={styles.btnNovaConversa}
+          onPress={handleNovaConversa}
+          activeOpacity={0.8}
+        >
+          <MaterialCommunityIcons
+            name="pencil-plus"
+            size={24}
+            color="#FFF"
+          />
+        </TouchableOpacity>
+      </View>
 
-      {/* LISTA */}
       <ListaConversas
         conversas={conversas}
         loading={loading}
         userId={userId}
         onConversaPress={handleConversaPress}
         onNovaConversa={handleNovaConversa}
+        onDeleteConversa={handleDeleteConversa}
       />
     </View>
   );
@@ -100,72 +112,64 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
+  containerEmbedded: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
   header: {
-    paddingHorizontal: 18,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-
-  headerTop: {
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    alignItems: "flex-start",
+    gap: 12,
   },
 
-  backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+  headerContent: {
+    flex: 1,
   },
 
-  headerTitle: {
-    color: Colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "800",
-  },
-
-  headerActionBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.06)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-  },
-
-  headerSubRow: {
+  headerTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    marginTop: 4,
+  },
+
+  titulo: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: Colors.textPrimary,
+  },
+
+  label: {
+    color: Colors.primary,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 
   subtitulo: {
     color: Colors.textMuted,
-    fontSize: 13,
+    fontSize: 12,
+    marginTop: 6,
+    lineHeight: 16,
   },
 
-  badgeNaoLidas: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 9,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: "center",
+  btnNovaConversa: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: "center",
-  },
-
-  badgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: "700",
+    justifyContent: "center",
+    backgroundColor: Colors.primary,
+    marginTop: 2,
   },
 });
 

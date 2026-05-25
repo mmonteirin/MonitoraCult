@@ -43,6 +43,73 @@ export const formatarDistancia = (km) => {
   return `${km.toFixed(1)}km`;
 };
 
+export const getDirectionsUrl = (evento, origem = null) => {
+  const latitude = evento?.location?.latitude;
+  const longitude = evento?.location?.longitude;
+
+  if (latitude == null || longitude == null) return null;
+
+  const destination = `${latitude},${longitude}`;
+  const origin =
+    origem?.latitude != null && origem?.longitude != null
+      ? `&origin=${origem.latitude},${origem.longitude}`
+      : "";
+
+  return `https://www.google.com/maps/dir/?api=1${origin}&destination=${destination}&travelmode=driving`;
+};
+
+export const clusterMapEvents = (eventos = [], region = null) => {
+  if (!region || eventos.length < 12) {
+    return eventos.map((evento) => ({
+      type: "event",
+      id: evento.id,
+      evento,
+      coordinate: evento.location,
+    }));
+  }
+
+  const zoomFactor = Math.max(1, Math.round(0.08 / (region.latitudeDelta || 0.04)));
+  const cellSize = Math.max(0.0025, 0.018 / zoomFactor);
+  const buckets = new Map();
+
+  eventos.forEach((evento) => {
+    if (!evento?.location) return;
+
+    const latKey = Math.round(evento.location.latitude / cellSize);
+    const lngKey = Math.round(evento.location.longitude / cellSize);
+    const key = `${latKey}_${lngKey}`;
+    const bucket = buckets.get(key) || [];
+    bucket.push(evento);
+    buckets.set(key, bucket);
+  });
+
+  return Array.from(buckets.entries()).flatMap(([key, items]) => {
+    if (items.length < 3) {
+      return items.map((evento) => ({
+        type: "event",
+        id: evento.id,
+        evento,
+        coordinate: evento.location,
+      }));
+    }
+
+    const latitude =
+      items.reduce((acc, item) => acc + item.location.latitude, 0) / items.length;
+    const longitude =
+      items.reduce((acc, item) => acc + item.location.longitude, 0) / items.length;
+
+    return [
+      {
+        type: "cluster",
+        id: `cluster_${key}`,
+        eventos: items,
+        count: items.length,
+        coordinate: { latitude, longitude },
+      },
+    ];
+  });
+};
+
 // ─── DADOS MOCK (desenvolvimento / fallback) ─────────────────────────────────
 
 const EVENTOS_MOCK = [
