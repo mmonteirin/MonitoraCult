@@ -106,7 +106,8 @@ const ACOES_RAPIDAS = [
 		id: "agenda",
 		icon: "calendar-month",
 		label: "Agenda",
-		route: "AgendaEventos",
+		route: "HomeTabs",
+		nestedScreen: { screen: "Eventos", params: { screen: "AgendaEventos" } },
 		color: "#22D3EE",
 		bg: "rgba(34,211,238,0.15)",
 	},
@@ -114,7 +115,8 @@ const ACOES_RAPIDAS = [
 		id: "busca",
 		icon: "magnify",
 		label: "Explorar",
-		route: "Busca",
+		route: "HomeTabs",
+		nestedScreen: { screen: "Busca" },
 		color: "#F472B6",
 		bg: "rgba(244,114,182,0.15)",
 	},
@@ -122,7 +124,8 @@ const ACOES_RAPIDAS = [
 		id: "comunidade",
 		icon: "account-group",
 		label: "Comunidade",
-		route: "Comunidade",
+		route: "HomeTabs",
+		nestedScreen: { screen: "Feed", params: { screen: "TelaComunidade" } },
 		color: "#F97316",
 		bg: "rgba(249,115,22,0.15)",
 	},
@@ -185,7 +188,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 	<Animated.View entering={FadeInDown.delay(index * 60).springify()}>
 		<TouchableOpacity
 			style={[styles.acaoCard, { backgroundColor: acao.bg }]}
-			onPress={() => onPress(acao.route)}
+			onPress={() => onPress(acao.route, acao.nestedScreen)}
 			activeOpacity={0.8}
 		>
 			<MaterialCommunityIcons
@@ -204,12 +207,12 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 // FeedCard vertical
 // ──────────────────────────────────────────────
 const FeedCard = memo(
-	({ item, index, isLiked, isSubscribed, onLike, onNotification }) => (
+	({ item, index, isLiked, isSubscribed, onLike, onNotification, onPress }) => (
 		<Animated.View
 			entering={FadeInDown.delay(index * 80).springify()}
 			style={styles.feedCard}
 		>
-			<TouchableOpacity activeOpacity={0.92} style={styles.feedCardInner}>
+			<TouchableOpacity activeOpacity={0.92} style={styles.feedCardInner} onPress={() => onPress?.(item)}>
 				<AnimatedImage
 					source={{ uri: item.imagem }}
 					style={styles.feedImage}
@@ -369,16 +372,21 @@ export default function TelaPainelCidade() {
 				accuracy: Location.Accuracy.Balanced,
 			});
 
-			const resumo = await getMapaSummary(
-				localizacao.coords.latitude,
-				localizacao.coords.longitude
-			);
+			let resumo = { totalEventos: 0, proximos: 0, hotspots: 0 };
+			try {
+				resumo = await getMapaSummary(
+					localizacao.coords.latitude,
+					localizacao.coords.longitude
+				);
+			} catch (_e) {
+				/* fallback silencioso */
+			}
 
-			setPainelCidade({
-				eventos: resumo.totalEventos || 0,
+			setPainelCidade((prev) => ({
+				...prev,
 				proximos: resumo.proximos || 0,
 				hotspots: resumo.hotspots || 0,
-			});
+			}));
 
 			const response = await fetch(
 				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${localizacao.coords.latitude}&lon=${localizacao.coords.longitude}`
@@ -391,7 +399,9 @@ export default function TelaPainelCidade() {
 					data?.address?.neighbourhood ||
 					"Sua região"
 			);
-			setRegiao(data?.address?.state || "CE");
+			const estado = data?.address?.state || "CE";
+			const siglaEstado = data?.address?.["ISO3166-2-lvl4"]?.split("-")?.[1] || estado;
+			setRegiao(siglaEstado);
 		} catch (e) {
 			console.log(e);
 		}
@@ -406,20 +416,25 @@ export default function TelaPainelCidade() {
 			);
 			const snap = await getDocs(eventosQuery);
 			const lista = snap.docs.map((doc) => {
-				const data = doc.data();
+				const d = doc.data();
 				return {
 					id: doc.id,
 					type: "evento",
-					...data,
-					imagem: data.imagemEvento || DEFAULT_EVENT_IMAGE,
-					titulo: data.tituloEvento || "Evento",
-					local: data.localEvento || "Local",
-					categoria: data.categoria || "Evento",
-					score: data.likes || 0,
-					data: data.dataEvento || null,
+					...d,
+					imagem: d.imagemEvento || DEFAULT_EVENT_IMAGE,
+					titulo: d.tituloEvento || "Evento",
+					local: d.localEvento || "Local",
+					categoria: d.categoria || "Evento",
+					score: d.likes || 0,
+					data: d.dataEvento || null,
 				};
 			});
 			setEventos(lista);
+
+			setPainelCidade((prev) => ({
+				...prev,
+				eventos: lista.length,
+			}));
 		} catch (e) {
 			console.log(e);
 		}
@@ -567,7 +582,10 @@ export default function TelaPainelCidade() {
 					activeOpacity={0.94}
 					style={styles.heroCard}
 					onPress={() =>
-						navigation.navigate("Detalhes", { evento: item })
+						navigation.navigate("HomeTabs", {
+							screen: "Eventos",
+							params: { screen: "Detalhes", params: { evento: item } },
+						})
 					}
 				>
 					<AnimatedImage
@@ -661,7 +679,10 @@ export default function TelaPainelCidade() {
 								<TouchableOpacity
 									style={styles.headerBtn}
 									onPress={() =>
-										navigation.navigate("CriarPost")
+										navigation.navigate("HomeTabs", {
+											screen: "Feed",
+											params: { screen: "CriarPost" },
+										})
 									}
 								>
 									<MaterialCommunityIcons
@@ -673,7 +694,10 @@ export default function TelaPainelCidade() {
 								<TouchableOpacity
 									style={styles.headerBtn}
 									onPress={() =>
-										navigation.navigate("Notificacoes")
+										navigation.navigate("HomeTabs", {
+											screen: "Feed",
+											params: { screen: "Notificacoes" },
+										})
 									}
 								>
 									<MaterialCommunityIcons
@@ -772,7 +796,11 @@ export default function TelaPainelCidade() {
 							key={acao.id}
 							acao={acao}
 							index={i}
-							onPress={(route) => navigation.navigate(route)}
+							onPress={(route, nested) =>
+							nested
+								? navigation.navigate(route, nested)
+								: navigation.navigate(route)
+						}
 						/>
 					))}
 				</View>
@@ -816,7 +844,12 @@ export default function TelaPainelCidade() {
 						</Text>
 					</View>
 					<TouchableOpacity
-						onPress={() => navigation.navigate("EventosApp")}
+						onPress={() =>
+							navigation.navigate("HomeTabs", {
+								screen: "Eventos",
+								params: { screen: "EventosApp" },
+							})
+						}
 					>
 						<Text style={styles.sectionLink}>Ver todos</Text>
 					</TouchableOpacity>
@@ -873,6 +906,12 @@ export default function TelaPainelCidade() {
 						isSubscribed={!!subscribedEvents[item.id]}
 						onLike={toggleLike}
 						onNotification={toggleNotification}
+						onPress={(evt) =>
+							navigation.navigate("HomeTabs", {
+								screen: "Eventos",
+								params: { screen: "Detalhes", params: { evento: evt } },
+							})
+						}
 					/>
 				))}
 
@@ -896,7 +935,12 @@ export default function TelaPainelCidade() {
 				style={[styles.fab, { bottom: insets.bottom + 90 }]}
 			>
 				<TouchableOpacity
-					onPress={() => navigation.navigate("CriarPost")}
+					onPress={() =>
+						navigation.navigate("HomeTabs", {
+							screen: "Feed",
+							params: { screen: "CriarPost" },
+						})
+					}
 					activeOpacity={0.85}
 				>
 					<LinearGradient
