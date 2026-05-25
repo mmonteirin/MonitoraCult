@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   codeBtn: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: "hidden",
     marginTop: 22,
   },
@@ -592,8 +592,8 @@ const styles = StyleSheet.create({
 
   submit: {
     marginTop: 16,
-    padding: 14,
-    borderRadius: 14,
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
   },
 
@@ -680,8 +680,8 @@ const styles = StyleSheet.create({
   },
 
   confirmGradient: {
-    height: 52,
-    borderRadius: 18,
+    height: 54,
+    borderRadius: 16,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -690,7 +690,7 @@ const styles = StyleSheet.create({
   confirmText: {
     color: "#fff",
     fontWeight: "bold",
-    fontSize: 15,
+    fontSize: 16,
   },
 
   resendText: {

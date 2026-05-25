@@ -1,7 +1,6 @@
 import React, {
 	useState,
 	useEffect,
-	useRef,
 	useCallback,
 } from "react";
 
@@ -15,7 +14,6 @@ import {
 	StyleSheet,
 	ActivityIndicator,
 	Modal,
-	Animated,
 	StatusBar,
 	Dimensions,
 } from "react-native";
@@ -113,64 +111,6 @@ const censurarTexto = (texto) => {
 
 	return t;
 };
-
-/* ───────────────────────────── */
-/* LIKE BUTTON */
-/* ───────────────────────────── */
-
-function LikeButton({
-	liked,
-	onPress,
-}) {
-	const scale = useRef(
-		new Animated.Value(1)
-	).current;
-
-	const handlePress = () => {
-		Animated.sequence([
-			Animated.spring(scale, {
-				toValue: 1.3,
-				useNativeDriver: true,
-				speed: 50,
-			}),
-			Animated.spring(scale, {
-				toValue: 1,
-				useNativeDriver: true,
-				speed: 50,
-			}),
-		]).start();
-
-		onPress();
-	};
-
-	return (
-		<TouchableOpacity
-			activeOpacity={0.8}
-			onPress={handlePress}
-			style={styles.metricBtn}
-		>
-			<Animated.View
-				style={{
-					transform: [{ scale }],
-				}}
-			>
-				<MaterialCommunityIcons
-					name={
-						liked
-							? "heart"
-							: "heart-outline"
-					}
-					size={18}
-					color={
-						liked
-							? "#FF4D6D"
-							: "#FFF"
-					}
-				/>
-			</Animated.View>
-		</TouchableOpacity>
-	);
-}
 
 export default function EventoDetalhes({
 	route,
@@ -657,23 +597,13 @@ export default function EventoDetalhes({
 							navigation.goBack()
 						}
 					>
-						<BlurView
-							intensity={
-								40
+						<MaterialCommunityIcons
+							name="arrow-left"
+							size={
+								22
 							}
-							tint="dark"
-							style={
-								styles.blurBtn
-							}
-						>
-							<MaterialCommunityIcons
-								name="arrow-left"
-								size={
-									22
-								}
-								color="#FFF"
-							/>
-						</BlurView>
+							color="#FFF"
+						/>
 					</TouchableOpacity>
 
 					{/* Botão compartilhar */}
@@ -692,17 +622,11 @@ export default function EventoDetalhes({
 							setShowShare(true)
 						}
 					>
-						<BlurView
-							intensity={40}
-							tint="dark"
-							style={styles.blurBtn}
-						>
-							<MaterialCommunityIcons
-								name="share-variant"
-								size={22}
-								color="#FFF"
-							/>
-						</BlurView>
+						<MaterialCommunityIcons
+							name="share-variant"
+							size={22}
+							color="#FFF"
+						/>
 					</TouchableOpacity>
 
 					<MotiView
@@ -752,14 +676,25 @@ export default function EventoDetalhes({
 									styles.metricBox
 								}
 							>
-								<LikeButton
-									liked={
-										liked
-									}
-									onPress={
-										handleToggleLike
-									}
-								/>
+								<TouchableOpacity
+									style={styles.metricBtn}
+									onPress={handleToggleLike}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name={
+											liked
+												? "heart"
+												: "heart-outline"
+										}
+										size={18}
+										color={
+											liked
+												? "#FF4D6D"
+												: "#FFF"
+										}
+									/>
+								</TouchableOpacity>
 
 								<Text
 									style={
@@ -777,13 +712,18 @@ export default function EventoDetalhes({
 									styles.metricBox
 								}
 							>
-								<MaterialCommunityIcons
-									name="eye-outline"
-									size={
-										18
-									}
-									color="#FFF"
-								/>
+								<TouchableOpacity
+									style={styles.metricBtn}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name="eye-outline"
+										size={
+											18
+										}
+										color="#FFF"
+									/>
+								</TouchableOpacity>
 
 								<Text
 									style={
@@ -1397,8 +1337,20 @@ const styles =
 		back: {
 			position: "absolute",
 			left: 18,
-			borderRadius: 18,
-			overflow: "hidden",
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			backgroundColor: "rgba(0,0,0,0.4)",
+			justifyContent: "center",
+			alignItems: "center",
+			zIndex: 10,
+		},
+
+		backIcon: {
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
 		},
 
 		shareBtn: {
@@ -1454,7 +1406,7 @@ const styles =
 			alignItems:
 				"center",
 			backgroundColor:
-				"rgba(255,255,255,0.12)",
+				"rgba(255,255,255,0.08)",
 			paddingHorizontal: 14,
 			paddingVertical: 10,
 			borderRadius: 18,
@@ -1462,10 +1414,12 @@ const styles =
 		},
 
 		metricBtn: {
-			alignItems:
-				"center",
-			justifyContent:
-				"center",
+			width: 40,
+			height: 40,
+			borderRadius: 12,
+			backgroundColor: "rgba(255,255,255,0.08)",
+			justifyContent: "center",
+			alignItems: "center",
 		},
 
 		metricText: {

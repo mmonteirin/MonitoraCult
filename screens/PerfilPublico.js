@@ -9,7 +9,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  StatusBar,
+  RefreshControl,
 } from "react-native";
+
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
 
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -44,6 +54,7 @@ export default function PerfilPublico({ navigation, route }) {
   const [seguidores, setSeguidores] = useState([]);
   const [seguindo, setSeguindo] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const isOwnProfile = user?.uid && user.uid === targetUserId;
 
@@ -122,6 +133,12 @@ export default function PerfilPublico({ navigation, route }) {
     [carregarRede, seguidores.length]
   );
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await carregarRede();
+    setRefreshing(false);
+  }, [carregarRede]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -192,7 +209,7 @@ export default function PerfilPublico({ navigation, route }) {
         </Text>
 
         <Text style={styles.eventDate}>
-          {item.eventoData || "Data não informada"}
+          {item.eventoDataStr || "Data não informada"}
         </Text>
       </View>
     </View>
@@ -216,61 +233,85 @@ export default function PerfilPublico({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView
+      <StatusBar barStyle="light-content" />
+
+      <Animated.ScrollView
+        entering={FadeIn.duration(700)}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       >
-        <LinearGradient
-          colors={["#111827", "#1E1B4B", "#070B14"]}
-          style={[
-            styles.header,
-            {
-              paddingTop: insets.top + 10,
-            },
-          ]}
+        {/* HEADER */}
+        <Animated.View
+          entering={FadeInDown.duration(700)}
         >
-          <View style={styles.topRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.iconButton}
-            >
-              <MaterialCommunityIcons
-                name="arrow-left"
-                size={22}
-                color="#FFF"
+          <LinearGradient
+            colors={[
+              Colors.backgroundSecondary,
+              Colors.surface,
+              Colors.background,
+            ]}
+            style={[
+              styles.header,
+              {
+                paddingTop: insets.top + 12,
+              },
+            ]}
+          >
+            <View style={styles.topRow}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.iconButton}
+              >
+                <BlurView
+                  intensity={35}
+                  tint="dark"
+                  style={styles.headerBlur}
+                >
+                  <MaterialCommunityIcons
+                    name="arrow-left"
+                    size={22}
+                    color="#FFF"
+                  />
+                </BlurView>
+              </TouchableOpacity>
+
+              {!isOwnProfile && (
+                <FollowButton
+                  targetUserId={targetUserId}
+                  targetUserData={targetUserData}
+                  onFollowChange={handleFollowChange}
+                />
+              )}
+            </View>
+
+            <View style={styles.profileBlock}>
+              <Image
+                source={{
+                  uri:
+                    profile.photoURL ||
+                    profile.foto ||
+                    "https://i.pravatar.cc/150",
+                }}
+                style={styles.avatar}
               />
-            </TouchableOpacity>
 
-            {!isOwnProfile && (
-              <FollowButton
-                targetUserId={targetUserId}
-                targetUserData={targetUserData}
-                onFollowChange={handleFollowChange}
-              />
-            )}
-          </View>
+              <Text style={styles.name}>
+                {profile.displayName || profile.nome || "Usuário"}
+              </Text>
 
-          <View style={styles.profileBlock}>
-            <Image
-              source={{
-                uri:
-                  profile.photoURL ||
-                  profile.foto ||
-                  "https://i.pravatar.cc/150",
-              }}
-              style={styles.avatar}
-            />
+              {!!profile.bio && (
+                <Text style={styles.bio}>{profile.bio}</Text>
+              )}
+            </View>
 
-            <Text style={styles.name}>
-              {profile.displayName || profile.nome || "Usuário"}
-            </Text>
-
-            {!!profile.bio && (
-              <Text style={styles.bio}>{profile.bio}</Text>
-            )}
-          </View>
-
-          <BlurView intensity={28} tint="dark" style={styles.stats}>
+            <BlurView intensity={28} tint="dark" style={styles.stats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{eventos.length}</Text>
               <Text style={styles.statLabel}>eventos</Text>
@@ -289,70 +330,81 @@ export default function PerfilPublico({ navigation, route }) {
               </Text>
               <Text style={styles.statLabel}>seguindo</Text>
             </View>
-          </BlurView>
-        </LinearGradient>
+            </BlurView>
+          </LinearGradient>
+        </Animated.View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Eventos frequentados</Text>
-            <Text style={styles.sectionCount}>{eventos.length}</Text>
+        {/* EVENTOS SECTION */}
+        <Animated.View
+          entering={FadeInUp.delay(180).springify()}
+        >
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Eventos frequentados</Text>
+              <Text style={styles.sectionCount}>{eventos.length}</Text>
+            </View>
+
+            <FlatList
+              data={eventos}
+              keyExtractor={(item) => item.id}
+              renderItem={renderEvento}
+              scrollEnabled={false}
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <MaterialCommunityIcons
+                    name="ticket-confirmation-outline"
+                    size={42}
+                    color={Colors.textMuted}
+                  />
+
+                  <Text style={styles.emptyText}>
+                    Nenhum evento frequentado ainda
+                  </Text>
+                </View>
+              }
+            />
           </View>
+        </Animated.View>
 
-          <FlatList
-            data={eventos}
-            keyExtractor={(item) => item.id}
-            renderItem={renderEvento}
-            scrollEnabled={false}
-            ListEmptyComponent={
-              <View style={styles.emptyBox}>
-                <MaterialCommunityIcons
-                  name="ticket-confirmation-outline"
-                  size={42}
-                  color={Colors.textMuted}
+        {/* REDE SECTION */}
+        <Animated.View
+          entering={FadeInUp.delay(260).springify()}
+        >
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Rede</Text>
+
+            <View style={styles.peopleRow}>
+              {seguidores.slice(0, 6).map((item) => (
+                <Image
+                  key={item.id}
+                  source={{
+                    uri:
+                      item.followerPhoto ||
+                      "https://i.pravatar.cc/100",
+                  }}
+                  style={styles.smallAvatar}
                 />
+              ))}
+            </View>
 
-                <Text style={styles.emptyText}>
-                  Nenhum evento frequentado ainda
-                </Text>
-              </View>
-            }
-          />
-        </View>
+            <Text style={styles.networkText}>
+              {seguidores.length} seguidores e {seguindo.length} seguindo
+            </Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Rede</Text>
+            <SeguindoList
+              title="Seguidores"
+              usuarios={seguidores}
+              onNavigateProfile={abrirPerfilUsuario}
+            />
 
-          <View style={styles.peopleRow}>
-            {seguidores.slice(0, 6).map((item) => (
-              <Image
-                key={item.id}
-                source={{
-                  uri:
-                    item.followerPhoto ||
-                    "https://i.pravatar.cc/100",
-                }}
-                style={styles.smallAvatar}
-              />
-            ))}
+            <SeguindoList
+              title="Seguindo"
+              usuarios={seguindo}
+              onNavigateProfile={abrirPerfilUsuario}
+            />
           </View>
-
-          <Text style={styles.networkText}>
-            {seguidores.length} seguidores e {seguindo.length} seguindo
-          </Text>
-
-          <SeguindoList
-            title="Seguidores"
-            usuarios={seguidores}
-            onNavigateProfile={abrirPerfilUsuario}
-          />
-
-          <SeguindoList
-            title="Seguindo"
-            usuarios={seguindo}
-            onNavigateProfile={abrirPerfilUsuario}
-          />
-        </View>
-      </ScrollView>
+        </Animated.View>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -380,12 +432,22 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+  },
+  headerBlur: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
   profileBlock: {
     alignItems: "center",

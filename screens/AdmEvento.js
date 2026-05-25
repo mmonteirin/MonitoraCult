@@ -252,7 +252,8 @@ export default function AdmEvento({ navigation }) {
 						</View>
 
 						<TouchableOpacity
-							activeOpacity={0.9}
+							activeOpacity={0.75}
+							style={styles.dashboardBtn}
 							onPress={() =>
 								navigation.navigate("AdmEventoDashIndividual", {
 									eventoId: item.id,
@@ -260,18 +261,20 @@ export default function AdmEvento({ navigation }) {
 								})
 							}
 						>
-							<LinearGradient
-								colors={["#9333EA", "#7E22CE", "#581C87"]}
-								style={styles.dashboardBtn}
-							>
+							<View style={[styles.dashboardIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
 								<MaterialCommunityIcons
 									name="chart-bar"
-									size={18}
-									color="#FFF"
+									size={22}
+									color="#6C5CE7"
 								/>
-
-								<Text style={styles.dashboardText}>Dashboard</Text>
-							</LinearGradient>
+							</View>
+							<Text style={styles.dashboardLabel}>Dashboard</Text>
+							<MaterialCommunityIcons
+								name="chevron-right"
+								size={18}
+								color={Colors.textMuted}
+								style={styles.dashboardChevron}
+							/>
 						</TouchableOpacity>
 					</View>
 				</BlurView>
@@ -376,7 +379,7 @@ export default function AdmEvento({ navigation }) {
 				onPress={() => navigation.navigate("CriarEvento")}
 			>
 				<LinearGradient
-					colors={["#9333EA", "#7E22CE", "#581C87"]}
+					colors={["#8B7CFF", "#6C5CE7"]}
 					style={styles.fabGradient}
 				>
 					<MaterialCommunityIcons
@@ -447,9 +450,9 @@ const styles = StyleSheet.create({
 	},
 
 	backBtn: {
-		width: 46,
-		height: 46,
-		borderRadius: 16,
+		width: 44,
+		height: 44,
+		borderRadius: 14,
 		backgroundColor: "rgba(255,255,255,0.08)",
 		justifyContent: "center",
 		alignItems: "center",
@@ -559,9 +562,9 @@ const styles = StyleSheet.create({
 	},
 
 	editBtn: {
-		width: 52,
-		height: 52,
-		borderRadius: 18,
+		width: 50,
+		height: 50,
+		borderRadius: 14,
 		backgroundColor: "rgba(59,130,246,0.16)",
 		justifyContent: "center",
 		alignItems: "center",
@@ -570,9 +573,9 @@ const styles = StyleSheet.create({
 	},
 
 	deleteBtn: {
-		width: 52,
-		height: 52,
-		borderRadius: 18,
+		width: 50,
+		height: 50,
+		borderRadius: 14,
 		backgroundColor: "rgba(239,68,68,0.16)",
 		justifyContent: "center",
 		alignItems: "center",
@@ -583,16 +586,32 @@ const styles = StyleSheet.create({
 	dashboardBtn: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingVertical: 13,
-		paddingHorizontal: 18,
-		borderRadius: 18,
-		gap: 8,
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		borderRadius: 16,
+		backgroundColor: Colors.surface,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+		gap: 10,
 	},
 
-	dashboardText: {
-		color: "#FFF",
-		fontWeight: "bold",
+	dashboardIconCircle: {
+		width: 40,
+		height: 40,
+		borderRadius: 12,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+
+	dashboardLabel: {
+		flex: 1,
 		fontSize: 13,
+		fontWeight: "700",
+		color: Colors.textPrimary,
+	},
+
+	dashboardChevron: {
+		opacity: 0.5,
 	},
 
 	loading: {
@@ -636,13 +655,13 @@ const styles = StyleSheet.create({
 	},
 
 	fabGradient: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
+		width: 68,
+		height: 68,
+		borderRadius: 34,
 		justifyContent: "center",
 		alignItems: "center",
 		elevation: 12,
-		shadowColor: "#9333EA",
+		shadowColor: "#6C5CE7",
 		shadowOpacity: 0.45,
 		shadowRadius: 18,
 	},

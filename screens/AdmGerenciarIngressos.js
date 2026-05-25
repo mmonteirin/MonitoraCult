@@ -482,27 +482,29 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={0.75}
+            style={styles.saveBtn}
             onPress={handleSalvarConfig}
             disabled={salvandoConfig}
           >
-            <LinearGradient
-              colors={["#9333EA", "#7E22CE"]}
-              style={styles.saveBtn}
-            >
+            <View style={[styles.saveIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
               {salvandoConfig ? (
-                <ActivityIndicator color="#FFF" size="small" />
+                <ActivityIndicator color="#6C5CE7" size="small" />
               ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="content-save"
-                    size={18}
-                    color="#FFF"
-                  />
-                  <Text style={styles.saveBtnText}>Salvar</Text>
-                </>
+                <MaterialCommunityIcons
+                  name="content-save"
+                  size={22}
+                  color="#6C5CE7"
+                />
               )}
-            </LinearGradient>
+            </View>
+            <Text style={styles.saveLabel}>Salvar</Text>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={18}
+              color={Colors.textMuted}
+              style={styles.saveChevron}
+            />
           </TouchableOpacity>
         </BlurView>
 
@@ -613,25 +615,25 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: Platform.OS === "ios" ? 58 : 46,
     paddingHorizontal: 20,
-    paddingBottom: 18,
+    paddingBottom: 14,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
   headerRow: { flexDirection: "row", alignItems: "center" },
   backButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   scannerBtn: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -641,13 +643,13 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: "row",
     gap: 8,
-    marginTop: 16,
+    marginTop: 12,
   },
   statMini: {
     flex: 1,
     backgroundColor: "rgba(255,255,255,0.08)",
     borderRadius: 16,
-    padding: 10,
+    padding: 8,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
@@ -664,12 +666,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: "center",
   },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: 14, paddingBottom: 40 },
   configCard: {
     borderRadius: 22,
-    padding: 16,
+    padding: 14,
     overflow: "hidden",
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.glassBorder,
   },
@@ -682,7 +684,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
-    marginBottom: 14,
+    marginBottom: 12,
     lineHeight: 18,
   },
   inputRow: { flexDirection: "row", gap: 10 },
@@ -704,15 +706,36 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   saveBtn: {
-    height: 48,
-    borderRadius: 14,
-    marginTop: 14,
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    gap: 10,
+    marginTop: 14,
   },
-  saveBtnText: { color: "#FFF", fontWeight: "800", fontSize: 14 },
+
+  saveIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  saveLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+
+  saveChevron: {
+    opacity: 0.5,
+  },
   filters: { gap: 8, paddingBottom: 12 },
   filterChip: {
     height: 36,
@@ -737,7 +760,7 @@ const styles = StyleSheet.create({
   },
   compraCard: {
     borderRadius: 20,
-    padding: 14,
+    padding: 12,
     marginBottom: 12,
     overflow: "hidden",
     borderWidth: 1,
@@ -766,7 +789,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: "rgba(255,255,255,0.04)",
     borderRadius: 12,
-    padding: 10,
+    padding: 8,
   },
   ingressoMeta: { flex: 1, paddingRight: 8 },
   ingressoTipo: { color: Colors.textPrimary, fontSize: 13, fontWeight: "600" },
@@ -789,16 +812,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "rgba(239,68,68,0.1)",
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "rgba(239,68,68,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(239,68,68,0.2)",
+    borderColor: "rgba(239,68,68,0.25)",
   },
   cancelBtnText: { color: Colors.error, fontWeight: "700", fontSize: 13 },
   emptyBox: {
     alignItems: "center",
-    padding: 32,
+    padding: 24,
     backgroundColor: Colors.surface,
     borderRadius: 20,
     borderWidth: 1,

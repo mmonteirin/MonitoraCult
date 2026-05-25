@@ -2,10 +2,19 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Modal,
   TextInput, ActivityIndicator, Image, Alert, KeyboardAvoidingView,
-  Platform, RefreshControl,
+  Platform, RefreshControl, StatusBar,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 import { useCommunity } from "../hooks/useCommunity";
 
@@ -114,6 +123,7 @@ function ThreadCard({ thread, onPress }) {
 }
 
 export default function ComunidadeGrupoDetalhes({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const { groupId } = route.params;
   const {
     currentGroup, posts, forumThreads, loading,
@@ -386,6 +396,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
   if (loading && !currentGroup) {
     return (
       <View style={styles.loadingScreen}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -393,11 +404,18 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <StatusBar barStyle="light-content" />
+
+      <Animated.FlatList
+        entering={FadeIn.duration(700)}
         data={[]}
         keyExtractor={() => "dummy"}
         renderItem={null}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={
+          <Animated.View entering={FadeInDown.duration(700)}>
+            {renderHeader()}
+          </Animated.View>
+        }
         ListFooterComponent={
           <View style={{ paddingBottom: 100 }}>
             {innerTab === "posts" && renderPostsContent()}
@@ -407,6 +425,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
       />
 
       {/* MODAL: NOVO POST */}

@@ -127,26 +127,26 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.surface,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    padding: 14,
+    marginBottom: 14,
   },
 
   title: {
     fontSize: 18,
     fontWeight: "700",
     color: Colors.textPrimary,
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   card: {
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
 
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   info: {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   separator: {
     height: 1,
     backgroundColor: Colors.border,
-    marginVertical: 12,
+    marginVertical: 10,
   },
 });
 

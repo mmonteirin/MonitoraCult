@@ -50,7 +50,7 @@ export const useIngressos = () => {
   }, []);
 
   // Adicionar ao carrinho
-  const adicionarAoCarrinho = useCallback((tipo, quantidade, precoUnitario) => {
+  const adicionarAoCarrinho = useCallback((tipo, quantidade = 1, precoUnitario) => {
     setCarrinho(prev => {
       const existe = prev.find(item => item.tipo === tipo);
 

@@ -13,11 +13,13 @@ import {
   Share,
   Alert,
   Pressable,
+  Platform,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../styles/Colors";
 import * as Clipboard from "expo-clipboard";
+import QRCode from "react-native-qrcode-svg";
 
 // Converte "DD/MM/AAAA" ou Timestamp Firebase → Date
 const parseDateBR = (value) => {
@@ -37,12 +39,19 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
   const [modalVisivel, setModalVisivel] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  const dataEvento = compra.eventoData || "Data não informada";
+  const dataEvento = compra.eventoDataStr || "Data não informada";
   const horaEvento = compra.eventoHora || "Horário não informado";
   const statusConfig = getStatusConfig(ingresso.status);
 
   // Verificar se é evento futuro
-  const isFuturo = parseDateBR(compra.eventoData ?? dataEvento) > new Date();
+  const isFuturo = parseDateBR(compra.eventoDataStr ?? dataEvento) > new Date();
+
+  // Dados para o QR Code
+  const qrValue = JSON.stringify({
+    c: ingresso.codigoIngresso,
+    e: compra.eventoId,
+    t: ingresso.tipo,
+  });
 
   const handleCopiar = async () => {
     try {
@@ -56,12 +65,17 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
 
   const handleCompartilhar = async () => {
     try {
+      // Compartilhar como texto
       await Share.share({
         message: `🎫 Tenho ingresso para ${compra.eventoNome}!\n\n📅 ${dataEvento}\n⏰ ${horaEvento}\n📍 ${compra.eventoLocal}\n\nCódigo: ${ingresso.codigoIngresso}`,
         title: `${compra.eventoNome} - Ingresso`,
       });
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível compartilhar");
+      // Silenciar erro de cancelamento pelo usuário
+      if (error?.message?.includes('cancel') || error?.message?.includes('dismiss')) {
+        return;
+      }
+      console.error('Erro ao compartilhar:', error);
     }
   };
 
@@ -178,6 +192,23 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
               </View>
             </View>
 
+            {/* QR CODE VISUAL */}
+            {isFuturo && ingresso.status !== "cancelado" && (
+              <View style={styles.qrContainer}>
+                <View style={styles.qrBox}>
+                  <QRCode
+                    value={qrValue}
+                    size={180}
+                    backgroundColor="#FFFFFF"
+                    color="#000000"
+                    quietZone={8}
+                  />
+                </View>
+                <Text style={styles.qrLabel}>Escaneie na entrada</Text>
+                <Text style={styles.qrCode}>{ingresso.codigoIngresso}</Text>
+              </View>
+            )}
+
             {/* INFORMAÇÕES DETALHADAS */}
             <View style={styles.modalInfo}>
               <InfoRow
@@ -289,14 +320,14 @@ function getStatusBadgeStyle(status) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   card: {
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: 14,
+    padding: 12,
     backgroundColor: Colors.surface,
   },
 
@@ -304,7 +335,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   badgeQtd: {
@@ -335,7 +366,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   headerInfo: {
@@ -405,8 +436,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 8,
+    paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
@@ -429,8 +460,8 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 24,
+    paddingTop: 14,
+    paddingBottom: 20,
     maxHeight: "80%",
   },
 
@@ -441,28 +472,60 @@ const styles = StyleSheet.create({
   },
 
   modalHeader: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: Colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 6,
+  },
+
+  qrContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+
+  qrBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+
+  qrLabel: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginBottom: 4,
+    fontWeight: "600",
+  },
+
+  qrCode: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+    fontFamily: "monospace",
   },
 
   modalInfo: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 14,
   },
 
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
@@ -488,7 +551,7 @@ const styles = StyleSheet.create({
   modalAcoes: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   btnAcao: {
@@ -497,7 +560,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderRadius: 10,
   },
 
@@ -516,7 +579,7 @@ const styles = StyleSheet.create({
   },
 
   btnFechar: {
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: "center",
   },
 

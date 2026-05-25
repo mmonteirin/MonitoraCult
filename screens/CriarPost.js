@@ -11,6 +11,7 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	StatusBar,
+	RefreshControl,
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
@@ -25,7 +26,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-import { MotiView } from "moti";
+import Animated, {
+	FadeIn,
+	FadeInDown,
+	FadeInUp,
+	FadeInLeft,
+	FadeInRight,
+} from "react-native-reanimated";
 
 import { useAuth } from "../context/AuthContext";
 
@@ -59,6 +66,14 @@ export default function CriarPost({ navigation }) {
 		message: "",
 		type: "success",
 	});
+
+	const [refreshing, setRefreshing] = useState(false);
+
+	const onRefresh = async () => {
+		setRefreshing(true);
+		// Simular refresh
+		setTimeout(() => setRefreshing(false), 1000);
+	};
 
 	const showModal = (title, message, type = "success") => {
 		setModalData({
@@ -210,11 +225,18 @@ export default function CriarPost({ navigation }) {
 			/>
 
 			{/* HEADER */}
-			<LinearGradient
-				colors={["#070B14", "#111827"]}
-				style={styles.header}
+			<Animated.View
+				entering={FadeInDown.duration(700)}
 			>
-				<View style={styles.headerRow}>
+				<LinearGradient
+					colors={[
+						Colors.backgroundSecondary,
+						Colors.surface,
+						Colors.background,
+					]}
+					style={styles.header}
+				>
+					<View style={styles.headerRow}>
 					<TouchableOpacity
 						onPress={() => navigation.goBack()}
 					>
@@ -236,30 +258,25 @@ export default function CriarPost({ navigation }) {
 					</AppText>
 
 					<TouchableOpacity
+						activeOpacity={0.75}
 						disabled={!podePublicar || loading}
 						onPress={publicar}
+						style={styles.publishBtn}
 					>
-						<LinearGradient
-							colors={
-								podePublicar
-									? ["#7C3AED", "#5B21B6"]
-									: ["#333", "#333"]
-							}
-							style={styles.publishBtn}
-						>
+						<View style={[styles.publishIconCircle, { backgroundColor: podePublicar ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.05)" }]}>
 							{loading ? (
-								<ActivityIndicator
-									color="#FFF"
-									size="small"
-								/>
+								<ActivityIndicator color={podePublicar ? "#7C3AED" : Colors.textMuted} size="small" />
 							) : (
-								<AppText
-									style={styles.publishText}
-								>
-									Publicar
-								</AppText>
+								<MaterialCommunityIcons
+									name="send"
+									size={18}
+									color={podePublicar ? "#7C3AED" : Colors.textMuted}
+								/>
 							)}
-						</LinearGradient>
+						</View>
+						<AppText style={[styles.publishLabel, !podePublicar && styles.publishLabelDisabled]}>
+							Publicar
+						</AppText>
 					</TouchableOpacity>
 				</View>
 
@@ -292,7 +309,8 @@ export default function CriarPost({ navigation }) {
 							</AppText>
 						</View>
 					)}
-			</LinearGradient>
+				</LinearGradient>
+			</Animated.View>
 
 			{/* CONTEÚDO */}
 			<KeyboardAvoidingView
@@ -303,28 +321,23 @@ export default function CriarPost({ navigation }) {
 						: undefined
 				}
 			>
-				<ScrollView
+				<Animated.ScrollView
+					entering={FadeIn.duration(700)}
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={{
 						paddingBottom:
 							insets.bottom + 140,
 					}}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={onRefresh}
+							tintColor={Colors.primary}
+						/>
+					}
 				>
-					<MotiView
-						from={{
-							opacity: 0,
-							translateY: 40,
-							scale: 0.96,
-						}}
-						animate={{
-							opacity: 1,
-							translateY: 0,
-							scale: 1,
-						}}
-						transition={{
-							type: "timing",
-							duration: 650,
-						}}
+					<Animated.View
+						entering={FadeInUp.delay(120).springify()}
 					>
 						{/* IMAGEM */}
 						<TouchableOpacity
@@ -454,8 +467,8 @@ export default function CriarPost({ navigation }) {
 								</AppText>
 							</View>
 						</View>
-					</MotiView>
-				</ScrollView>
+					</Animated.View>
+				</Animated.ScrollView>
 			</KeyboardAvoidingView>
 
 			{/* MODAL */}
@@ -508,17 +521,34 @@ const styles = StyleSheet.create({
 	},
 
 	publishBtn: {
-		paddingHorizontal: 18,
-		paddingVertical: 12,
-		borderRadius: 16,
-		minWidth: 110,
+		flexDirection: "row",
 		alignItems: "center",
+		paddingVertical: 10,
+		paddingHorizontal: 12,
+		borderRadius: 14,
+		backgroundColor: Colors.surface,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+		gap: 8,
+		minWidth: 110,
 	},
 
-	publishText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 14,
+	publishIconCircle: {
+		width: 32,
+		height: 32,
+		borderRadius: 10,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+
+	publishLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: Colors.textPrimary,
+	},
+
+	publishLabelDisabled: {
+		color: Colors.textMuted,
 	},
 
 	progressContainer: {

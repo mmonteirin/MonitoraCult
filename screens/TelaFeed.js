@@ -96,6 +96,7 @@ import { categoriasHome } from "../components/home/homeUtils";
 // Telas sociais embutidas
 import TelaConversas     from "./TelaConversas";
 import TelaBuscaUsuarios from "./TelaBuscaUsuarios";
+import TelaComunidade    from "./TelaComunidade";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -794,30 +795,48 @@ export default function TelaFeed({ navigation, route }) {
 		scrollY.value = 0;
 	}, [activeTab]);
 
-	const headerFullHeight = insets.top + 8 + 62 + 38 + 6;
-	const headerMinHeight = insets.top + 8 + 38 + 6;
+	const headerFullHeight = insets.top + 12 + 62 + 38 + 6;
+	const headerMinHeight = insets.top + 12 + 38 + 6;
 
-	const contentInsetStyle = useAnimatedStyle(() => ({
-		paddingTop: interpolate(
-			scrollY.value,
-			[0, 72],
-			[headerFullHeight, headerMinHeight],
-			Extrapolate.CLAMP
-		),
-	}));
+	const contentInsetStyle = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				paddingTop: headerFullHeight,
+			};
+		}
+		return {
+			paddingTop: interpolate(
+				scrollY.value,
+				[0, 72],
+				[headerFullHeight, headerMinHeight],
+				Extrapolate.CLAMP
+			),
+		};
+	});
 
-	const headerRowCollapse = useAnimatedStyle(() => ({
-		opacity: interpolate(scrollY.value, [0, 48], [1, 0], Extrapolate.CLAMP),
-		maxHeight: interpolate(scrollY.value, [0, 48], [72, 0], Extrapolate.CLAMP),
-		marginBottom: interpolate(scrollY.value, [0, 48], [10, 0], Extrapolate.CLAMP),
-		overflow: "hidden",
-	}));
+	const headerRowCollapse = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				opacity: 1,
+			};
+		}
+		return {
+			opacity: interpolate(scrollY.value, [0, 48], [1, 0], Extrapolate.CLAMP),
+		};
+	});
 
-	const headerAnim = useAnimatedStyle(() => ({
-		transform: [{
-			translateY: interpolate(scrollY.value, [0, 100], [0, -8], Extrapolate.CLAMP),
-		}],
-	}));
+	const headerAnim = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				transform: [{ translateY: 0 }],
+			};
+		}
+		return {
+			transform: [{
+				translateY: interpolate(scrollY.value, [0, 100], [0, -8], Extrapolate.CLAMP),
+			}],
+		};
+	});
 
 	const socialScrollParams = useMemo(
 		() => ({ embedded: true, scrollY }),
@@ -868,6 +887,12 @@ export default function TelaFeed({ navigation, route }) {
 						route={{ params: socialScrollParams }}
 					/>
 				)}
+				{activeTab === "comunidade" && (
+					<TelaComunidade
+						navigation={navigation}
+						route={{ params: { ...socialScrollParams, embedded: true } }}
+					/>
+				)}
 			</Animated.View>
 
 			<Animated.View
@@ -876,10 +901,10 @@ export default function TelaFeed({ navigation, route }) {
 			>
 				<LinearGradient
 					colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
-					style={[s.headerGrad, { paddingTop: insets.top + 8 }]}
+					style={[s.headerGrad, { paddingTop: insets.top + 12 }]}
 				>
 					<Animated.View style={headerRowCollapse}>
-					<View style={s.headerRow}>
+						<View style={s.headerRow}>
 						<Image
 							source={{
 								uri:
@@ -967,11 +992,7 @@ export default function TelaFeed({ navigation, route }) {
 									key={tab.key}
 									style={[s.tab, active && s.tabActive]}
 									onPress={() => {
-										if (tab.key === "comunidade") {
-											navigation.navigate("TelaComunidade");
-										} else {
-											setActiveTab(tab.key);
-										}
+										setActiveTab(tab.key);
 									}}
 									activeOpacity={0.8}
 								>
@@ -1010,7 +1031,7 @@ const s = StyleSheet.create({
 
 	headerGrad: { paddingBottom: 2 },
 	headerRow: {
-		paddingHorizontal: 16,
+		paddingHorizontal: 20,
 		flexDirection: "row",
 		alignItems: "center",
 		paddingBottom: 10,
@@ -1065,16 +1086,16 @@ const s = StyleSheet.create({
 	},
 	headerBtns: { flexDirection: "row", alignItems: "center", gap: 10 },
 	headerBtn: {
-		width: 48,
-		height: 48,
+		width: 52,
+		height: 52,
 		borderRadius: 18,
 		backgroundColor: "rgba(255,255,255,0.08)",
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	headerBlur: {
-		width: 48,
-		height: 48,
+		width: 52,
+		height: 52,
 		borderRadius: 18,
 		justifyContent: "center",
 		alignItems: "center",
@@ -1085,7 +1106,7 @@ const s = StyleSheet.create({
 	tabRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 14,
+		paddingHorizontal: 20,
 		paddingBottom: 10,
 		gap: 8,
 	},

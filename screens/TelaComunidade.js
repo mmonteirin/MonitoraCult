@@ -260,9 +260,9 @@ export default function TelaComunidade({ navigation, route }) {
     ? {}
     : {
         colors: [
-          "#18122B",
-          "#111827",
-          "#0B1020",
+          Colors.backgroundSecondary,
+          Colors.surface,
+          Colors.background,
         ],
       };
 
@@ -594,7 +594,7 @@ export default function TelaComunidade({ navigation, route }) {
           embedded
             ? styles.headerEmbedded
             : {
-                paddingTop: insets.top + 10,
+                paddingTop: insets.top + 12,
               },
         ]}
       >
@@ -680,7 +680,7 @@ export default function TelaComunidade({ navigation, route }) {
             }
           >
             <LinearGradient
-              colors={["#8B5CF6", "#6D28D9"]}
+              colors={[Colors.primary, Colors.primaryDark]}
               style={[
                 styles.createButtonGradient,
                 embedded && styles.createButtonGradientEmbedded,
@@ -775,7 +775,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#8B5CF6"
+                tintColor={Colors.primary}
               />
             }
           >
@@ -948,7 +948,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#8B5CF6"
+                tintColor={Colors.primary}
               />
             }
           >
@@ -1013,7 +1013,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#8B5CF6"
+                tintColor={Colors.primary}
               />
             }
           >
@@ -1191,8 +1191,8 @@ export default function TelaComunidade({ navigation, route }) {
                     size={52}
                     color={
                       createData.isPrivate
-                        ? "#8B5CF6"
-                        : "#64748B"
+                        ? Colors.primary
+                        : Colors.textMuted
                     }
                   />
                 </TouchableOpacity>
@@ -1207,8 +1207,8 @@ export default function TelaComunidade({ navigation, route }) {
                 >
                   <LinearGradient
                     colors={[
-                      "#8B5CF6",
-                      "#6D28D9",
+                      Colors.primary,
+                      Colors.primaryDark,
                     ]}
                     style={
                       styles.submitGradient
@@ -1275,7 +1275,7 @@ function QuickStat({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0B1020",
+    backgroundColor: Colors.background,
   },
 
   containerEmbedded: {
@@ -1464,7 +1464,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     color: "#FFF",
-    fontSize: 34,
+    fontSize: 20,
     fontWeight: "800",
   },
 

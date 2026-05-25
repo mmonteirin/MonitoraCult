@@ -92,7 +92,7 @@ export const comprarIngressos = async ({
         throw new Error("Evento não encontrado");
       }
 
-      const eventoData = eventoSnap.data();
+      const eventoData = eventoSnap.data() || {};
       const capacidade = eventoData.capacidade || 0;
       const ingressosVendidos = eventoData.ingressosVendidos || 0;
       const ingressosGerados = ingressos.flatMap((ing) =>
@@ -112,18 +112,6 @@ export const comprarIngressos = async ({
         throw new Error("Ingressos indisponíveis. Capacidade limite atingida.");
       }
 
-      // Verificar compra duplicada para o mesmo evento
-      const comprasExistentesRef = collection(db, "usuarios", userId, "compras");
-      const duplicadoQuery = query(
-        comprasExistentesRef,
-        where("eventoId", "==", eventoId),
-        where("status", "==", "confirmado")
-      );
-      const duplicadoSnap = await getDocs(duplicadoQuery);
-      if (!duplicadoSnap.empty) {
-        throw new Error("Você já possui ingressos confirmados para este evento.");
-      }
-
       // 2. Criar documento de compra
       const compraRef = doc(
         collection(db, "usuarios", userId, "compras")
@@ -131,12 +119,12 @@ export const comprarIngressos = async ({
 
       const compraData = {
         eventoId,
-        eventoNome: eventoData.tituloEvento || "Evento",
-        eventoData: eventoData.dataEvento,
-        eventoHora: eventoData.horaInicio,
-        eventoLocal: eventoData.localEvento,
-        eventoFoto: eventoData.imagemEvento,
-        categoria: eventoData.categoria || eventoData.tipoEvento || null,
+        eventoNome: eventoData?.tituloEvento || "Evento",
+        eventoDataStr: eventoData?.dataEvento || "",
+        eventoHora: eventoData?.horaInicio || "",
+        eventoLocal: eventoData?.localEvento || "",
+        eventoFoto: eventoData?.imagemEvento || "",
+        categoria: eventoData?.categoria || eventoData?.tipoEvento || null,
         userId,
         userName,
         userEmail,
@@ -151,7 +139,7 @@ export const comprarIngressos = async ({
         },
         status: "confirmado",
         dataCompra: serverTimestamp(),
-        dataValidade: Timestamp.fromDate(parseEventoData(eventoData.dataEvento)),
+        dataValidade: Timestamp.fromDate(parseEventoData(eventoData?.dataEvento)),
       };
 
       transaction.set(compraRef, compraData);
@@ -223,12 +211,12 @@ export const obterIngressosUsuario = async (userId, filtro = "todos") => {
     // Filtrar por status
     if (filtro === "proximos") {
       compras = compras.filter(c => {
-        const dataEvento = c.dataValidade?.toDate?.() || new Date(c.eventoData);
+        const dataEvento = c.dataValidade?.toDate?.() || new Date(c.eventoDataStr);
         return dataEvento > new Date();
       });
     } else if (filtro === "passados") {
       compras = compras.filter(c => {
-        const dataEvento = c.dataValidade?.toDate?.() || new Date(c.eventoData);
+        const dataEvento = c.dataValidade?.toDate?.() || new Date(c.eventoDataStr);
         return dataEvento <= new Date();
       });
     }
@@ -666,7 +654,7 @@ export const cancelarCompra = async (compraId, userId, motivo = "") => {
     const compra = compraSnap.data();
 
     // Verificar se pode cancelar (política: até 24h antes)
-    const dataEvento = compra.dataValidade?.toDate?.() || new Date(compra.eventoData);
+    const dataEvento = compra.dataValidade?.toDate?.() || new Date(compra.eventoDataStr);
     const agora = new Date();
     const horas = (dataEvento - agora) / (1000 * 60 * 60);
 

@@ -9,6 +9,8 @@ import TelaCulturaViva from "../screens/TelaCulturaViva";
 import TelaExploreCidade from "../screens/TelaExploreCidade";
 import EventoIngresso from "../screens/EventoIngresso";
 import TelaIngressos from "../screens/TelaIngressos";
+import TelaCarrinhoIngressos from "../screens/TelaCarrinhoIngressos";
+import MeusIngressos from "../screens/MeusIngressos";
 import PerfilDeclararOcorrencia from "../screens/PerfilDeclararOcorrencia";
 import TelaMapaVivo from "../screens/TelaMapaVivo";
 import MapaVivoEventoDetalhes from "../screens/MapaVivoEventoDetalhes";
@@ -42,6 +44,8 @@ export default function EventoStack() {
       {/* INGRESSOS — dois modos acessíveis */}
       <Stack.Screen name="EventoIngresso" component={EventoIngresso} />
       <Stack.Screen name="TelaIngressos" component={TelaIngressos} />
+      <Stack.Screen name="TelaCarrinhoIngressos" component={TelaCarrinhoIngressos} />
+      <Stack.Screen name="MeusIngressos" component={MeusIngressos} />
 
       {/* OCORRÊNCIAS */}
       <Stack.Screen name="NovaOcorrencia" component={PerfilDeclararOcorrencia} />

@@ -255,6 +255,7 @@ export default function AdmMenu() {
                   "CriarEvento"
                 )
               }
+              index={0}
             />
 
             <MenuCard
@@ -270,6 +271,7 @@ export default function AdmMenu() {
                   "AdmEvento"
                 )
               }
+              index={1}
             />
 
             <MenuCard
@@ -285,6 +287,7 @@ export default function AdmMenu() {
                   "Metricas"
                 )
               }
+              index={2}
             />
 
             <MenuCard
@@ -298,6 +301,7 @@ export default function AdmMenu() {
               onPress={() =>
                 goToAdmin("AdmSuporte")
               }
+              index={3}
             />
           </View>
 
@@ -468,13 +472,14 @@ export default function AdmMenu() {
   );
 }
 
-/* CARD */
+/* CARD - Acesso Rápido */
 function MenuCard({
   icon,
   label,
   subtitle,
   onPress,
   gradient,
+  index,
 }) {
   return (
     <MotiView
@@ -489,41 +494,36 @@ function MenuCard({
       transition={{
         type: "timing",
         duration: 500,
+        delay: index * 60,
       }}
       style={styles.cardWrapper}
     >
       <TouchableOpacity
-        activeOpacity={0.85}
+        style={styles.acaoCard}
         onPress={onPress}
+        activeOpacity={0.75}
       >
-        <LinearGradient
-          colors={gradient}
-          style={styles.card}
-        >
-          <View
-            style={styles.cardIcon}
-          >
-            <MaterialCommunityIcons
-              name={icon}
-              size={26}
-              color="#FFF"
-            />
-          </View>
-
-          <Text
-            style={styles.cardTitle}
-          >
+        <View style={[styles.acaoIconCircle, { backgroundColor: gradient[0] + "20" }]}>
+          <MaterialCommunityIcons
+            name={icon}
+            size={22}
+            color={gradient[0]}
+          />
+        </View>
+        <View style={styles.acaoTextContainer}>
+          <Text style={styles.acaoLabel}>
             {label}
           </Text>
-
-          <Text
-            style={
-              styles.cardSubtitle
-            }
-          >
+          <Text style={styles.acaoSubtitle}>
             {subtitle}
           </Text>
-        </LinearGradient>
+        </View>
+        <MaterialCommunityIcons
+          name="chevron-right"
+          size={18}
+          color={Colors.textMuted}
+          style={styles.acaoChevron}
+        />
       </TouchableOpacity>
     </MotiView>
   );
@@ -694,59 +694,52 @@ const styles = StyleSheet.create({
       "space-between",
   },
 
-  /* CARD */
+  /* CARD - Acesso Rápido */
   cardWrapper: {
     width: "48%",
 
-    marginBottom: 16,
+    marginBottom: 12,
   },
 
-  card: {
-    borderRadius: 26,
-
-    padding: 18,
-
-    minHeight: 150,
-
-    justifyContent: "space-between",
-
-    shadowColor: "#000",
-
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-
-    elevation: 10,
-  },
-
-  cardIcon: {
-    width: 52,
-    height: 52,
-
-    borderRadius: 18,
-
-    justifyContent: "center",
+  acaoCard: {
+    flexDirection: "row",
     alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.16)",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    gap: 10,
   },
 
-  cardTitle: {
-    color: "#FFF",
-
-    fontSize: 17,
-    fontWeight: "bold",
-
-    marginTop: 18,
+  acaoIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
-  cardSubtitle: {
-    color:
-      "rgba(255,255,255,0.78)",
+  acaoTextContainer: {
+    flex: 1,
+  },
 
-    marginTop: 5,
-
+  acaoLabel: {
     fontSize: 13,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+
+  acaoSubtitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+
+  acaoChevron: {
+    opacity: 0.5,
   },
 
   /* LOGOUT */
@@ -759,9 +752,9 @@ const styles = StyleSheet.create({
 
     gap: 10,
 
-    paddingVertical: 18,
+    paddingVertical: 16,
 
-    borderRadius: 22,
+    borderRadius: 16,
   },
 
   logoutText: {
@@ -850,12 +843,12 @@ const styles = StyleSheet.create({
   cancelBtn: {
     flex: 1,
 
-    height: 52,
+    height: 54,
 
-    borderRadius: 18,
+    borderRadius: 16,
 
     backgroundColor:
-      "rgba(255,255,255,0.06)",
+      "rgba(255,255,255,0.08)",
 
     justifyContent: "center",
     alignItems: "center",
@@ -874,9 +867,9 @@ const styles = StyleSheet.create({
   },
 
   confirmGradient: {
-    height: 52,
+    height: 54,
 
-    borderRadius: 18,
+    borderRadius: 16,
 
     flexDirection: "row",
 

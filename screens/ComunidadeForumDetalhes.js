@@ -2,10 +2,19 @@ import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
-  Alert,
+  Alert, StatusBar, RefreshControl,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 import { useCommunity } from "../hooks/useCommunity";
 
@@ -22,6 +31,7 @@ function formatDate(timestamp) {
 }
 
 export default function ComunidadeForumDetalhes({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const { groupId, threadId } = route.params;
   const {
     currentThread, threadReplies, loading,
@@ -30,6 +40,14 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
 
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadThreadDetails(groupId, threadId);
+    await loadGroupDetails(groupId);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     loadThreadDetails(groupId, threadId);
@@ -69,6 +87,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
   if (loading && !currentThread) {
     return (
       <View style={styles.loadingScreen}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
@@ -79,16 +98,43 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Fórum</Text>
-        <View style={{ width: 40 }} />
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <FlatList
+      {/* HEADER */}
+      <Animated.View
+        entering={FadeInDown.duration(700)}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundSecondary,
+            Colors.surface,
+            Colors.background,
+          ]}
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+            },
+          ]}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <BlurView
+                intensity={35}
+                tint="dark"
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons name="chevron-left" size={28} color="#FFF" />
+              </BlurView>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle} numberOfLines={1}>Fórum</Text>
+            <View style={{ width: 52 }} />
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.FlatList
+        entering={FadeIn.duration(700)}
         data={threadReplies}
         keyExtractor={(item) => item.id}
         renderItem={renderReply}
@@ -128,7 +174,14 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
             <Text style={styles.emptyText}>Nenhuma resposta ainda. Seja o primeiro!</Text>
           </View>
         }
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       />
 
       {/* INPUT AREA */}
@@ -144,15 +197,16 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
             maxLength={600}
           />
           <TouchableOpacity
+            activeOpacity={0.75}
             style={[styles.sendBtn, (!replyText.trim() || submitting) && { opacity: 0.5 }]}
             onPress={handleSubmitReply}
             disabled={!replyText.trim() || submitting}
           >
-            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.sendBtnGradient}>
+            <View style={[styles.sendIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
               {submitting
-                ? <ActivityIndicator color="#fff" size="small" />
-                : <MaterialCommunityIcons name="send" size={20} color="#fff" />}
-            </LinearGradient>
+                ? <ActivityIndicator color="#6C5CE7" size="small" />
+                : <MaterialCommunityIcons name="send" size={18} color="#6C5CE7" />}
+            </View>
           </TouchableOpacity>
         </View>
       ) : (
@@ -168,16 +222,26 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
   header: {
-    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    paddingHorizontal: 8, paddingVertical: 8, paddingTop: 52,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
   },
-  backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surface,
-    justifyContent: "center", alignItems: "center",
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  headerTitle: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary, flex: 1, textAlign: "center" },
+  headerBlur: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  headerTitle: { fontSize: 20, fontWeight: "800", color: "#FFF", flex: 1, textAlign: "center" },
   threadCard: { padding: 20 },
   threadAuthorRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   avatarLg: {
@@ -218,8 +282,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10, color: Colors.textPrimary, fontSize: 14, maxHeight: 100,
     borderWidth: 1, borderColor: Colors.border,
   },
-  sendBtn: { borderRadius: 20, overflow: "hidden" },
-  sendBtnGradient: { width: 44, height: 44, justifyContent: "center", alignItems: "center", borderRadius: 22 },
+  sendBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  sendIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   joinBanner: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     padding: 16, paddingBottom: Platform.OS === "ios" ? 30 : 16,

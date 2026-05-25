@@ -205,7 +205,7 @@ export default function EventosApp() {
 								<TouchableOpacity
 									activeOpacity={0.85}
 									onPress={() =>
-										navigation.navigate("EventoPublico", {
+										navigation.navigate("Detalhes", {
 											evento: item,
 										})
 									}

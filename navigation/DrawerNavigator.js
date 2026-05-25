@@ -15,6 +15,7 @@ import Suporte from "../screens/TelaSuporte";
 import TelaConfiguracoes from "../screens/TelaConfiguracoes";
 import TelaPainelCidade from "../screens/TelaPainelCidade";
 import TelaLocaisVisitados from "../screens/TelaLocaisVisitados";
+import MeusIngressos from "../screens/MeusIngressos";
 
 import DrawerAvatar from "../components/DrawerAvatar";
 import { Colors, Typography } from "../styles/Colors";
@@ -103,6 +104,16 @@ export default function DrawerNavigator() {
         options={{
           drawerLabel: "Locais Visitados",
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-multiple-outline" color={color} size={size} />,
+        }}
+      />
+
+      {/* 🎫 MEUS INGRESSOS */}
+      <Drawer.Screen
+        name="MeusIngressosDrawer"
+        component={MeusIngressos}
+        options={{
+          drawerLabel: "Meus Ingressos",
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="ticket-confirmation-outline" color={color} size={size} />,
         }}
       />
 

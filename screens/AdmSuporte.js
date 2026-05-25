@@ -355,16 +355,18 @@ export default function AdmSuporte({ navigation }) {
                   style={styles.replyInput}
                 />
                 <TouchableOpacity
-                  activeOpacity={0.85}
+                  activeOpacity={0.75}
                   style={[styles.sendButton, (!reply.trim() || sending) && styles.disabledButton]}
                   onPress={handleSendReply}
                   disabled={!reply.trim() || sending}
                 >
-                  {sending ? (
-                    <ActivityIndicator color="#FFF" size="small" />
-                  ) : (
-                    <MaterialCommunityIcons name="send" size={19} color="#FFF" />
-                  )}
+                  <View style={[styles.sendIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
+                    {sending ? (
+                      <ActivityIndicator color="#6C5CE7" size="small" />
+                    ) : (
+                      <MaterialCommunityIcons name="send" size={18} color="#6C5CE7" />
+                    )}
+                  </View>
                 </TouchableOpacity>
               </View>
             </>
@@ -405,11 +407,18 @@ function StatCard({ icon, label, value }) {
 function StatusButton({ label, active, onPress }) {
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.75}
       onPress={onPress}
       style={[styles.statusButton, active && styles.statusButtonActive]}
     >
-      <Text style={[styles.statusButtonText, active && styles.statusButtonTextActive]}>
+      <View style={[styles.statusIconCircle, { backgroundColor: active ? "rgba(108,92,231,0.2)" : "rgba(255,255,255,0.05)" }]}>
+        <MaterialCommunityIcons
+          name={active ? "check-circle" : "circle-outline"}
+          size={18}
+          color={active ? "#6C5CE7" : Colors.textMuted}
+        />
+      </View>
+      <Text style={[styles.statusLabel, active && styles.statusLabelActive]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -427,10 +436,10 @@ const styles = StyleSheet.create({
   },
   headerRow: { flexDirection: "row", alignItems: "center" },
   backButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.glass,
+    backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
@@ -521,17 +530,31 @@ const styles = StyleSheet.create({
   },
   statusButton: {
     flex: 1,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: Colors.background,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
+    gap: 8,
   },
-  statusButtonActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  statusButtonText: { color: Colors.textSecondary, fontSize: 12, fontWeight: "800" },
-  statusButtonTextActive: { color: "#FFF" },
+  statusButtonActive: { borderColor: Colors.primary, backgroundColor: Colors.backgroundElevated },
+  statusIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  statusLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+  },
+  statusLabelActive: { color: Colors.textPrimary },
   messagesList: { flex: 1 },
   messagesContent: { padding: 14 },
   messageBubble: { maxWidth: "88%", padding: 12, borderRadius: 16, marginBottom: 10 },
@@ -562,10 +585,21 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
+
+  sendIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   disabledButton: { opacity: 0.55 },
   loadingBox: { paddingVertical: 40, alignItems: "center", justifyContent: "center" },
   emptyBox: {

@@ -69,6 +69,73 @@ const buildQrPayload = (ing, eventoId) =>
     t: ing.tipo,
   });
 
+// ─── Componente: Stepper de progresso ───────────────────────────────────────────
+
+function ProgressStepper({ etapaAtual }) {
+  const etapas = [
+    { id: "selecao", label: "Seleção", icon: "ticket-outline" },
+    { id: "carrinho", label: "Carrinho", icon: "cart-outline" },
+    { id: "processando", label: "Processando", icon: "loading" },
+    { id: "sucesso", label: "Confirmado", icon: "check-circle" },
+  ];
+
+  const etapaIndex = etapas.findIndex(e => e.id === etapaAtual);
+
+  return (
+    <View style={stepper.container}>
+      {etapas.map((etapa, index) => {
+        const ativo = index === etapaIndex;
+        const completo = index < etapaIndex;
+        const proximo = index === etapaIndex + 1;
+
+        return (
+          <View key={etapa.id} style={stepper.step}>
+            {/* Círculo do passo */}
+            <View
+              style={[
+                stepper.circle,
+                ativo && stepper.circleActive,
+                completo && stepper.circleComplete,
+              ]}
+            >
+              {completo ? (
+                <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+              ) : (
+                <MaterialCommunityIcons
+                  name={etapa.icon}
+                  size={16}
+                  color={ativo ? "#FFF" : Colors.textMuted}
+                />
+              )}
+            </View>
+
+            {/* Linha de conexão */}
+            {index < etapas.length - 1 && (
+              <View
+                style={[
+                  stepper.line,
+                  (ativo || completo) && stepper.lineActive,
+                ]}
+              />
+            )}
+
+            {/* Label */}
+            <Text
+              style={[
+                stepper.label,
+                ativo && stepper.labelActive,
+                completo && stepper.labelComplete,
+              ]}
+            >
+              {etapa.label}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 // ─── Componente: Cartão visual de ingresso com QR ────────────────────────────
 
 function IngressoCard({ ingresso, evento, index, onShare }) {
@@ -283,6 +350,7 @@ export default function TelaIngressos({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
   const evento = route.params?.evento;
+  const resultadoCompra = route.params?.resultadoCompra;
 
   const {
     carrinho,
@@ -294,9 +362,18 @@ export default function TelaIngressos({ route, navigation }) {
     quantidadeTotal,
   } = useIngressos();
 
-  const [etapa, setEtapa] = useState("selecao"); // selecao | processando | sucesso
+  const [etapa, setEtapa] = useState("selecao"); // selecao | carrinho | processando | sucesso
   const [resultado, setResultado] = useState(null);
   const [modalSucesso, setModalSucesso] = useState(false);
+
+  // Se veio do carrinho com resultado de compra, mostrar modal de sucesso
+  useEffect(() => {
+    if (resultadoCompra) {
+      setResultado(resultadoCompra);
+      setEtapa("sucesso");
+      setTimeout(() => setModalSucesso(true), 300);
+    }
+  }, [resultadoCompra]);
 
   const gratuito = useMemo(() => isGratuito(evento), [evento]);
   const precoBase = useMemo(() => getPrecoBase(evento), [evento]);
@@ -401,10 +478,15 @@ export default function TelaIngressos({ route, navigation }) {
         <View style={{ width: 40 }} />
       </LinearGradient>
 
+      {/* STEPPER DE PROGRESSO */}
+      <View style={styles.stepperWrapper}>
+        <ProgressStepper etapaAtual={etapa} />
+      </View>
+
       {/* CONTEÚDO */}
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Banner do evento */}
@@ -468,14 +550,76 @@ export default function TelaIngressos({ route, navigation }) {
           />
         )}
 
+        {/* BOTÃO PARA IR AO CARRINHO */}
+        {etapa === "selecao" && carrinho.length > 0 && (
+          <TouchableOpacity
+            style={styles.btnIrCarrinho}
+            onPress={() => setEtapa("carrinho")}
+            activeOpacity={0.85}
+          >
+            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.btnIrCarrinhoGrad}>
+              <MaterialCommunityIcons name="cart-arrow-right" size={20} color="#FFF" />
+              <View style={styles.btnIrCarrinhoInfo}>
+                <Text style={styles.btnIrCarrinhoText}>
+                  {quantidadeTotal} ingresso{quantidadeTotal !== 1 ? "s" : ""}
+                </Text>
+                <Text style={styles.btnIrCarrinhoSub}>
+                  {gratuito ? "Gratuito" : `R$ ${total.toFixed(2)}`}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
+
+        {/* FASE DO CARRINHO */}
+        {etapa === "carrinho" && (
+          <View style={styles.carrinhoContainer}>
+            <TouchableOpacity
+              style={styles.btnVoltarCarrinho}
+              onPress={() => setEtapa("selecao")}
+            >
+              <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
+              <Text style={styles.btnVoltarCarrinhoText}>Voltar à seleção</Text>
+            </TouchableOpacity>
+            <CarrinhoIngressos
+              carrinho={carrinho}
+              total={total}
+              quantidadeTotal={quantidadeTotal}
+              loading={loading}
+              onRemover={removerDoCarrinho}
+              onComprar={handleComprar}
+              nomeEvento={evento.tituloEvento}
+              dataEvento={evento.dataEvento}
+              gratuito={gratuito}
+            />
+          </View>
+        )}
+
         {/* PROCESSANDO */}
         {etapa === "processando" && (
           <View style={styles.processando}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.processandoTitle}>Processando...</Text>
+            <View style={styles.processandoAnim}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+            <Text style={styles.processandoTitle}>Processando sua compra</Text>
             <Text style={styles.processandoSub}>
-              Gerando seus QR Codes de entrada
+              Gerando seus QR Codes de entrada exclusivos
             </Text>
+            <View style={styles.processandoSteps}>
+              <View style={styles.processandoStep}>
+                <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
+                <Text style={styles.processandoStepText}>Validando disponibilidade</Text>
+              </View>
+              <View style={styles.processandoStep}>
+                <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
+                <Text style={styles.processandoStepText}>Gerando ingressos</Text>
+              </View>
+              <View style={styles.processandoStep}>
+                <ActivityIndicator size={12} color={Colors.primary} />
+                <Text style={styles.processandoStepText}>Criando QR Codes</Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -489,23 +633,6 @@ export default function TelaIngressos({ route, navigation }) {
           </View>
         )}
       </ScrollView>
-
-      {/* CARRINHO FLUTUANTE */}
-      {etapa === "selecao" && temVagas && (
-        <View style={[styles.carrinhoContainer, { paddingBottom: insets.bottom + 8 }]}>
-          <CarrinhoIngressos
-            carrinho={carrinho}
-            total={total}
-            quantidadeTotal={quantidadeTotal}
-            loading={loading}
-            nomeEvento={evento.tituloEvento}
-            dataEvento={`${evento.dataEvento}${evento.horaInicio ? ` às ${evento.horaInicio}` : ""}`}
-            onRemover={removerDoCarrinho}
-            onComprar={handleComprar}
-            gratuito={gratuito}
-          />
-        </View>
-      )}
     </View>
   );
 }
@@ -647,6 +774,62 @@ const card = StyleSheet.create({
   shareBtnText: { color: Colors.textMuted, fontSize: 12, fontWeight: "600" },
 });
 
+const stepper = StyleSheet.create({
+  container: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  step: {
+    flex: 1,
+    alignItems: "center",
+  },
+  circle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.glass,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  circleActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  circleComplete: {
+    backgroundColor: Colors.success,
+    borderColor: Colors.success,
+  },
+  line: {
+    position: "absolute",
+    top: 16,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: Colors.border,
+    zIndex: -1,
+  },
+  lineActive: {
+    backgroundColor: Colors.primary,
+  },
+  label: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 6,
+    fontWeight: "600",
+  },
+  labelActive: {
+    color: Colors.primary,
+    fontWeight: "700",
+  },
+  labelComplete: {
+    color: Colors.success,
+    fontWeight: "700",
+  },
+});
+
 const suc = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -725,7 +908,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   backBtn: {
     width: 40,
@@ -741,22 +924,30 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  stepperWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+
   eventoBanner: {
     position: "relative",
     borderRadius: 20,
     overflow: "hidden",
-    height: 200,
-    marginVertical: 16,
+    height: 180,
+    marginVertical: 12,
   },
   eventoImage: { width: "100%", height: "100%", resizeMode: "cover" },
   eventoOverlay: {
     position: "absolute",
     left: 0, right: 0, bottom: 0,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
-  eventoTitulo: { color: "#FFF", fontSize: 18, fontWeight: "800", marginBottom: 6 },
-  eventoMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 3 },
+  eventoTitulo: { color: "#FFF", fontSize: 17, fontWeight: "800", marginBottom: 5 },
+  eventoMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
   eventoMetaText: { color: "rgba(255,255,255,0.65)", fontSize: 12 },
 
   disponivel: {
@@ -766,8 +957,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
+    paddingVertical: 8,
+    marginBottom: 12,
   },
   disponivelText: { color: Colors.success, fontSize: 13, fontWeight: "600" },
   esgotado: {
@@ -777,8 +968,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 14,
+    paddingVertical: 8,
+    marginBottom: 12,
   },
   esgotadoText: { color: Colors.error, fontSize: 13, fontWeight: "600" },
 
@@ -787,8 +978,8 @@ const styles = StyleSheet.create({
     gap: 12,
     backgroundColor: Colors.primarySoft,
     borderRadius: 14,
-    padding: 14,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 14,
     alignItems: "flex-start",
     borderWidth: 1,
     borderColor: Colors.primary + "30",
@@ -796,22 +987,85 @@ const styles = StyleSheet.create({
   infoQrTitle: { color: Colors.primaryLight, fontSize: 13, fontWeight: "700", marginBottom: 3 },
   infoQrSub: { color: Colors.textMuted, fontSize: 12, lineHeight: 17 },
 
-  processando: { alignItems: "center", paddingVertical: 60 },
-  processandoTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "700", marginTop: 16 },
-  processandoSub: { color: Colors.textMuted, fontSize: 13, marginTop: 6 },
+  btnIrCarrinho: {
+    marginVertical: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  btnIrCarrinhoGrad: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  btnIrCarrinhoInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  btnIrCarrinhoText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  btnIrCarrinhoSub: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 13,
+    fontWeight: "600",
+  },
 
-  sucessoInline: { borderRadius: 20, overflow: "hidden", marginVertical: 20 },
-  sucessoInlineGrad: { alignItems: "center", paddingVertical: 50, paddingHorizontal: 30 },
+  processando: { alignItems: "center", paddingVertical: 40 },
+  processandoAnim: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary + "15",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  processandoTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "700", marginTop: 16 },
+  processandoSub: { color: Colors.textMuted, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 32 },
+  processandoSteps: {
+    marginTop: 32,
+    width: "100%",
+    paddingHorizontal: 32,
+  },
+  processandoStep: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 8,
+  },
+  processandoStepText: {
+    color: Colors.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+  sucessoInline: { borderRadius: 20, overflow: "hidden", marginVertical: 16 },
+  sucessoInlineGrad: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 24 },
   sucessoInlineText: { color: Colors.success, fontSize: 20, fontWeight: "700", marginTop: 12 },
 
   carrinhoContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    paddingTop: 16,
+  },
+
+  btnVoltarCarrinho: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  btnVoltarCarrinhoText: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   errorText: { color: Colors.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },

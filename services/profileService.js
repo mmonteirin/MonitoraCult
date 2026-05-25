@@ -96,7 +96,7 @@ export const getAttendedEvents = async (userId, maxItems = 30) => {
       }))
       .filter((compra) => {
         const dataEvento =
-          parseDate(compra.dataValidade) || parseDate(compra.eventoData);
+          parseDate(compra.dataValidade) || parseDate(compra.eventoDataStr);
         return (
           compra.status === "confirmado" &&
           dataEvento &&

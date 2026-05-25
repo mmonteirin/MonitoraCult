@@ -1230,12 +1230,20 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
             <Text style={styles.salesLabel}>Vendas Líquidas</Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
               <TouchableOpacity
-                activeOpacity={0.85}
+                activeOpacity={0.75}
                 onPress={handleExport}
                 style={styles.exportButton}
               >
-                <MaterialCommunityIcons name="export-variant" size={16} color="#FFF" />
-                <Text style={styles.exportButtonText}>Exportar</Text>
+                <View style={[styles.exportIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
+                  <MaterialCommunityIcons name="export-variant" size={16} color="#6C5CE7" />
+                </View>
+                <Text style={styles.exportLabel}>Exportar</Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={16}
+                  color={Colors.textMuted}
+                  style={styles.exportChevron}
+                />
               </TouchableOpacity>
               <MaterialCommunityIcons name="trending-up" size={22} color="#FFF" />
             </View>
@@ -1368,7 +1376,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
           <Text style={styles.sectionTitle}>Ações Rápidas</Text>
           <View style={styles.actionsGrid}>
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.75}
               style={styles.actionButton}
               onPress={() =>
                 navigation.navigate("AdmQRScanner", {
@@ -1377,17 +1385,20 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 })
               }
             >
-              <LinearGradient
-                colors={["#16A34A", "#15803D"]}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" />
-                <Text style={styles.actionText}>Scanner QR{"\n"}Check-in</Text>
-              </LinearGradient>
+              <View style={[styles.actionIconCircle, { backgroundColor: "rgba(22,163,74,0.2)" }]}>
+                <MaterialCommunityIcons name="qrcode-scan" size={22} color="#16A34A" />
+              </View>
+              <Text style={styles.actionLabel}>Scanner QR Check-in</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={Colors.textMuted}
+                style={styles.actionChevron}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.75}
               style={styles.actionButton}
               onPress={() =>
                 navigation.navigate("AdmGerenciarIngressos", {
@@ -1396,31 +1407,37 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 })
               }
             >
-              <LinearGradient
-                colors={["#2563EB", "#1D4ED8"]}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons name="ticket-percent" size={24} color="#FFF" />
-                <Text style={styles.actionText}>Gerenciar Ingressos</Text>
-              </LinearGradient>
+              <View style={[styles.actionIconCircle, { backgroundColor: "rgba(37,99,235,0.2)" }]}>
+                <MaterialCommunityIcons name="ticket-percent" size={22} color="#2563EB" />
+              </View>
+              <Text style={styles.actionLabel}>Gerenciar Ingressos</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={Colors.textMuted}
+                style={styles.actionChevron}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.75}
               style={styles.actionButton}
               onPress={handleExport}
             >
-              <LinearGradient
-                colors={["#7C3AED", "#5B21B6"]}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons name="chart-box" size={24} color="#FFF" />
-                <Text style={styles.actionText}>Relatórios</Text>
-              </LinearGradient>
+              <View style={[styles.actionIconCircle, { backgroundColor: "rgba(124,58,237,0.2)" }]}>
+                <MaterialCommunityIcons name="chart-box" size={22} color="#7C3AED" />
+              </View>
+              <Text style={styles.actionLabel}>Relatórios</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={Colors.textMuted}
+                style={styles.actionChevron}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity
-              activeOpacity={0.9}
+              activeOpacity={0.75}
               style={styles.actionButton}
               onPress={() =>
                 navigation.navigate("CriarEvento", {
@@ -1430,13 +1447,16 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 })
               }
             >
-              <LinearGradient
-                colors={["#EA580C", "#C2410C"]}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons name="cog-outline" size={24} color="#FFF" />
-                <Text style={styles.actionText}>Editar Evento</Text>
-              </LinearGradient>
+              <View style={[styles.actionIconCircle, { backgroundColor: "rgba(234,88,12,0.2)" }]}>
+                <MaterialCommunityIcons name="cog-outline" size={22} color="#EA580C" />
+              </View>
+              <Text style={styles.actionLabel}>Editar Evento</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={18}
+                color={Colors.textMuted}
+                style={styles.actionChevron}
+              />
             </TouchableOpacity>
           </View>
         </View>
@@ -1525,13 +1545,29 @@ const styles = StyleSheet.create({
   exportButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
   },
-  exportButtonText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
+  exportIconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  exportLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  exportChevron: {
+    opacity: 0.5,
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1633,10 +1669,31 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: "48%",
-    marginBottom: 16,
-    borderRadius: 24,
-    overflow: "hidden",
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    gap: 10,
   },
-  actionGradient: { height: 120, padding: 18, justifyContent: "space-between" },
-  actionText: { color: "#FFF", fontSize: 15, fontWeight: "800", lineHeight: 20 },
+  actionIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "700",
+    color: Colors.textPrimary,
+  },
+  actionChevron: {
+    opacity: 0.5,
+  },
 });

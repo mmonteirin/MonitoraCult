@@ -1413,30 +1413,35 @@ export default function AdmCadastroEvento({
 
 					{/* BUTTON */}
 					<TouchableOpacity
-						style={[
-							styles.submitButton,
-							loading &&
-								styles.submitButtonDisabled,
-						]}
+						activeOpacity={0.85}
 						onPress={handleSubmit}
 						disabled={loading}
 					>
-						{loading ? (
-							<ActivityIndicator
-								size="small"
-								color="#FFF"
-							/>
-						) : (
-							<Text
-								style={
-									styles.submitButtonText
-								}
-							>
-								{isEditing
-									? "Atualizar Evento"
-									: "Criar Evento"}
-							</Text>
-						)}
+						<LinearGradient
+							colors={["#6C5CE7", "#5746D6"]}
+							style={[
+								styles.submitButton,
+								loading &&
+									styles.submitButtonDisabled,
+							]}
+						>
+							{loading ? (
+								<ActivityIndicator
+									size="small"
+									color="#FFF"
+								/>
+							) : (
+								<Text
+									style={
+										styles.submitButtonText
+									}
+								>
+									{isEditing
+										? "Atualizar Evento"
+										: "Criar Evento"}
+								</Text>
+							)}
+						</LinearGradient>
 					</TouchableOpacity>
 
 					{uploadProgress >
@@ -1701,20 +1706,17 @@ const styles = StyleSheet.create({
 		borderRadius: 14,
 		backgroundColor:
 			Colors?.primary ||
-			"#7C3AED",
+			"#6C5CE7",
 		justifyContent: "center",
 		alignItems: "center",
 	},
 
 	submitButton: {
-		backgroundColor:
-			Colors?.primary ||
-			"#7C3AED",
-		height: 58,
-		borderRadius: 18,
+		height: 56,
+		borderRadius: 16,
 		justifyContent: "center",
 		alignItems: "center",
-		marginTop: 34,
+		marginTop: 24,
 	},
 
 	submitButtonDisabled: {
@@ -1724,7 +1726,7 @@ const styles = StyleSheet.create({
 	submitButtonText: {
 		color: "#FFF",
 		fontSize: 16,
-		fontWeight: "700",
+		fontWeight: "bold",
 	},
 
 	progressContainer: {

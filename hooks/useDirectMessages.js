@@ -19,6 +19,7 @@ export const useDirectMessages = (userId) => {
   const [loading, setLoading]       = useState(true);
   const [erro, setErro]             = useState(null);
   const [naoLidas, setNaoLidas]     = useState(0);
+  const [conversasDeletadas, setConversasDeletadas] = useState(new Set());
 
   // Um único ref — nunca duplicar o useEffect de cleanup
   const isMountedRef = useRef(true);
@@ -26,6 +27,7 @@ export const useDirectMessages = (userId) => {
   useEffect(() => {
     // Garante reset ao trocar de userId
     isMountedRef.current = true;
+    setConversasDeletadas(new Set());
 
     if (!userId) {
       setLoading(false);
@@ -40,11 +42,16 @@ export const useDirectMessages = (userId) => {
       unsubscribe = escutarConversas(userId, (novasConversas) => {
         if (!isMountedRef.current) return;
 
-        setConversas(novasConversas);
+        // Filtrar conversas deletadas localmente
+        const conversasFiltradas = novasConversas.filter(
+          (c) => !conversasDeletadas.has(c.id)
+        );
+
+        setConversas(conversasFiltradas);
         setLoading(false);
 
         let total = 0;
-        novasConversas.forEach((c) => {
+        conversasFiltradas.forEach((c) => {
           total += c.naoLido?.[userId] || 0;
         });
         setNaoLidas(total);
@@ -59,7 +66,9 @@ export const useDirectMessages = (userId) => {
     // Único ponto de cleanup
     return () => {
       isMountedRef.current = false;
-      unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [userId]); // Só re-executa se userId mudar
 
@@ -78,10 +87,15 @@ export const useDirectMessages = (userId) => {
   const deletarConversa = useCallback(
     async (conversaId) => {
       try {
+        console.log("Deletando conversa:", conversaId, "para usuário:", userId);
         const resultado = await deletarConversaParaUsuario(conversaId, userId);
+        console.log("Resultado da deleção:", resultado);
         if (resultado.success) {
-          // Remover da lista local
+          // Adicionar à lista de deletadas localmente
+          setConversasDeletadas(prev => new Set(prev).add(conversaId));
+          // Remover da lista local imediatamente
           setConversas(prev => prev.filter(c => c.id !== conversaId));
+          console.log("Conversa removida da lista local");
         }
         return resultado;
       } catch (err) {
@@ -95,7 +109,16 @@ export const useDirectMessages = (userId) => {
   const restaurarConversaFn = useCallback(
     async (conversaId) => {
       try {
-        return await restaurarConversa(conversaId, userId);
+        const resultado = await restaurarConversa(conversaId, userId);
+        if (resultado.success) {
+          // Remover da lista de deletadas localmente
+          setConversasDeletadas(prev => {
+            const novoSet = new Set(prev);
+            novoSet.delete(conversaId);
+            return novoSet;
+          });
+        }
+        return resultado;
       } catch (err) {
         console.error("Erro ao restaurar conversa:", err);
         return { success: false, error: err.message };
@@ -166,7 +189,9 @@ export const useConversation = (userId, conversaId) => {
     // Único ponto de cleanup
     return () => {
       isMountedRef.current = false;
-      unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
   }, [conversaId, userId]); // Só re-executa ao trocar conversa ou usuário
 

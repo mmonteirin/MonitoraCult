@@ -8,15 +8,29 @@ import {
   Image,
   ActivityIndicator,
   Share,
+  StatusBar,
+  RefreshControl,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 
 export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
+  const insets = useSafeAreaInsets();
   const { newsId } = route.params;
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadNewsData();
@@ -31,6 +45,12 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
       console.error("Erro ao carregar notícia:", error);
       setLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadNewsData();
+    setRefreshing(false);
   };
 
   const handleShare = async () => {
@@ -50,15 +70,22 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
+          <BlurView
+            intensity={35}
+            tint="dark"
+            style={styles.headerBlur}
+          >
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={28}
+              color="#FFF"
+            />
+          </BlurView>
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -69,31 +96,71 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notícia</Text>
-        <TouchableOpacity style={styles.moreButton}>
-          <MaterialCommunityIcons
-            name="dots-vertical"
-            size={24}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <ScrollView
+      {/* HEADER */}
+      <Animated.View
+        entering={FadeInDown.duration(700)}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundSecondary,
+            Colors.surface,
+            Colors.background,
+          ]}
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+            },
+          ]}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+            >
+              <BlurView
+                intensity={35}
+                tint="dark"
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={28}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notícia</Text>
+            <TouchableOpacity style={styles.moreButton}>
+              <BlurView
+                intensity={35}
+                tint="dark"
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={24}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.ScrollView
+        entering={FadeIn.duration(700)}
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       >
         {/* FEATURED IMAGE */}
         <View style={styles.imageContainer}>
@@ -273,7 +340,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
             ))}
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -284,36 +351,45 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
-  backButton: {
-    width: 40,
-    height: 40,
+  headerBlur: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  backButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFF",
     flex: 1,
     textAlign: "center",
   },
   moreButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    justifyContent: "center",
   },
   loadingContainer: {
     flex: 1,

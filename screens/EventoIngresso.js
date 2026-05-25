@@ -201,6 +201,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 	const [modalConfirmacao, setModalConfirmacao] = useState(false);
 	const [resultado, setResultado] = useState(null);
 	const [modalAlerta, setModalAlerta] = useState({ visible: false, title: "", message: "", type: "error" });
+	const [modalCarrinho, setModalCarrinho] = useState(false);
 
 	const gratuito = evento?.tipoEvento === "gratuito" || !evento?.precoIngresso && !evento?.precoInteira && !evento?.valor;
 	const precos = useMemo(() => extrairPrecos(evento), [evento]);
@@ -447,24 +448,55 @@ function _EventoIngressoOriginal({ route, navigation }) {
 							/>
 						</MotiView>
 
-						{/* CARRINHO */}
-						<MotiView
-							from={{ opacity: 0, translateY: 20 }}
-							animate={{ opacity: 1, translateY: 0 }}
-							transition={{ delay: 350, duration: 600 }}
+						{/* CARRINHO MODAL */}
+						<Modal
+							visible={modalCarrinho}
+							transparent
+							animationType="slide"
+							onRequestClose={() => setModalCarrinho(false)}
 						>
-							<CarrinhoIngressos
-								carrinho={carrinho}
-								total={total}
-								quantidadeTotal={quantidadeTotal}
-								loading={loading}
-								onRemover={removerDoCarrinho}
-								onComprar={handleComprar}
-								nomeEvento={evento.tituloEvento}
-								dataEvento={evento.dataEvento}
-								gratuito={gratuito}
-							/>
-						</MotiView>
+							<View style={styles.carrinhoModalOverlay}>
+								<View style={styles.carrinhoModalContent}>
+									<TouchableOpacity
+										style={styles.carrinhoCloseBtn}
+										onPress={() => setModalCarrinho(false)}
+									>
+										<BlurView intensity={60} tint="dark" style={styles.blurBtn}>
+											<MaterialCommunityIcons name="close" size={24} color="#FFF" />
+										</BlurView>
+									</TouchableOpacity>
+									<CarrinhoIngressos
+										carrinho={carrinho}
+										total={total}
+										quantidadeTotal={quantidadeTotal}
+										loading={loading}
+										onRemover={removerDoCarrinho}
+										onComprar={handleComprar}
+										nomeEvento={evento.tituloEvento}
+										dataEvento={evento.dataEvento}
+										gratuito={gratuito}
+									/>
+								</View>
+							</View>
+						</Modal>
+
+						{/* FLOATING CART BUTTON */}
+						{carrinho.length > 0 && (
+							<TouchableOpacity
+								style={[styles.floatingCartBtn, { bottom: insets.bottom + 16 }]}
+								onPress={() => setModalCarrinho(true)}
+							>
+								<BlurView intensity={60} tint="dark" style={styles.floatingBlur}>
+									<MaterialCommunityIcons name="cart" size={20} color="#FFF" />
+									<View style={styles.cartBadge}>
+										<Text style={styles.cartBadgeText}>{quantidadeTotal}</Text>
+									</View>
+									<Text style={styles.floatingCartText}>
+										{gratuito || total === 0 ? "Gratuito" : `R$ ${total.toFixed(2)}`}
+									</Text>
+								</BlurView>
+							</TouchableOpacity>
+						)}
 
 						{/* Aviso de erro vindo do hook */}
 						{!!error && (
@@ -675,6 +707,81 @@ const styles = StyleSheet.create({
 
 	btnVoltarText: {
 		color: "#FFF",
+		fontWeight: "700",
+	},
+
+	/* Carrinho Modal */
+	carrinhoModalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "flex-end",
+	},
+
+	carrinhoModalContent: {
+		backgroundColor: Colors.background,
+		borderTopLeftRadius: 28,
+		borderTopRightRadius: 28,
+		maxHeight: "85%",
+		position: "relative",
+	},
+
+	carrinhoCloseBtn: {
+		position: "absolute",
+		top: 16,
+		right: 16,
+		zIndex: 10,
+	},
+
+	blurBtn: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		justifyContent: "center",
+		alignItems: "center",
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.1)",
+	},
+
+	/* Floating Cart Button */
+	floatingCartBtn: {
+		position: "absolute",
+		right: 16,
+		zIndex: 100,
+	},
+
+	floatingBlur: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.6)",
+		borderRadius: 28,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		gap: 12,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.1)",
+		overflow: "hidden",
+	},
+
+	cartBadge: {
+		backgroundColor: Colors.primary,
+		borderRadius: 12,
+		minWidth: 24,
+		height: 24,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 6,
+	},
+
+	cartBadgeText: {
+		color: "#FFF",
+		fontSize: 12,
+		fontWeight: "700",
+	},
+
+	floatingCartText: {
+		color: "#FFF",
+		fontSize: 14,
 		fontWeight: "700",
 	},
 });

@@ -7,18 +7,31 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  StatusBar,
+  RefreshControl,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../styles/Colors";
 
 export default function ComunidadeCriadorDetalhes({
   route,
   navigation,
 }) {
+  const insets = useSafeAreaInsets();
   const { creatorId } = route.params;
   const [creator, setCreator] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     // Aqui você carregaria os detalhes do criador
@@ -36,18 +49,31 @@ export default function ComunidadeCriadorDetalhes({
     }
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadCreatorData();
+    setRefreshing(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
+          <BlurView
+            intensity={35}
+            tint="dark"
+            style={styles.headerBlur}
+          >
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={28}
+              color="#FFF"
+            />
+          </BlurView>
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -58,39 +84,84 @@ export default function ComunidadeCriadorDetalhes({
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Criador</Text>
-        <TouchableOpacity style={styles.moreButton}>
-          <MaterialCommunityIcons
-            name="dots-vertical"
-            size={24}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <ScrollView
+      {/* HEADER */}
+      <Animated.View
+        entering={FadeInDown.duration(700)}
+      >
+        <LinearGradient
+          colors={[
+            Colors.backgroundSecondary,
+            Colors.surface,
+            Colors.background,
+          ]}
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+            },
+          ]}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+            >
+              <BlurView
+                intensity={35}
+                tint="dark"
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={28}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+
+            <Text style={styles.headerTitle}>Criador</Text>
+
+            <TouchableOpacity style={styles.moreButton}>
+              <BlurView
+                intensity={35}
+                tint="dark"
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={24}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.ScrollView
+        entering={FadeIn.duration(700)}
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+          />
+        }
       >
         {/* PROFILE SECTION */}
-        <LinearGradient
-          colors={[Colors.primary, Colors.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.profileHeader}
+        <Animated.View
+          entering={FadeInUp.delay(120).springify()}
         >
+          <LinearGradient
+            colors={[Colors.primary, Colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.profileHeader}
+          >
           <View style={styles.profileImage}>
             <MaterialCommunityIcons
               name="account"
@@ -140,20 +211,28 @@ export default function ComunidadeCriadorDetalhes({
                 color={Colors.textPrimary}
               />
             </TouchableOpacity>
-          </View>
-        </LinearGradient>
+            </View>
+          </LinearGradient>
+        </Animated.View>
 
         {/* ABOUT SECTION */}
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInUp.delay(180).springify()}
+        >
+          <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sobre</Text>
           <Text style={styles.sectionContent}>
             Descrição do criador em destaque. Aqui você pode visualizar
             informações sobre o criador selecionado.
-          </Text>
-        </View>
+            </Text>
+          </View>
+        </Animated.View>
 
         {/* PORTFOLIO SECTION */}
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInUp.delay(240).springify()}
+        >
+          <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Portfólio</Text>
             <TouchableOpacity>
@@ -174,12 +253,16 @@ export default function ComunidadeCriadorDetalhes({
                   />
                 </View>
               </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        </Animated.View>
 
         {/* RECENT WORKS */}
-        <View style={styles.section}>
+        <Animated.View
+          entering={FadeInUp.delay(300).springify()}
+        >
+          <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Obras Recentes</Text>
             <TouchableOpacity>
@@ -210,8 +293,9 @@ export default function ComunidadeCriadorDetalhes({
               />
             </TouchableOpacity>
           ))}
-        </View>
-      </ScrollView>
+          </View>
+        </Animated.View>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -222,36 +306,45 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
-  backButton: {
-    width: 40,
-    height: 40,
+  headerBlur: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(255,255,255,0.04)",
+  },
+  backButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFF",
     flex: 1,
     textAlign: "center",
   },
   moreButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    justifyContent: "center",
   },
   loadingContainer: {
     flex: 1,

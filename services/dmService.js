@@ -378,14 +378,16 @@ export const obterOuCriarConversa = async (
 // ✅ DELETAR CONVERSA PARA O USUÁRIO (soft delete)
 export const deletarConversaParaUsuario = async (conversaId, usuarioId) => {
   try {
+    console.log("deletarConversaParaUsuario - conversaId:", conversaId, "usuarioId:", usuarioId);
     const conversaRef = doc(db, "conversas", conversaId);
-    
+
     // Adiciona usuário na lista de users que deletaram para si
     await updateDoc(conversaRef, {
       [`usuariosComDeleção.${usuarioId}`]: true,
       [`naoLido.${usuarioId}`]: 0,
     });
 
+    console.log("Conversa deletada com sucesso no Firestore");
     return { success: true };
   } catch (error) {
     console.error("Erro ao deletar conversa:", error);
