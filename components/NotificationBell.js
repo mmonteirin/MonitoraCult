@@ -20,7 +20,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNotifications } from "../context/NotificationContext";
 import { Colors } from "../styles/Colors";
 
-export default function NotificationBell({ onPress, color, size = 24 }) {
+export default function NotificationBell({ onPress, color, size = 24, style }) {
   const { naoLidas } = useNotifications();
 
   const scale = useSharedValue(1);
@@ -52,7 +52,7 @@ export default function NotificationBell({ onPress, color, size = 24 }) {
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[styles.container, style]}
       onPress={onPress}
       activeOpacity={0.7}
       hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}

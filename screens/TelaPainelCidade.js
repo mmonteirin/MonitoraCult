@@ -132,6 +132,29 @@ const ACOES_RAPIDAS = [
 ];
 
 // ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+function formatarData(timestamp) {
+	if (!timestamp) return "";
+	const data = timestamp.toDate?.() || new Date(timestamp);
+	const diff = Date.now() - data.getTime();
+	const min = Math.floor(diff / 60000);
+	const h = Math.floor(diff / 3600000);
+	const d = Math.floor(diff / 86400000);
+	if (min < 1) return "Agora";
+	if (min < 60) return `${min}m`;
+	if (h < 24) return `${h}h`;
+	if (d < 7) return `${d}d`;
+	return data.toLocaleDateString("pt-BR");
+}
+
+function formatarNum(n) {
+	if (!n) return "0";
+	if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+	return String(n);
+}
+
+// ──────────────────────────────────────────────
 // LikeButton
 // ──────────────────────────────────────────────
 const LikeButton = memo(({ isLiked, onPress }) => {
@@ -215,92 +238,106 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 ));
 
 // ──────────────────────────────────────────────
-// FeedCard vertical
+// FeedCard (padronizado com TelaFeed)
 // ──────────────────────────────────────────────
 const FeedCard = memo(
-	({ item, index, isLiked, isSubscribed, onLike, onNotification, onPress }) => (
-		<Animated.View
-			entering={FadeInDown.delay(index * 80).springify()}
-			style={styles.feedCard}
-		>
-			<TouchableOpacity activeOpacity={0.92} style={styles.feedCardInner} onPress={() => onPress?.(item)}>
-				<AnimatedImage
-					source={{ uri: item.imagem }}
-					style={styles.feedImage}
-					contentFit="cover"
-				/>
+	({ item, index, isLiked, isSubscribed, onLike, onNotification, onPress }) => {
+		const scale = useSharedValue(1);
+		const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-				<LinearGradient
-					colors={["transparent", "rgba(0,0,0,0.92)"]}
-					style={styles.feedGradient}
-				/>
-
-				{/* Badge categoria */}
-				<View style={styles.feedBadge}>
-					<Text style={styles.feedBadgeText}>{item.categoria}</Text>
-				</View>
-
-				<View style={styles.feedContent}>
-					<Text numberOfLines={2} style={styles.feedTitle}>
-						{item.titulo}
-					</Text>
-
-					<View style={styles.feedMeta}>
-						<MaterialCommunityIcons
-							name="map-marker"
-							size={13}
-							color="rgba(255,255,255,0.65)"
+		return (
+			<Animated.View entering={FadeInDown.delay(index * 60).springify()} style={anim}>
+				<TouchableOpacity
+					activeOpacity={1}
+					onPressIn={() => { scale.value = withSpring(0.985); }}
+					onPressOut={() => { scale.value = withSpring(1); }}
+					style={styles.feedCard}
+				>
+					{/* HEADER */}
+					<View style={styles.feedCardHeader}>
+						<Image
+							source={{ uri: item.fotoUsuario || undefined }}
+							style={styles.feedAvatar}
 						/>
-						<Text style={styles.feedLocation} numberOfLines={1}>
-							{item.local}
-						</Text>
+						<View style={{ flex: 1 }}>
+							<Text numberOfLines={1} style={styles.feedCardAutor}>
+								{item.nomeUsuario || "Usuário"}
+							</Text>
+							{item.local ? (
+								<View style={styles.feedLocalRow}>
+									<MaterialCommunityIcons name="map-marker" size={11} color={Colors.primary} />
+									<Text numberOfLines={1} style={styles.feedLocalText}>{item.local}</Text>
+								</View>
+							) : null}
+						</View>
+						{item.createdAt ? (
+							<BlurView intensity={40} tint="dark" style={styles.feedDatePill}>
+								<Text style={styles.feedDateText}>{formatarData(item.createdAt)}</Text>
+							</BlurView>
+						) : null}
 					</View>
 
+					{/* IMAGE */}
+					<TouchableOpacity activeOpacity={0.93} onPress={() => onPress?.(item)} style={styles.feedImgWrapper}>
+						<AnimatedImage
+							source={{ uri: item.imagem }}
+							style={styles.feedImage}
+							contentFit="cover"
+						/>
+						<LinearGradient colors={["transparent", "rgba(0,0,0,0.92)"]} style={styles.feedImgOverlay}>
+							{item.categoria ? (
+								<View style={styles.feedBadge}>
+									<Text style={styles.feedBadgeText}>{item.categoria}</Text>
+								</View>
+							) : null}
+							<Text numberOfLines={2} style={styles.feedTitle}>
+								{item.titulo}
+							</Text>
+							{item.descricao ? (
+								<Text numberOfLines={2} style={styles.feedDesc}>{item.descricao}</Text>
+							) : null}
+						</LinearGradient>
+					</TouchableOpacity>
+
+					{/* ACTIONS */}
 					<View style={styles.feedActions}>
-						<View style={styles.leftActions}>
+						<View style={styles.feedActionsLeft}>
 							<LikeButton
 								isLiked={isLiked}
 								onPress={() => onLike(item.id, item.type)}
 							/>
 							<TouchableOpacity style={styles.actionBtn}>
 								<MaterialCommunityIcons
+									name="comment-outline"
+									size={24}
+									color={Colors.textPrimary}
+								/>
+							</TouchableOpacity>
+							<TouchableOpacity style={styles.actionBtn}>
+								<MaterialCommunityIcons
 									name="share-variant-outline"
-									size={22}
-									color="#FFF"
+									size={23}
+									color={Colors.textPrimary}
 								/>
 							</TouchableOpacity>
 						</View>
-
-						<TouchableOpacity
-							style={[
-								styles.notifBtn,
-								isSubscribed && styles.notifBtnActive,
-							]}
-							onPress={() => onNotification(item)}
-						>
+						<TouchableOpacity style={styles.actionBtn} onPress={() => onNotification(item)}>
 							<MaterialCommunityIcons
-								name={
-									isSubscribed
-										? "bell-check"
-										: "bell-plus-outline"
-								}
-								size={16}
-								color={isSubscribed ? "#6C5CE7" : "#FFF"}
+								name={isSubscribed ? "bell-ring" : "bell-outline"}
+								size={22}
+								color={isSubscribed ? Colors.primary : Colors.textMuted}
 							/>
-							<Text
-								style={[
-									styles.notifBtnText,
-									isSubscribed && styles.notifBtnTextActive,
-								]}
-							>
-								{isSubscribed ? "Inscrito" : "Notificar"}
-							</Text>
 						</TouchableOpacity>
 					</View>
-				</View>
-			</TouchableOpacity>
-		</Animated.View>
-	)
+
+					{/* METRICS */}
+					<View style={styles.feedMetrics}>
+						<Text style={styles.feedLikes}>{formatarNum(item.likes || item.score || 0)} curtidas</Text>
+					</View>
+				</TouchableOpacity>
+			</Animated.View>
+		);
+	}
 );
 
 // ──────────────────────────────────────────────
@@ -1326,90 +1363,113 @@ const styles = StyleSheet.create({
 
 	// ── Feed card ──
 	feedCard: {
+		backgroundColor: Colors.surface,
 		marginHorizontal: 18,
-		marginBottom: 18,
+		marginBottom: 20,
 		borderRadius: 28,
 		overflow: "hidden",
-		backgroundColor: "#111827",
 	},
-	feedCardInner: {
-		height: 380,
+	feedCardHeader: {
+		padding: 14,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 12,
+	},
+	feedAvatar: {
+		width: 46,
+		height: 46,
+		borderRadius: 23,
+		backgroundColor: Colors.card,
+	},
+	feedCardAutor: {
+		color: Colors.textPrimary,
+		fontWeight: "700",
+		fontSize: 14,
+	},
+	feedLocalRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 3,
+		marginTop: 3,
+	},
+	feedLocalText: {
+		color: Colors.textMuted,
+		fontSize: 11,
+	},
+	feedDatePill: {
+		paddingHorizontal: 10,
+		paddingVertical: 6,
+		borderRadius: 14,
+		overflow: "hidden",
+	},
+	feedDateText: {
+		color: "#fff",
+		fontSize: 11,
+		fontWeight: "700",
+	},
+	feedImgWrapper: {
+		width: "100%",
+		height: 400,
+		backgroundColor: "#000",
 	},
 	feedImage: {
 		width: "100%",
 		height: "100%",
 	},
-	feedGradient: {
-		...StyleSheet.absoluteFillObject,
+	feedImgOverlay: {
+		position: "absolute",
+		left: 0,
+		right: 0,
+		bottom: 0,
+		padding: 16,
 	},
 	feedBadge: {
-		position: "absolute",
-		top: 18,
-		left: 18,
+		alignSelf: "flex-start",
 		backgroundColor: "rgba(108,92,231,0.85)",
-		paddingHorizontal: 12,
+		paddingHorizontal: 10,
 		paddingVertical: 6,
-		borderRadius: 20,
+		borderRadius: 18,
+		marginBottom: 8,
 	},
 	feedBadgeText: {
 		color: "#FFF",
-		fontWeight: "700",
+		fontWeight: "800",
 		fontSize: 11,
 	},
-	feedContent: {
-		position: "absolute",
-		left: 18,
-		right: 18,
-		bottom: 18,
-	},
 	feedTitle: {
-		color: "#FFF",
-		fontSize: 26,
+		color: "#fff",
+		fontSize: 24,
 		fontWeight: "800",
+		lineHeight: 30,
 	},
-	feedMeta: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginTop: 8,
-		gap: 4,
-	},
-	feedLocation: {
-		color: "rgba(255,255,255,0.65)",
+	feedDesc: {
+		color: "rgba(255,255,255,0.7)",
+		marginTop: 6,
 		fontSize: 13,
-		flex: 1,
+		lineHeight: 19,
 	},
 	feedActions: {
-		marginTop: 16,
+		paddingHorizontal: 6,
+		paddingVertical: 8,
 		flexDirection: "row",
-		justifyContent: "space-between",
 		alignItems: "center",
+		justifyContent: "space-between",
 	},
-	leftActions: {
+	feedActionsLeft: {
 		flexDirection: "row",
 		alignItems: "center",
 	},
 	actionBtn: {
 		padding: 8,
 	},
-	notifBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "rgba(255,255,255,0.12)",
-		paddingHorizontal: 14,
-		paddingVertical: 9,
-		borderRadius: 20,
-		gap: 6,
+	feedMetrics: {
+		paddingHorizontal: 16,
+		paddingBottom: 14,
 	},
-	notifBtnActive: {
-		backgroundColor: "rgba(108,92,231,0.22)",
-	},
-	notifBtnText: {
-		color: "#FFF",
-		fontWeight: "600",
+	feedLikes: {
+		color: Colors.textPrimary,
+		fontWeight: "700",
 		fontSize: 13,
-	},
-	notifBtnTextActive: {
-		color: "#6C5CE7",
 	},
 
 	// ── Empty state ──
