@@ -94,7 +94,6 @@ import NotificationBell from "../components/NotificationBell";
 import { categoriasHome } from "../components/home/homeUtils";
 
 // Telas sociais embutidas
-import TelaComunidade    from "./TelaComunidade";
 import TelaConversas     from "./TelaConversas";
 import TelaBuscaUsuarios from "./TelaBuscaUsuarios";
 
@@ -777,7 +776,11 @@ export default function TelaFeed({ navigation, route }) {
 
 	useEffect(() => {
 		if (route?.params?.initialTab) {
-			setActiveTab(route.params.initialTab);
+			if (route.params.initialTab === "comunidade") {
+				navigation.navigate("TelaComunidade");
+			} else {
+				setActiveTab(route.params.initialTab);
+			}
 		}
 	}, [route?.params?.initialTab]);
 
@@ -851,12 +854,6 @@ export default function TelaFeed({ navigation, route }) {
 								onNovaConversa: () => setActiveTab("pessoas"),
 							},
 						}}
-					/>
-				)}
-				{activeTab === "comunidade" && (
-					<TelaComunidade
-						navigation={navigation}
-						route={{ params: socialScrollParams }}
 					/>
 				)}
 				{activeTab === "pessoas" && (
@@ -963,7 +960,13 @@ export default function TelaFeed({ navigation, route }) {
 								<TouchableOpacity
 									key={tab.key}
 									style={[s.tab, active && s.tabActive]}
-									onPress={() => setActiveTab(tab.key)}
+									onPress={() => {
+										if (tab.key === "comunidade") {
+											navigation.navigate("TelaComunidade");
+										} else {
+											setActiveTab(tab.key);
+										}
+									}}
 									activeOpacity={0.8}
 								>
 									<MaterialCommunityIcons
