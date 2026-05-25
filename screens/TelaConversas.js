@@ -17,11 +17,14 @@ import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
+  const embedded = !!route?.params?.embedded;
+  const scrollY = route?.params?.scrollY;
+  const onNovaConversaExterno = route?.params?.onNovaConversa;
+
   const { user } = useAuth();
   const userId = user?.uid;
-  
-  const { conversas, loading, naoLidas, iniciarConversa, deletarConversa } =
-    useDirectMessages(userId);
+
+  const { conversas, loading, deletarConversa } = useDirectMessages(userId);
 
   const handleConversaPress = useCallback(
     (conversa) => {
@@ -34,34 +37,48 @@ const TelaConversas = ({ navigation, route }) => {
   );
 
   const handleNovaConversa = useCallback(() => {
+    if (onNovaConversaExterno) {
+      onNovaConversaExterno();
+      return;
+    }
     navigation.navigate("BuscaUsuarios");
-  }, [navigation]);
+  }, [navigation, onNovaConversaExterno]);
 
   const handleDeleteConversa = useCallback(
     async (conversaId) => {
-      const resultado = await deletarConversa(conversaId);
-      if (resultado.success) {
-        // Conversa foi deletada com sucesso (removida da lista)
-      }
+      await deletarConversa(conversaId);
     },
     [deletarConversa]
   );
 
+  if (embedded) {
+    return (
+      <View style={styles.containerEmbedded}>
+        <ListaConversas
+          conversas={conversas}
+          loading={loading}
+          userId={userId}
+          embedded
+          scrollY={scrollY}
+          onConversaPress={handleConversaPress}
+          onNovaConversa={handleNovaConversa}
+          onDeleteConversa={handleDeleteConversa}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* HEADER MELHORADO */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.label}>Mensagens</Text>
           <View style={styles.headerTitleRow}>
             <Text style={styles.titulo}>Conversas</Text>
-            {naoLidas > 0 && (
-              <View style={styles.badgePrincipal}>
-                <Text style={styles.badgePrincipalText}>{naoLidas}</Text>
-              </View>
-            )}
           </View>
-          <Text style={styles.subtitulo}>Suas conversas e mensagens diretas</Text>
+          <Text style={styles.subtitulo}>
+            Suas conversas e mensagens diretas
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -77,7 +94,6 @@ const TelaConversas = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* LISTA */}
       <ListaConversas
         conversas={conversas}
         loading={loading}
@@ -96,9 +112,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
 
+  containerEmbedded: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
   header: {
     backgroundColor: Colors.surface,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 18,
     borderBottomWidth: 1,
@@ -139,22 +160,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 6,
     lineHeight: 16,
-  },
-
-  badgePrincipal: {
-    backgroundColor: Colors.primary,
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-
-  badgePrincipalText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
   },
 
   btnNovaConversa: {

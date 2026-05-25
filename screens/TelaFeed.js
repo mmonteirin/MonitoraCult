@@ -34,6 +34,7 @@ import {
 	Platform,
 	Share,
 	RefreshControl,
+	ScrollView,
 } from "react-native";
 
 import Animated, {
@@ -780,85 +781,45 @@ export default function TelaFeed({ navigation, route }) {
 		}
 	}, [route?.params?.initialTab]);
 
-	// Header encolhe conforme scroll (apenas na aba feed)
-	const headerAnim = useAnimatedStyle(() => {
-		if (activeTab !== "feed" && activeTab !== "descubra") return {};
-		return {
-			transform: [{
-				translateY: interpolate(scrollY.value, [0, 100], [0, -8], Extrapolate.CLAMP),
-			}],
-			opacity: interpolate(scrollY.value, [0, 120], [1, 0.97], Extrapolate.CLAMP),
-		};
-	});
+	useEffect(() => {
+		scrollY.value = 0;
+	}, [activeTab]);
+
+	const headerFullHeight = insets.top + 8 + 62 + 38 + 6;
+	const headerMinHeight = insets.top + 8 + 38 + 6;
+
+	const contentInsetStyle = useAnimatedStyle(() => ({
+		paddingTop: interpolate(
+			scrollY.value,
+			[0, 72],
+			[headerFullHeight, headerMinHeight],
+			Extrapolate.CLAMP
+		),
+	}));
+
+	const headerRowCollapse = useAnimatedStyle(() => ({
+		opacity: interpolate(scrollY.value, [0, 48], [1, 0], Extrapolate.CLAMP),
+		maxHeight: interpolate(scrollY.value, [0, 48], [72, 0], Extrapolate.CLAMP),
+		marginBottom: interpolate(scrollY.value, [0, 48], [10, 0], Extrapolate.CLAMP),
+		overflow: "hidden",
+	}));
+
+	const headerAnim = useAnimatedStyle(() => ({
+		transform: [{
+			translateY: interpolate(scrollY.value, [0, 100], [0, -8], Extrapolate.CLAMP),
+		}],
+	}));
+
+	const socialScrollParams = useMemo(
+		() => ({ embedded: true, scrollY }),
+		[scrollY]
+	);
 
 	return (
 		<View style={s.container}>
 			<StatusBar barStyle="light-content" />
 
-			{/* ── HEADER (mesmo gradiente + estrutura da TelaInicio) ── */}
-			<Animated.View entering={FadeInDown.duration(600)} style={headerAnim}>
-				<LinearGradient
-					colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
-					style={[s.headerGrad, { paddingTop: insets.top + 12 }]}
-				>
-					{/* LINHA SUPERIOR: saudação + botões */}
-					<View style={s.headerRow}>
-						<View style={s.headerCopy}>
-							<Text style={s.greeting}>{saudacao}</Text>
-							<Text style={s.name} numberOfLines={1}>{nomeUsuario}</Text>
-							<Text style={s.city}>Social · MonitoraCult</Text>
-						</View>
-
-						<Animated.View entering={FadeInRight.delay(200)} style={s.headerBtns}>
-							{activeTab === "feed" && (
-								<TouchableOpacity
-									activeOpacity={0.8}
-									style={s.headerBtn}
-									onPress={() => navigation.navigate("CriarPost")}
-								>
-									<BlurView intensity={35} tint="dark" style={s.headerBlur}>
-										<MaterialCommunityIcons name="pencil-plus-outline" size={22} color="#fff" />
-									</BlurView>
-								</TouchableOpacity>
-							)}
-
-							<NotificationBell
-								onPress={() => navigation.navigate("Notificacoes")}
-								color="#fff"
-								size={22}
-								style={s.headerBtn}
-							/>
-						</Animated.View>
-					</View>
-
-					{/* TAB BAR SOCIAL — mesmo estilo das CategoryPills */}
-					<View style={s.tabRow}>
-						{SOCIAL_TABS.map((tab) => {
-							const active = activeTab === tab.key;
-							return (
-								<TouchableOpacity
-									key={tab.key}
-									style={[s.tab, active && s.tabActive]}
-									onPress={() => setActiveTab(tab.key)}
-									activeOpacity={0.8}
-								>
-									<MaterialCommunityIcons
-										name={active ? tab.iconOn : tab.icon}
-										size={15}
-										color={active ? "#fff" : Colors.textMuted}
-									/>
-									<Text style={[s.tabLabel, active && s.tabLabelActive]}>
-										{tab.label}
-									</Text>
-								</TouchableOpacity>
-							);
-						})}
-					</View>
-				</LinearGradient>
-			</Animated.View>
-
-			{/* ── CONTEÚDO ── */}
-			<View style={{ flex: 1 }}>
+			<Animated.View style={[s.contentArea, contentInsetStyle]}>
 				{activeTab === "descubra" && (
 					<AbaFeed
 						navigation={navigation}
@@ -882,15 +843,143 @@ export default function TelaFeed({ navigation, route }) {
 					/>
 				)}
 				{activeTab === "mensagens" && (
-					<TelaConversas navigation={navigation} route={{ params: {} }} />
+					<TelaConversas
+						navigation={navigation}
+						route={{
+							params: {
+								...socialScrollParams,
+								onNovaConversa: () => setActiveTab("pessoas"),
+							},
+						}}
+					/>
 				)}
 				{activeTab === "comunidade" && (
-					<TelaComunidade navigation={navigation} route={{ params: { embedded: true } }} />
+					<TelaComunidade
+						navigation={navigation}
+						route={{ params: socialScrollParams }}
+					/>
 				)}
 				{activeTab === "pessoas" && (
-					<TelaBuscaUsuarios navigation={navigation} route={{ params: { embedded: true } }} />
+					<TelaBuscaUsuarios
+						navigation={navigation}
+						route={{ params: socialScrollParams }}
+					/>
 				)}
-			</View>
+			</Animated.View>
+
+			<Animated.View
+				pointerEvents="box-none"
+				style={[s.headerOverlay, headerAnim]}
+			>
+				<LinearGradient
+					colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
+					style={[s.headerGrad, { paddingTop: insets.top + 8 }]}
+				>
+					<Animated.View style={headerRowCollapse}>
+					<View style={s.headerRow}>
+						<Image
+							source={{
+								uri:
+									foto ||
+									`https://ui-avatars.com/api/?name=${encodeURIComponent(
+										nomeUsuario
+									)}&background=6C5CE7&color=fff`,
+							}}
+							style={s.headerAvatar}
+						/>
+
+						<View style={s.headerCopy}>
+							<View style={s.headerTitleRow}>
+								<Text style={s.greeting} numberOfLines={1}>
+									{saudacao},{" "}
+									<Text style={s.nameInline}>{nomeUsuario}</Text>
+								</Text>
+								<View style={s.socialBadge}>
+									<MaterialCommunityIcons
+										name="account-group"
+										size={11}
+										color={Colors.primaryLight}
+									/>
+									<Text style={s.socialBadgeText}>Social</Text>
+								</View>
+							</View>
+							<Text style={s.city} numberOfLines={1}>
+								{SOCIAL_TABS.find((t) => t.key === activeTab)?.label ||
+									"Descubra"}
+							</Text>
+						</View>
+
+						<Animated.View entering={FadeInRight.delay(150)} style={s.headerBtns}>
+							{activeTab === "feed" && (
+								<TouchableOpacity
+									activeOpacity={0.8}
+									style={s.headerBtn}
+									onPress={() => navigation.navigate("CriarPost")}
+								>
+									<BlurView intensity={35} tint="dark" style={s.headerBlur}>
+										<MaterialCommunityIcons
+											name="pencil-plus-outline"
+											size={20}
+											color="#fff"
+										/>
+									</BlurView>
+								</TouchableOpacity>
+							)}
+
+							{activeTab === "mensagens" && (
+								<TouchableOpacity
+									activeOpacity={0.8}
+									style={s.headerBtn}
+									onPress={() => setActiveTab("pessoas")}
+								>
+									<BlurView intensity={35} tint="dark" style={s.headerBlur}>
+										<MaterialCommunityIcons
+											name="message-plus-outline"
+											size={20}
+											color="#fff"
+										/>
+									</BlurView>
+								</TouchableOpacity>
+							)}
+
+							<NotificationBell
+								onPress={() => navigation.navigate("Notificacoes")}
+								color="#fff"
+								size={20}
+								style={s.headerBtn}
+							/>
+						</Animated.View>
+					</View>
+					</Animated.View>
+
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={s.tabRow}
+					>
+						{SOCIAL_TABS.map((tab) => {
+							const active = activeTab === tab.key;
+							return (
+								<TouchableOpacity
+									key={tab.key}
+									style={[s.tab, active && s.tabActive]}
+									onPress={() => setActiveTab(tab.key)}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name={active ? tab.iconOn : tab.icon}
+										size={14}
+										color={active ? "#fff" : Colors.textMuted}
+									/>
+									<Text style={[s.tabLabel, active && s.tabLabelActive]}>
+										{tab.label}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</ScrollView>
+				</LinearGradient>
+			</Animated.View>
 		</View>
 	);
 }
@@ -900,45 +989,102 @@ export default function TelaFeed({ navigation, route }) {
 const s = StyleSheet.create({
 	container: { flex: 1, backgroundColor: Colors.background },
 
-	// HEADER — idêntico ao da TelaInicio
-	headerGrad: { paddingBottom: 0 },
-	headerRow: {
-		paddingHorizontal: 20,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingBottom: 18,
+	contentArea: { flex: 1 },
+
+	headerOverlay: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 20,
 	},
-	headerCopy: { flex: 1, paddingRight: 14 },
-	greeting: { color: Colors.textSecondary, fontSize: 15 },
-	name: { color: Colors.textPrimary, fontSize: 30, fontWeight: "800", marginTop: 4 },
-	city: { color: Colors.textMuted, fontSize: 13, marginTop: 5 },
-	headerBtns: { flexDirection: "row", alignItems: "center", gap: 10 },
+
+	headerGrad: { paddingBottom: 2 },
+	headerRow: {
+		paddingHorizontal: 16,
+		flexDirection: "row",
+		alignItems: "center",
+		paddingBottom: 10,
+		gap: 10,
+	},
+	headerAvatar: {
+		width: 42,
+		height: 42,
+		borderRadius: 14,
+		borderWidth: 1.5,
+		borderColor: "rgba(139,124,255,0.35)",
+		backgroundColor: Colors.card,
+	},
+	headerCopy: { flex: 1, minWidth: 0 },
+	headerTitleRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: 8,
+	},
+	greeting: {
+		flex: 1,
+		color: Colors.textSecondary,
+		fontSize: 13,
+		fontWeight: "500",
+	},
+	nameInline: {
+		color: Colors.textPrimary,
+		fontSize: 15,
+		fontWeight: "800",
+	},
+	socialBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 999,
+		backgroundColor: "rgba(108,92,231,0.14)",
+		borderWidth: 1,
+		borderColor: "rgba(139,124,255,0.22)",
+	},
+	socialBadgeText: {
+		color: Colors.primaryLight,
+		fontSize: 10,
+		fontWeight: "700",
+	},
+	city: {
+		color: Colors.textMuted,
+		fontSize: 11,
+		marginTop: 3,
+	},
+	headerBtns: { flexDirection: "row", alignItems: "center", gap: 8 },
 	headerBtn: {},
 	headerBlur: {
-		width: 52, height: 52, borderRadius: 18,
-		justifyContent: "center", alignItems: "center",
-		overflow: "hidden", borderWidth: 1,
+		width: 44,
+		height: 44,
+		borderRadius: 15,
+		justifyContent: "center",
+		alignItems: "center",
+		overflow: "hidden",
+		borderWidth: 1,
 		borderColor: "rgba(255,255,255,0.08)",
 		backgroundColor: "rgba(255,255,255,0.04)",
 	},
 
-	// TAB BAR — mesmo visual das CategoryPills mas compacto
 	tabRow: {
 		flexDirection: "row",
-		flexWrap: "wrap",
-		paddingHorizontal: 18,
-		paddingBottom: 14,
+		alignItems: "center",
+		paddingHorizontal: 14,
+		paddingBottom: 10,
 		gap: 8,
 	},
 	tab: {
-		flexDirection: "row", alignItems: "center", gap: 6,
-		flexGrow: 1,
-		justifyContent: "center",
-		paddingHorizontal: 14, paddingVertical: 9,
-		borderRadius: 22,
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+		borderRadius: 18,
 		backgroundColor: Colors.glass,
-		borderWidth: 1, borderColor: Colors.glassBorder,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
 	},
 	tabActive: {
 		backgroundColor: Colors.primaryDark,
@@ -949,7 +1095,7 @@ const s = StyleSheet.create({
 		shadowOffset: { width: 0, height: 0 },
 		elevation: 6,
 	},
-	tabLabel: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
+	tabLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
 	tabLabelActive: { color: "#fff" },
 
 	// LOADING

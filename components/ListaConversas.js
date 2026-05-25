@@ -7,18 +7,20 @@ import React, { memo, useState } from "react";
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   Image,
   ActivityIndicator,
   Alert,
-  Animated,
 } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+} from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
 
 const TAB_BAR_CLEARANCE = 130;
+const TAB_BAR_CLEARANCE_EMBEDDED = 100;
 
 const formatarHora = (timestamp) => {
   if (!timestamp) return "";
@@ -163,10 +165,28 @@ const ConversaItem = memo(({ conversa, onPress, userId, onDelete }) => {
 
 // ✅ Componente principal
 const ListaConversas = memo(
-  ({ conversas, loading, userId, onConversaPress, onNovaConversa, onDeleteConversa }) => {
+  ({
+    conversas,
+    loading,
+    userId,
+    embedded = false,
+    scrollY,
+    onConversaPress,
+    onNovaConversa,
+    onDeleteConversa,
+  }) => {
+    const bottomPad = embedded ? TAB_BAR_CLEARANCE_EMBEDDED : TAB_BAR_CLEARANCE;
+
+    const scrollHandler = useAnimatedScrollHandler({
+      onScroll: (event) => {
+        if (scrollY) {
+          scrollY.value = event.contentOffset.y;
+        }
+      },
+    });
     if (loading) {
       return (
-        <View style={styles.loader}>
+        <View style={[styles.loader, embedded && styles.flexFill]}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
       );
@@ -174,7 +194,7 @@ const ListaConversas = memo(
 
     if (conversas.length === 0) {
       return (
-        <View style={styles.vazio}>
+        <View style={[styles.vazio, embedded && styles.flexFill]}>
           <MaterialCommunityIcons
             name="message-outline"
             size={48}
@@ -193,27 +213,38 @@ const ListaConversas = memo(
       );
     }
 
-    return (
-      <FlatList
-        data={conversas}
-        renderItem={({ item }) => (
-          <ConversaItem
-            conversa={item}
-            onPress={onConversaPress}
-            userId={userId}
-            onDelete={onDeleteConversa}
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={() => <View style={styles.separador} />}
-        contentContainerStyle={styles.lista}
-        scrollEventThrottle={16}
-      />
-    );
+    const listProps = {
+      data: conversas,
+      renderItem: ({ item }) => (
+        <ConversaItem
+          conversa={item}
+          onPress={onConversaPress}
+          userId={userId}
+          onDelete={onDeleteConversa}
+        />
+      ),
+      keyExtractor: (item) => item.id,
+      ItemSeparatorComponent: () => <View style={styles.separador} />,
+      contentContainerStyle: [
+        styles.lista,
+        { paddingBottom: bottomPad },
+        embedded && styles.listaEmbedded,
+      ],
+      scrollEventThrottle: 16,
+      showsVerticalScrollIndicator: false,
+      onScroll: scrollY ? scrollHandler : undefined,
+      style: embedded ? styles.flexFill : undefined,
+    };
+
+    return <Animated.FlatList {...listProps} />;
   }
 );
 
 const styles = StyleSheet.create({
+  flexFill: {
+    flex: 1,
+  },
+
   loader: {
     flex: 1,
     justifyContent: "center",
@@ -344,7 +375,11 @@ const styles = StyleSheet.create({
 
   lista: {
     paddingTop: 8,
-    paddingBottom: TAB_BAR_CLEARANCE,
+  },
+
+  listaEmbedded: {
+    paddingTop: 4,
+    paddingHorizontal: 2,
   },
 
   vazio: {

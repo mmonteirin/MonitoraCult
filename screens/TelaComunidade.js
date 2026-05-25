@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 
 import { Colors } from "../styles/Colors";
 import { useCommunity } from "../hooks/useCommunity";
@@ -63,6 +64,15 @@ export default function TelaComunidade({ navigation, route }) {
   const insets = useSafeAreaInsets();
 
   const embedded = !!route?.params?.embedded;
+  const scrollY = route?.params?.scrollY;
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (scrollY) {
+        scrollY.value = event.contentOffset.y;
+      }
+    },
+  });
 
   const {
     groups,
@@ -264,6 +274,308 @@ export default function TelaComunidade({ navigation, route }) {
     "Teatro",
   ];
 
+  const navigateToGroup = useCallback(
+    (group) => {
+      navigation.navigate("ComunidadeGrupoDetalhes", {
+        groupId: group.id,
+      });
+    },
+    [navigation]
+  );
+
+  const renderEmbeddedExplorar = () => {
+    if (loading && !groups.length) {
+      return (
+        <View style={styles.centerBox}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      );
+    }
+
+    if (!groups.length) {
+      return (
+        <View style={styles.emptyStateEmbedded}>
+          <MaterialCommunityIcons
+            name="account-group-outline"
+            size={48}
+            color={Colors.textMuted}
+          />
+          <Text style={styles.emptyTitle}>Nenhuma comunidade encontrada</Text>
+          <Text style={styles.emptySubtitleEmbedded}>
+            Tente outro termo ou crie um novo grupo.
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.embeddedGroupsList}>
+        {groups.map((group) => (
+          <View key={group.id} style={styles.embeddedCardWrap}>
+            <CommunityGroupCard
+              {...group}
+              isMember={checkIsMember(group)}
+              onPress={() => navigateToGroup(group)}
+              onJoin={() => handleGroupAction(group)}
+              onLeave={() => handleGroupAction(group)}
+            />
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderEmbeddedMeus = () => {
+    if (!currentUser) {
+      return (
+        <View style={styles.emptyStateEmbedded}>
+          <Text style={styles.emptyTitle}>Faça login para acessar</Text>
+        </View>
+      );
+    }
+
+    if (myGroups.length === 0) {
+      return (
+        <View style={styles.emptyStateEmbedded}>
+          <Text style={styles.emptyTitle}>
+            Você ainda não participa de nenhuma comunidade
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.embeddedGroupsList}>
+        {myGroups.map((group) => (
+          <View key={group.id} style={styles.embeddedCardWrap}>
+            <CommunityGroupCard
+              {...group}
+              isMember
+              onPress={() => navigateToGroup(group)}
+              onLeave={() => handleGroupAction(group)}
+            />
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderEmbeddedCriadores = () => {
+    if (highlightedCreators.length === 0) {
+      return (
+        <View style={styles.emptyStateEmbedded}>
+          <Text style={styles.emptyTitle}>Nenhum criador em destaque</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.embeddedCreatorsList}>
+        {highlightedCreators.map((creator) => (
+          <CreatorHighlight
+            key={creator.id}
+            {...creator}
+            onPress={() =>
+              navigation.navigate("ComunidadeCriadorDetalhes", {
+                creatorId: creator.id,
+              })
+            }
+          />
+        ))}
+      </View>
+    );
+  };
+
+  if (embedded) {
+    return (
+      <View style={styles.containerEmbedded}>
+        <View style={styles.embeddedToolbar}>
+          <View style={styles.embeddedSearchBox}>
+            <MaterialCommunityIcons
+              name="magnify"
+              size={20}
+              color={Colors.primary}
+            />
+            <TextInput
+              style={styles.embeddedSearchInput}
+              placeholder="Buscar comunidades..."
+              placeholderTextColor={Colors.textMuted}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchText("")}>
+                <MaterialCommunityIcons
+                  name="close-circle"
+                  size={18}
+                  color={Colors.textMuted}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.embeddedCreateBtn}
+            onPress={() => setShowCreateModal(true)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[Colors.primary, Colors.primaryDark]}
+              style={styles.embeddedCreateBtnGradient}
+            >
+              <MaterialCommunityIcons name="plus" size={22} color="#FFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.innerTabBar}>
+          {TABS.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.innerTab, active && styles.innerTabActive]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.85}
+              >
+                <MaterialCommunityIcons
+                  name={tab.icon}
+                  size={16}
+                  color={active ? Colors.primary : Colors.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.innerTabText,
+                    active && styles.innerTabTextActive,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {activeTab === "explorar" && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.embeddedGenreRow}
+          >
+            {GENEROS.map((genre) => {
+              const active = selectedGenre === genre;
+              return (
+                <TouchableOpacity
+                  key={genre}
+                  style={[
+                    styles.embeddedGenreChip,
+                    active && styles.embeddedGenreChipActive,
+                  ]}
+                  onPress={() => setSelectedGenre(genre)}
+                >
+                  <Text
+                    style={[
+                      styles.embeddedGenreText,
+                      active && styles.embeddedGenreTextActive,
+                    ]}
+                  >
+                    {genre}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        <Animated.ScrollView
+          style={styles.embeddedScrollView}
+          showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+          contentContainerStyle={styles.embeddedScrollContent}
+        >
+          {activeTab === "explorar" && renderEmbeddedExplorar()}
+          {activeTab === "meus" && renderEmbeddedMeus()}
+          {activeTab === "criadores" && renderEmbeddedCriadores()}
+        </Animated.ScrollView>
+
+        <Modal
+          visible={showCreateModal}
+          animationType="slide"
+          transparent
+          statusBarTranslucent
+          onRequestClose={() => setShowCreateModal(false)}
+        >
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalCard}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Nova Comunidade</Text>
+                  <TouchableOpacity
+                    style={styles.closeBtn}
+                    onPress={() => setShowCreateModal(false)}
+                  >
+                    <MaterialCommunityIcons name="close" size={22} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.fieldLabel}>Nome</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nome da comunidade"
+                  placeholderTextColor={Colors.textMuted}
+                  value={createData.name}
+                  onChangeText={(v) =>
+                    setCreateData((d) => ({ ...d, name: v }))
+                  }
+                />
+
+                <Text style={styles.fieldLabel}>Descrição</Text>
+                <TextInput
+                  multiline
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Descreva os objetivos da comunidade"
+                  placeholderTextColor={Colors.textMuted}
+                  value={createData.description}
+                  onChangeText={(v) =>
+                    setCreateData((d) => ({ ...d, description: v }))
+                  }
+                />
+
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleCreateCommunity}
+                  disabled={creating}
+                >
+                  <LinearGradient
+                    colors={[Colors.primary, Colors.primaryDark]}
+                    style={styles.submitGradient}
+                  >
+                    {creating ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <Text style={styles.submitText}>Criar comunidade</Text>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {!embedded && (
@@ -317,7 +629,10 @@ export default function TelaComunidade({ navigation, route }) {
           <BlurView
             intensity={40}
             tint="dark"
-            style={styles.heroSearch}
+            style={[
+              styles.heroSearch,
+              embedded && styles.heroSearchEmbedded,
+            ]}
           >
             <View style={styles.searchIconWrap}>
               <MaterialCommunityIcons
@@ -327,19 +642,20 @@ export default function TelaComunidade({ navigation, route }) {
               />
             </View>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.searchLabel}>
-                Explorar comunidades
-              </Text>
-
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Música, dança, cinema..."
-                placeholderTextColor="#64748B"
-                value={searchText}
-                onChangeText={setSearchText}
-              />
-            </View>
+            <TextInput
+              style={[
+                styles.searchInput,
+                embedded && styles.searchInputEmbedded,
+              ]}
+              placeholder={
+                embedded
+                  ? "Buscar comunidades..."
+                  : "Música, dança, cinema..."
+              }
+              placeholderTextColor="#64748B"
+              value={searchText}
+              onChangeText={setSearchText}
+            />
 
             {searchText.length > 0 && (
               <TouchableOpacity
@@ -365,7 +681,10 @@ export default function TelaComunidade({ navigation, route }) {
           >
             <LinearGradient
               colors={["#8B5CF6", "#6D28D9"]}
-              style={styles.createButtonGradient}
+              style={[
+                styles.createButtonGradient,
+                embedded && styles.createButtonGradientEmbedded,
+              ]}
             >
               <MaterialCommunityIcons
                 name="plus"
@@ -376,27 +695,23 @@ export default function TelaComunidade({ navigation, route }) {
           </TouchableOpacity>
         </View>
 
-        {/* SUGESTÕES */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={
-            styles.suggestionRow
-          }
-        >
-          {suggestions.map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={styles.suggestionChip}
-            >
-              <Text
-                style={styles.suggestionText}
+        {!embedded && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.suggestionRow}
+          >
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={item}
+                style={styles.suggestionChip}
+                onPress={() => setSearchText(item)}
               >
-                {item}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+                <Text style={styles.suggestionText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </HeaderContainer>
 
       {/* TABS */}
@@ -963,6 +1278,151 @@ const styles = StyleSheet.create({
     backgroundColor: "#0B1020",
   },
 
+  containerEmbedded: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  embeddedToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
+
+  embeddedSearchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+
+  embeddedSearchInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: 14,
+    padding: 0,
+  },
+
+  embeddedCreateBtn: {
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+
+  embeddedCreateBtnGradient: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  innerTabBar: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.background,
+  },
+
+  innerTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+  },
+
+  innerTabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
+  },
+
+  innerTabText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: "600",
+  },
+
+  innerTabTextActive: {
+    color: Colors.primary,
+  },
+
+  embeddedGenreRow: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+
+  embeddedGenreChip: {
+    height: 32,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: Colors.surface,
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+
+  embeddedGenreChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+
+  embeddedGenreText: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    fontWeight: "600",
+  },
+
+  embeddedGenreTextActive: {
+    color: "#FFF",
+  },
+
+  embeddedScrollView: {
+    flex: 1,
+  },
+
+  embeddedScrollContent: {
+    paddingHorizontal: 14,
+    paddingBottom: 120,
+  },
+
+  embeddedGroupsList: {
+    gap: 12,
+    paddingTop: 8,
+  },
+
+  embeddedCardWrap: {
+    width: "100%",
+  },
+
+  embeddedCreatorsList: {
+    gap: 12,
+    paddingTop: 8,
+  },
+
+  emptyStateEmbedded: {
+    alignItems: "center",
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+
+  emptySubtitleEmbedded: {
+    color: Colors.textMuted,
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
   glowOne: {
     position: "absolute",
     top: -120,
@@ -991,7 +1451,9 @@ const styles = StyleSheet.create({
   },
 
   headerEmbedded: {
-    paddingTop: 12,
+    paddingTop: 4,
+    paddingBottom: 10,
+    paddingHorizontal: 14,
   },
 
   headerTop: {
@@ -1037,13 +1499,18 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 26,
-    paddingHorizontal: 14,
+    borderRadius: 20,
+    paddingHorizontal: 12,
     height: 72,
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
       "rgba(255,255,255,0.06)",
+  },
+
+  heroSearchEmbedded: {
+    height: 48,
+    borderRadius: 16,
   },
 
   searchIconWrap: {
@@ -1065,9 +1532,14 @@ const styles = StyleSheet.create({
   },
 
   searchInput: {
+    flex: 1,
     color: "#FFF",
     fontSize: 16,
     padding: 0,
+  },
+
+  searchInputEmbedded: {
+    fontSize: 14,
   },
 
   createButton: {
@@ -1080,6 +1552,12 @@ const styles = StyleSheet.create({
     height: 68,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  createButtonGradientEmbedded: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
   },
 
   suggestionRow: {

@@ -20,6 +20,7 @@ import {
   Timestamp,
   setDoc,
   runTransaction,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { agendarPedidoAvaliacaoEvento } from "./avaliacaoService";
@@ -426,6 +427,233 @@ const agruparComprasPorDia = (snapshot) => {
  * ❌ CANCELAR COMPRA
  * Reembolsar ingressos (com política de reembolso)
  */
+/**
+ * 📋 LISTAR COMPRAS DE UM EVENTO (organizador / admin)
+ */
+export const obterComprasEvento = async (eventoId) => {
+  if (!eventoId) return [];
+
+  try {
+    const q = query(
+      collection(db, "comprasIngressos"),
+      where("eventoId", "==", eventoId)
+    );
+
+    const snapshot = await getDocs(q);
+    const compras = snapshot.docs.map((document) => ({
+      id: document.id,
+      ...document.data(),
+    }));
+
+    return compras.sort(
+      (a, b) =>
+        (b.dataCompra?.toMillis?.() || 0) -
+        (a.dataCompra?.toMillis?.() || 0)
+    );
+  } catch (error) {
+    console.error("Erro ao listar compras do evento:", error);
+    return [];
+  }
+};
+
+/**
+ * 🔄 OUVIR COMPRAS DO EVENTO EM TEMPO REAL
+ */
+export const escutarComprasEvento = (eventoId, onData, onError) => {
+  if (!eventoId) return () => {};
+
+  const q = query(
+    collection(db, "comprasIngressos"),
+    where("eventoId", "==", eventoId)
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const compras = snapshot.docs
+        .map((document) => ({
+          id: document.id,
+          ...document.data(),
+        }))
+        .sort(
+          (a, b) =>
+            (b.dataCompra?.toMillis?.() || 0) -
+            (a.dataCompra?.toMillis?.() || 0)
+        );
+
+      onData(compras);
+    },
+    (error) => {
+      console.error("Erro ao escutar compras:", error);
+      onError?.(error);
+    }
+  );
+};
+
+const sincronizarCompraUsuario = async (usuarioId, eventoId, dados) => {
+  if (!usuarioId || !eventoId) return;
+
+  const comprasUsuarioRef = collection(
+    db,
+    "usuarios",
+    usuarioId,
+    "compras"
+  );
+  const q = query(
+    comprasUsuarioRef,
+    where("eventoId", "==", eventoId)
+  );
+  const snapshot = await getDocs(q);
+
+  await Promise.all(
+    snapshot.docs.map((document) => updateDoc(document.ref, dados))
+  );
+};
+
+/**
+ * ❌ CANCELAR COMPRA (ADMIN / ORGANIZADOR)
+ * Ignora política de 24h e sincroniza comprasIngressos + usuarios/compras
+ */
+export const cancelarCompraAdmin = async ({
+  compraRaizId,
+  motivo = "Cancelado pelo organizador",
+}) => {
+  if (!compraRaizId) throw new Error("Compra inválida");
+
+  const compraRaizRef = doc(db, "comprasIngressos", compraRaizId);
+  const compraSnap = await getDoc(compraRaizRef);
+
+  if (!compraSnap.exists()) {
+    throw new Error("Compra não encontrada");
+  }
+
+  const compra = compraSnap.data();
+
+  if (compra.status === "cancelado") {
+    throw new Error("Esta compra já está cancelada");
+  }
+
+  const ingressosAtualizados = (compra.ingressos || []).map((ing) => ({
+    ...ing,
+    status: STATUS_INGRESSO.CANCELADO,
+  }));
+
+  const ingressosAtivos = (compra.ingressos || []).filter(
+    (ing) => ing.status !== STATUS_INGRESSO.CANCELADO
+  ).length;
+
+  const payload = {
+    status: "cancelado",
+    motivo,
+    dataCancelamento: serverTimestamp(),
+    ingressos: ingressosAtualizados,
+  };
+
+  await updateDoc(compraRaizRef, payload);
+
+  const usuarioId = compra.usuarioId || compra.userId;
+
+  await sincronizarCompraUsuario(
+    usuarioId,
+    compra.eventoId,
+    payload
+  );
+
+  if (compra.eventoId && ingressosAtivos > 0) {
+    await updateDoc(doc(db, "eventos", compra.eventoId), {
+      ingressosVendidos: increment(-ingressosAtivos),
+    });
+  }
+
+  return {
+    success: true,
+    mensagem: "Compra cancelada com sucesso",
+  };
+};
+
+/**
+ * ⚙️ ATUALIZAR CONFIGURAÇÃO DE INGRESSOS DO EVENTO
+ */
+export const atualizarConfigIngressosEvento = async (eventoId, config = {}) => {
+  if (!eventoId) throw new Error("Evento inválido");
+
+  const camposPermitidos = [
+    "capacidade",
+    "precoIngresso",
+    "precoInteira",
+    "precoMeia",
+    "precoEstudante",
+    "precoSenior",
+    "precoPromocional",
+    "vendaIngressosAtiva",
+  ];
+
+  const dados = {};
+
+  camposPermitidos.forEach((campo) => {
+    if (config[campo] !== undefined && config[campo] !== null) {
+      dados[campo] = config[campo];
+    }
+  });
+
+  if (Object.keys(dados).length === 0) {
+    throw new Error("Nenhuma configuração para salvar");
+  }
+
+  dados.updatedAt = serverTimestamp();
+
+  await updateDoc(doc(db, "eventos", eventoId), dados);
+
+  return { success: true };
+};
+
+/**
+ * 📊 RESUMO DE INGRESSOS PARA PAINEL ADMIN
+ */
+export const calcularResumoIngressosEvento = (compras = [], evento = {}) => {
+  let confirmados = 0;
+  let utilizados = 0;
+  let cancelados = 0;
+  let receita = 0;
+
+  compras.forEach((compra) => {
+    if (compra.status === "cancelado") {
+      (compra.ingressos || []).forEach(() => {
+        cancelados += 1;
+      });
+      return;
+    }
+
+    receita += Number(compra.valorTotal || 0);
+
+    (compra.ingressos || []).forEach((ing) => {
+      if (ing.status === STATUS_INGRESSO.UTILIZADO) {
+        utilizados += 1;
+      } else if (ing.status === STATUS_INGRESSO.CANCELADO) {
+        cancelados += 1;
+      } else {
+        confirmados += 1;
+      }
+    });
+  });
+
+  const capacidade = Number(evento.capacidade || 0);
+  const vendidos = Number(evento.ingressosVendidos || 0);
+  const restantes =
+    capacidade > 0 ? Math.max(0, capacidade - vendidos) : null;
+
+  return {
+    confirmados,
+    utilizados,
+    cancelados,
+    totalEmitidos: confirmados + utilizados + cancelados,
+    receita: parseFloat(receita.toFixed(2)),
+    capacidade,
+    vendidos,
+    restantes,
+  };
+};
+
 export const cancelarCompra = async (compraId, userId, motivo = "") => {
   try {
     const compraRef = doc(db, "usuarios", userId, "compras", compraId);
@@ -482,5 +710,10 @@ export default {
   verificarIngresso,
   validarIngresso,
   obterEstatisticasVendas,
+  obterComprasEvento,
+  escutarComprasEvento,
+  cancelarCompraAdmin,
+  atualizarConfigIngressosEvento,
+  calcularResumoIngressosEvento,
   cancelarCompra,
 };

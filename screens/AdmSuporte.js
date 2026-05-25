@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +17,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAuth } from "../context/AuthContext";
 import { Colors } from "../styles/Colors";
+import ConfirmModal from "../components/ConfirmModal";
 import {
   listenAdminSupportTickets,
   listenSupportMessages,
@@ -71,6 +71,10 @@ export default function AdmSuporte({ navigation }) {
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState("todos");
+  const [errorModal, setErrorModal] = useState({
+    visible: false,
+    message: "",
+  });
 
   useEffect(() => {
     setTicketsLoading(true);
@@ -151,7 +155,10 @@ export default function AdmSuporte({ navigation }) {
       setReply("");
     } catch (error) {
       console.log("Erro ao responder chamado:", error);
-      Alert.alert("Erro", error.message || "Não foi possível enviar a resposta.");
+      setErrorModal({
+        visible: true,
+        message: error.message || "Não foi possível enviar a resposta.",
+      });
     } finally {
       setSending(false);
     }
@@ -168,7 +175,10 @@ export default function AdmSuporte({ navigation }) {
       });
     } catch (error) {
       console.log("Erro ao atualizar status:", error);
-      Alert.alert("Erro", "Não foi possível atualizar o status.");
+      setErrorModal({
+        visible: true,
+        message: "Não foi possível atualizar o status.",
+      });
     }
   };
 
@@ -367,6 +377,17 @@ export default function AdmSuporte({ navigation }) {
           )}
         </View>
       </View>
+
+      <ConfirmModal
+        visible={errorModal.visible}
+        title="Erro"
+        message={errorModal.message}
+        confirmText="OK"
+        type="error"
+        onConfirm={() =>
+          setErrorModal({ visible: false, message: "" })
+        }
+      />
     </KeyboardAvoidingView>
   );
 }

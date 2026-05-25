@@ -9,12 +9,12 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   Image,
   SafeAreaView,
 } from "react-native";
+import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
 import { searchUsers } from "../services/userService";
@@ -23,6 +23,15 @@ import { useAuth } from "../context/AuthContext";
 const TelaBuscaUsuarios = ({ navigation, route }) => {
   const { user } = useAuth();
   const embedded = !!route?.params?.embedded;
+  const scrollY = route?.params?.scrollY;
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      if (scrollY) {
+        scrollY.value = event.contentOffset.y;
+      }
+    },
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -87,8 +96,15 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
     </TouchableOpacity>
   );
 
+  const Root = embedded ? View : SafeAreaView;
+  const rootProps = embedded
+    ? { style: styles.containerEmbedded }
+    : { style: styles.container };
+
+  const ListComponent = scrollY ? Animated.FlatList : Animated.FlatList;
+
   return (
-    <SafeAreaView style={styles.container}>
+    <Root {...rootProps}>
       {/* HEADER */}
       {!embedded && (
         <View style={styles.header}>
@@ -109,15 +125,12 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
 
       {/* SEARCH BAR */}
       <View style={[styles.searchWrap, embedded && styles.searchWrapEmbedded]}>
-        {embedded && (
-          <View style={styles.embeddedTitleWrap}>
-            <Text style={styles.embeddedLabel}>Pessoas</Text>
-            <Text style={styles.embeddedTitle}>Encontre perfis</Text>
-            <Text style={styles.embeddedSub}>Busque artistas, produtores e participantes para conversar.</Text>
-          </View>
-        )}
-
-        <View style={styles.searchContainer}>
+        <View
+          style={[
+            styles.searchContainer,
+            embedded && styles.searchContainerEmbedded,
+          ]}
+        >
           <MaterialCommunityIcons
             name="magnify"
             size={20}
@@ -126,7 +139,11 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Buscar por nome ou @username"
+            placeholder={
+              embedded
+                ? "Buscar pessoas..."
+                : "Buscar por nome ou @username"
+            }
             placeholderTextColor={Colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -159,12 +176,18 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
           />
         </View>
       ) : usuarios.length > 0 ? (
-        <FlatList
+        <ListComponent
           data={usuarios}
           renderItem={renderUsuario}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          style={embedded ? styles.listFlex : undefined}
+          contentContainerStyle={[
+            styles.listContent,
+            embedded && { paddingBottom: 100 },
+          ]}
           showsVerticalScrollIndicator={false}
+          onScroll={scrollY ? scrollHandler : undefined}
+          scrollEventThrottle={16}
         />
       ) : searchQuery.length > 0 ? (
         <View style={styles.centerContainer}>
@@ -197,12 +220,17 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
           </Text>
         </View>
       )}
-    </SafeAreaView>
+    </Root>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+
+  containerEmbedded: {
     flex: 1,
     backgroundColor: Colors.background,
   },
@@ -247,9 +275,14 @@ const styles = StyleSheet.create({
   },
 
   searchWrapEmbedded: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 10,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+
+  searchContainerEmbedded: {
+    minHeight: 44,
+    borderRadius: 14,
   },
 
   embeddedTitleWrap: {
@@ -286,6 +319,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     color: Colors.textPrimary,
+  },
+
+  listFlex: {
+    flex: 1,
   },
 
   listContent: {

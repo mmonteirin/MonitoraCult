@@ -8,6 +8,7 @@ import AdmSuporte from "../screens/AdmSuporte";
 import AdmEventoMetrica from "../screens/AdmEventoMetrica";
 import AdmEventoDashIndividual from "../screens/AdmEventoDashIndividual";
 import AdmQRScanner from "../screens/AdmQrScanner";
+import AdmGerenciarIngressos from "../screens/AdmGerenciarIngressos";
 
 import { View, Text, ActivityIndicator } from "react-native";
 
@@ -66,6 +67,10 @@ export default function AdmStack() {
       />
       <Stack.Screen name="AdmSuporte" component={AdmSuporte} />
       <Stack.Screen name="AdmQRScanner" component={AdmQRScanner} />
+      <Stack.Screen
+        name="AdmGerenciarIngressos"
+        component={AdmGerenciarIngressos}
+      />
     </Stack.Navigator>
   );
 }
