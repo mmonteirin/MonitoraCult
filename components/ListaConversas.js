@@ -3,7 +3,7 @@
  * Exibe todas as conversas do usuário com último mensagem
  */
 
-import React, { memo, useState } from "react";
+import React, { memo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
+import { getPublicProfile } from "../services/profileService";
 
 const TAB_BAR_CLEARANCE = 130;
 const TAB_BAR_CLEARANCE_EMBEDDED = 100;
@@ -45,12 +46,20 @@ const ConversaItem = memo(({ conversa, onPress, userId, onDelete }) => {
   const participantes = conversa.participantes || [];
   const outroUserId =
     participantes.find((participante) => participante !== userId) || "";
-  const outroPerfil = conversa.participantProfiles?.[outroUserId] || {};
+  const conversaPerfil = conversa.participantProfiles?.[outroUserId] || {};
+
+  const [perfilFirestore, setPerfilFirestore] = useState(null);
+  useEffect(() => {
+    if (!outroUserId) return;
+    getPublicProfile(outroUserId)
+      .then((p) => setPerfilFirestore(p))
+      .catch(() => setPerfilFirestore(null));
+  }, [outroUserId]);
 
   const naoLidas = conversa.naoLido?.[userId] || 0;
   const ultimoFoiEle = conversa.remetente !== userId;
-  const nome = outroPerfil.nome || conversa.nomeOutro || `Usuário ${outroUserId.slice(0, 4)}`;
-  const avatar = outroPerfil.avatar || conversa.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId || "user"}`;
+  const nome = perfilFirestore?.displayName || perfilFirestore?.nome || conversaPerfil.nome || conversa.nomeOutro || `Usuário ${outroUserId.slice(0, 4)}`;
+  const avatar = perfilFirestore?.photoURL || perfilFirestore?.foto || conversaPerfil.avatar || conversa.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId || "user"}`;
 
   const handleDelete = () => {
     Alert.alert(
