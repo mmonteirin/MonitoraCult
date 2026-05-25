@@ -17,6 +17,9 @@ import {
 	FlatList,
 	Platform,
 	Share,
+	Modal,
+	KeyboardAvoidingView,
+	TextInput,
 } from "react-native";
 
 import * as Clipboard from "expo-clipboard";
@@ -77,6 +80,8 @@ import {
 import {
 	getUserFeedLikes,
 	toggleFeedLike,
+	adicionarFeedComentario,
+	escutarFeedComentarios,
 } from "../services/feedService";
 
 const { width, height } = Dimensions.get("window");
@@ -247,7 +252,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 // FeedCard (padronizado com TelaFeed)
 // ──────────────────────────────────────────────
 const FeedCard = memo(
-	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onPress }) => {
+	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onComment, onPress }) => {
 		const scale = useSharedValue(1);
 		const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -312,7 +317,7 @@ const FeedCard = memo(
 								isLiked={isLiked}
 								onPress={() => onLike(item.id, item.type)}
 							/>
-							<TouchableOpacity style={styles.actionBtn}>
+							<TouchableOpacity style={styles.actionBtn} onPress={() => onComment?.(item)}>
 								<MaterialCommunityIcons
 									name="comment-outline"
 									size={24}
@@ -360,7 +365,7 @@ const FeedCard = memo(
 export default function TelaPainelCidade() {
 	const navigation = useNavigation();
 	const insets = useSafeAreaInsets();
-	const { user, nome } = useAuth();
+	const { user, nome, foto } = useAuth();
 
 	const [loading, setLoading] = useState(true);
 	const [eventos, setEventos] = useState([]);
@@ -375,6 +380,13 @@ export default function TelaPainelCidade() {
 		proximos: 0,
 		hotspots: 0,
 	});
+
+	// Comentários
+	const [selectedItem, setSelectedItem] = useState(null);
+	const [comentarios, setComentarios] = useState([]);
+	const [commentsLoading, setCommentsLoading] = useState(false);
+	const [commentText, setCommentText] = useState("");
+	const [sending, setSending] = useState(false);
 
 	const scrollY = useSharedValue(0);
 	const horizontalX = useSharedValue(0);
@@ -407,6 +419,16 @@ export default function TelaPainelCidade() {
 	useEffect(() => {
 		carregarTudo();
 	}, []);
+
+	useEffect(() => {
+		if (!selectedItem?.id) return;
+		setCommentsLoading(true);
+		const unsub = escutarFeedComentarios(selectedItem.id, selectedItem.type, (lista) => {
+			setComentarios(lista);
+			setCommentsLoading(false);
+		});
+		return unsub;
+	}, [selectedItem?.id, selectedItem?.type]);
 
 	async function carregarTudo() {
 		try {
@@ -618,6 +640,33 @@ export default function TelaPainelCidade() {
 			});
 		} catch (e) { console.log(e); }
 	}, []);
+
+	const abrirComentarios = useCallback((item) => {
+		setSelectedItem(item);
+		setComentarios([]);
+		setCommentText("");
+	}, []);
+
+	const fecharComentarios = useCallback(() => {
+		setSelectedItem(null);
+		setComentarios([]);
+		setCommentText("");
+		setCommentsLoading(false);
+	}, []);
+
+	const enviarComentario = useCallback(async () => {
+		if (!selectedItem || !commentText.trim()) return;
+		setSending(true);
+		try {
+			await adicionarFeedComentario(
+				selectedItem.id,
+				selectedItem.type,
+				commentText.trim(),
+				{ nome: nomeUsuario, foto }
+			);
+			setCommentText("");
+		} catch (e) { console.log(e); } finally { setSending(false); }
+	}, [commentText, nomeUsuario, foto, selectedItem]);
 
 	const eventosFiltrados = useMemo(() => {
 		if (categoriaAtiva === "Todos") return eventos;
@@ -1019,6 +1068,7 @@ export default function TelaPainelCidade() {
 						onLike={toggleLike}
 						onNotification={toggleNotification}
 						onShare={handleShare}
+						onComment={abrirComentarios}
 						onPress={(evt) =>
 							navigation.navigate("HomeTabs", {
 								screen: "Eventos",
@@ -1068,6 +1118,86 @@ export default function TelaPainelCidade() {
 					</LinearGradient>
 				</TouchableOpacity>
 			</Animated.View>
+
+			{/* ── Modal de comentários ── */}
+			<Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={fecharComentarios}>
+				<KeyboardAvoidingView style={styles.modalWrap} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+					<TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={fecharComentarios} />
+					<View style={[styles.sheet, { paddingBottom: insets.bottom + 14 }]}>
+						<View style={styles.handle} />
+
+						<View style={styles.sheetHeader}>
+							<View style={{ flex: 1, paddingRight: 10 }}>
+								<Text style={styles.sheetTitle}>Comentários</Text>
+								<Text style={styles.sheetSub} numberOfLines={1}>
+									{selectedItem?.titulo || selectedItem?.tituloEvento || "Publicação"}
+								</Text>
+							</View>
+							<TouchableOpacity style={styles.sheetClose} onPress={fecharComentarios}>
+								<MaterialCommunityIcons name="close" size={20} color={Colors.textPrimary} />
+							</TouchableOpacity>
+						</View>
+
+						{commentsLoading ? (
+							<View style={styles.sheetLoading}>
+								<ActivityIndicator color={Colors.primary} />
+							</View>
+						) : (
+							<FlatList
+								data={comentarios}
+								keyExtractor={(c) => c.id}
+								contentContainerStyle={styles.commentList}
+								showsVerticalScrollIndicator={false}
+								ListEmptyComponent={
+									<View style={styles.emptyComment}>
+										<MaterialCommunityIcons name="comment-text-outline" size={36} color={Colors.textMuted} />
+										<Text style={styles.emptyCommentText}>Seja o primeiro a comentar</Text>
+									</View>
+								}
+								renderItem={({ item: c }) => (
+									<View style={styles.commentRow}>
+										<Image
+											source={{ uri: c.userPhoto || c.foto || "https://i.pravatar.cc/100" }}
+											style={styles.commentAvatar}
+										/>
+										<View style={styles.commentBubble}>
+											<View style={styles.commentTop}>
+												<Text style={styles.commentAuthor} numberOfLines={1}>{c.userName || c.nome || "Usuário"}</Text>
+												<Text style={styles.commentDate}>{formatarData(c.createdAt)}</Text>
+											</View>
+											<Text style={styles.commentBody}>{c.texto}</Text>
+										</View>
+									</View>
+								)}
+							/>
+						)}
+
+						<View style={styles.composer}>
+							<Image source={{ uri: foto || "https://i.pravatar.cc/100" }} style={styles.composerAvatar} />
+							<View style={styles.composerInput}>
+								<TextInput
+									value={commentText}
+									onChangeText={setCommentText}
+									placeholder={`Comentar como ${nomeUsuario}…`}
+									placeholderTextColor={Colors.textMuted}
+									style={styles.composerText}
+									multiline
+									maxLength={500}
+								/>
+								<TouchableOpacity
+									style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnOff]}
+									disabled={!commentText.trim() || sending}
+									onPress={enviarComentario}
+								>
+									{sending
+										? <ActivityIndicator size="small" color="#fff" />
+										: <MaterialCommunityIcons name="send" size={16} color="#fff" />}
+								</TouchableOpacity>
+							</View>
+						</View>
+					</View>
+				</KeyboardAvoidingView>
+			</Modal>
 		</View>
 	);
 }
@@ -1589,4 +1719,90 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 	},
+
+	// ── Modal Comentários ──
+	modalWrap: { flex: 1, justifyContent: "flex-end" },
+	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+	sheet: {
+		backgroundColor: Colors.surface,
+		borderTopLeftRadius: 22,
+		borderTopRightRadius: 22,
+		maxHeight: "75%",
+		minHeight: 340,
+	},
+	handle: {
+		width: 40,
+		height: 4,
+		borderRadius: 2,
+		backgroundColor: "rgba(255,255,255,0.18)",
+		alignSelf: "center",
+		marginTop: 10,
+		marginBottom: 6,
+	},
+	sheetHeader: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 18,
+		paddingVertical: 10,
+		borderBottomWidth: StyleSheet.hairlineWidth,
+		borderBottomColor: "rgba(255,255,255,0.08)",
+	},
+	sheetTitle: { color: Colors.textPrimary, fontWeight: "800", fontSize: 17 },
+	sheetSub: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
+	sheetClose: {
+		width: 34,
+		height: 34,
+		borderRadius: 17,
+		backgroundColor: "rgba(255,255,255,0.08)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
+	commentList: { paddingHorizontal: 16, paddingVertical: 12 },
+	commentRow: { flexDirection: "row", marginBottom: 14, gap: 10 },
+	commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.08)" },
+	commentBubble: {
+		flex: 1,
+		backgroundColor: "rgba(255,255,255,0.06)",
+		borderRadius: 14,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+	},
+	commentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+	commentAuthor: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13, flex: 1, marginRight: 8 },
+	commentDate: { color: Colors.textMuted, fontSize: 11 },
+	commentBody: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18 },
+	emptyComment: { alignItems: "center", paddingVertical: 40, gap: 10 },
+	emptyCommentText: { color: Colors.textMuted, fontSize: 14 },
+	composer: {
+		flexDirection: "row",
+		alignItems: "flex-end",
+		paddingHorizontal: 14,
+		paddingTop: 10,
+		borderTopWidth: StyleSheet.hairlineWidth,
+		borderTopColor: "rgba(255,255,255,0.08)",
+		gap: 10,
+	},
+	composerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.08)" },
+	composerInput: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "flex-end",
+		backgroundColor: "rgba(255,255,255,0.06)",
+		borderRadius: 20,
+		paddingLeft: 14,
+		paddingRight: 4,
+		paddingVertical: 6,
+		minHeight: 38,
+	},
+	composerText: { flex: 1, color: Colors.textPrimary, fontSize: 14, maxHeight: 80, paddingVertical: 0 },
+	sendBtn: {
+		width: 30,
+		height: 30,
+		borderRadius: 15,
+		backgroundColor: Colors.primary,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	sendBtnOff: { opacity: 0.35 },
 });
