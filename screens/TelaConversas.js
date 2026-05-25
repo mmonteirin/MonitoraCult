@@ -30,9 +30,10 @@ const TelaConversas = ({ navigation, route }) => {
       navigation.navigate("TelaMensagens", {
         conversaId: conversa.id,
         conversa,
+        auth,
       });
     },
-    [navigation]
+    [navigation, auth]
   );
 
   const handleNovaConversa = useCallback(() => {

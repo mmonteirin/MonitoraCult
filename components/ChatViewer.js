@@ -30,6 +30,26 @@ const MensagemItem = memo(
       return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     };
 
+    if (mensagem.deletado) {
+      return (
+        <View style={[styles.mensagemContainer, isPropia && styles.mensagemPropia]}>
+          <View style={[styles.bolha, styles.bolhaDeletada]}>
+            <View style={styles.deletadaRow}>
+              <MaterialCommunityIcons
+                name="cancel"
+                size={14}
+                color={Colors.textMuted}
+              />
+              <Text style={styles.textoDeletado}>Mensagem apagada</Text>
+            </View>
+            <Text style={styles.horaMensagem}>
+              {formatarHora(mensagem.createdAt)}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.mensagemContainer, isPropia && styles.mensagemPropia]}>
         {/* Avatar */}
@@ -163,10 +183,19 @@ const ChatViewer = memo(
     onDelete,
     onEdit,
     nomePerfil,
+    termoBusca,
   }) => {
     const [texto, setTexto] = useState("");
     const [editandoId, setEditandoId] = useState(null);
     const flatListRef = useRef(null);
+
+    const mensagensFiltradas = termoBusca
+      ? mensagens.filter(
+          (m) =>
+            !m.deletado &&
+            m.texto?.toLowerCase().includes(termoBusca.toLowerCase())
+        )
+      : mensagens;
 
     // ✅ Auto-scroll para última mensagem
     useEffect(() => {
@@ -205,7 +234,7 @@ const ChatViewer = memo(
           <View style={styles.loader}>
             <ActivityIndicator size="large" color={Colors.primary} />
           </View>
-        ) : mensagens.length === 0 ? (
+        ) : mensagensFiltradas.length === 0 ? (
           <View style={styles.vazio}>
             <MaterialCommunityIcons
               name="message-outline"
@@ -218,7 +247,7 @@ const ChatViewer = memo(
         ) : (
           <FlatList
             ref={flatListRef}
-            data={mensagens}
+            data={mensagensFiltradas}
             renderItem={({ item }) => (
               <MensagemItem
                 mensagem={item}
@@ -341,6 +370,26 @@ const styles = StyleSheet.create({
 
   bolhaAlheio: {
     backgroundColor: Colors.surface,
+  },
+
+  bolhaDeletada: {
+    backgroundColor: Colors.surface,
+    opacity: 0.7,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+  },
+
+  deletadaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+
+  textoDeletado: {
+    fontSize: 13,
+    fontStyle: "italic",
+    color: Colors.textMuted,
   },
 
   nomeRemetente: {

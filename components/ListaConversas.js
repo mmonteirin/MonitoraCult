@@ -3,7 +3,7 @@
  * Exibe todas as conversas do usuário com último mensagem
  */
 
-import React, { memo } from "react";
+import React, { memo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,17 +15,35 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Colors } from "../styles/Colors";
+import { getPublicProfile } from "../services/profileService";
 
 // ✅ Item de conversa
 const ConversaItem = memo(({ conversa, onPress, userId }) => {
-  // Identificar outro usuário
   const outroUserId =
     conversa.participantes[0] === userId
       ? conversa.participantes[1]
       : conversa.participantes[0];
 
+  const [perfil, setPerfil] = useState(null);
+
+  useEffect(() => {
+    if (!outroUserId) return;
+    getPublicProfile(outroUserId)
+      .then((p) => setPerfil(p))
+      .catch(() => setPerfil(null));
+  }, [outroUserId]);
+
+  const nomeOutro = perfil?.displayName || conversa.nomeOutro || `Usuário ${outroUserId.slice(0, 6)}`;
+  const fotoOutro = perfil?.photoURL || conversa.fotoOutro || `https://i.pravatar.cc/100?u=${outroUserId}`;
+
   const naoLidas = conversa.naoLido?.[userId] || 0;
   const ultimoFoiEle = conversa.remetente !== userId;
+
+  const formatarHora = (timestamp) => {
+    if (!timestamp) return "";
+    const date = timestamp.toDate?.() || new Date(timestamp);
+    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  };
 
   return (
     <TouchableOpacity
@@ -35,9 +53,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
     >
       {/* Avatar */}
       <Image
-        source={{
-          uri: `https://i.pravatar.cc/100?u=${outroUserId}`,
-        }}
+        source={{ uri: fotoOutro }}
         style={styles.avatar}
       />
 
@@ -51,7 +67,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
             ]}
             numberOfLines={1}
           >
-            Usuário {outroUserId.slice(0, 4)}
+            {nomeOutro}
           </Text>
           <Text
             style={[
@@ -59,7 +75,7 @@ const ConversaItem = memo(({ conversa, onPress, userId }) => {
               naoLidas > 0 && styles.horaNaoLida,
             ]}
           >
-            agora
+            {formatarHora(conversa.ultimaAtividade)}
           </Text>
         </View>
 
