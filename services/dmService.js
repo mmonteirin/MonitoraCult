@@ -103,6 +103,8 @@ export const enviarMensagem = async ({
       ...conversaPayload,
       [`naoLido.${destinatarioId}`]: increment(1),
       [`naoLido.${remetenteId}`]: 0,
+      [`usuariosComDeleção.${remetenteId}`]: false,
+      [`usuariosComDeleção.${destinatarioId}`]: false,
     }, { merge: true });
 
     // Adicionar mensagem após garantir que a conversa existe para as rules.
@@ -310,7 +312,11 @@ export const escutarConversas = (userId, callback) => {
       const conversas = [];
 
       snapshot.forEach((doc) => {
-        conversas.push({ id: doc.id, ...doc.data() });
+        const conversa = { id: doc.id, ...doc.data() };
+        const usuariosDeletou = conversa.usuariosComDeleção || {};
+        if (!usuariosDeletou[userId]) {
+          conversas.push(conversa);
+        }
       });
 
       callback(ordenarConversasPorAtividade(conversas));
