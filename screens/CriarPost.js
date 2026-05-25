@@ -7,7 +7,6 @@ import {
 	TextInput,
 	StyleSheet,
 	ActivityIndicator,
-	Modal,
 	ScrollView,
 	KeyboardAvoidingView,
 	Platform,
@@ -33,6 +32,8 @@ import { useAuth } from "../context/AuthContext";
 import AppText from "../components/AppText";
 
 import { Colors } from "../styles/Colors";
+
+import ConfirmModal from "../components/ConfirmModal";
 
 import { db } from "../firebaseConfig";
 
@@ -76,7 +77,11 @@ export default function CriarPost({ navigation }) {
 				await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 			if (!permission.granted) {
-				showModal("Permissão necessária", "Permita acesso à galeria.", "error");
+				showModal(
+					"Permissão necessária",
+					"Permita acesso à galeria.",
+					"error"
+				);
 
 				return;
 			}
@@ -95,20 +100,32 @@ export default function CriarPost({ navigation }) {
 		} catch (e) {
 			console.log(e);
 
-			showModal("Erro", "Não foi possível abrir a galeria.", "error");
+			showModal(
+				"Erro",
+				"Não foi possível abrir a galeria.",
+				"error"
+			);
 		}
 	};
 
 	/* PUBLICAR */
 	const publicar = async () => {
 		if (!imagem) {
-			showModal("Atenção", "Selecione uma imagem.", "error");
+			showModal(
+				"Atenção",
+				"Selecione uma imagem.",
+				"error"
+			);
 
 			return;
 		}
 
 		if (!descricao.trim()) {
-			showModal("Atenção", "Digite uma descrição.", "error");
+			showModal(
+				"Atenção",
+				"Digite uma descrição.",
+				"error"
+			);
 
 			return;
 		}
@@ -116,8 +133,10 @@ export default function CriarPost({ navigation }) {
 		try {
 			setLoading(true);
 
-			const imageUrl = await uploadImagem(imagem, user?.uid, (p) =>
-				setUploadProgress(p)
+			const imageUrl = await uploadImagem(
+				imagem,
+				user?.uid,
+				(p) => setUploadProgress(p)
 			);
 
 			await addDoc(collection(db, "posts"), {
@@ -126,9 +145,15 @@ export default function CriarPost({ navigation }) {
 				autor: {
 					uid: user?.uid,
 
-					nome: profile?.nome || user?.displayName || "Usuário",
+					nome:
+						profile?.nome ||
+						user?.displayName ||
+						"Usuário",
 
-					foto: profile?.foto || user?.photoURL || "https://i.pravatar.cc/100",
+					foto:
+						profile?.foto ||
+						user?.photoURL ||
+						"https://i.pravatar.cc/100",
 
 					email: user?.email || "",
 
@@ -139,10 +164,17 @@ export default function CriarPost({ navigation }) {
 
 				descricao: descricao.trim(),
 
+				likes: 0,
+
+				comentarios: 0,
+
 				createdAt: serverTimestamp(),
 			});
 
-			showModal("Sucesso 🎉", "Post publicado com sucesso!");
+			showModal(
+				"Sucesso 🎉",
+				"Post publicado com sucesso!"
+			);
 
 			setTimeout(() => {
 				setModalVisible(false);
@@ -152,7 +184,11 @@ export default function CriarPost({ navigation }) {
 		} catch (e) {
 			console.log(e);
 
-			showModal("Erro", "Não foi possível publicar o post.", "error");
+			showModal(
+				"Erro",
+				"Não foi possível publicar o post.",
+				"error"
+			);
 		} finally {
 			setLoading(false);
 
@@ -174,10 +210,19 @@ export default function CriarPost({ navigation }) {
 			/>
 
 			{/* HEADER */}
-			<LinearGradient colors={["#070B14", "#111827"]} style={styles.header}>
+			<LinearGradient
+				colors={["#070B14", "#111827"]}
+				style={styles.header}
+			>
 				<View style={styles.headerRow}>
-					<TouchableOpacity onPress={() => navigation.goBack()}>
-						<BlurView intensity={60} tint="dark" style={styles.backBtn}>
+					<TouchableOpacity
+						onPress={() => navigation.goBack()}
+					>
+						<BlurView
+							intensity={60}
+							tint="dark"
+							style={styles.backBtn}
+						>
 							<MaterialCommunityIcons
 								name="arrow-left"
 								size={24}
@@ -186,55 +231,83 @@ export default function CriarPost({ navigation }) {
 						</BlurView>
 					</TouchableOpacity>
 
-					<AppText style={styles.title}>Novo Post</AppText>
+					<AppText style={styles.title}>
+						Novo Post
+					</AppText>
 
 					<TouchableOpacity
 						disabled={!podePublicar || loading}
 						onPress={publicar}
 					>
 						<LinearGradient
-							colors={podePublicar ? ["#7C3AED", "#5B21B6"] : ["#333", "#333"]}
+							colors={
+								podePublicar
+									? ["#7C3AED", "#5B21B6"]
+									: ["#333", "#333"]
+							}
 							style={styles.publishBtn}
 						>
 							{loading ? (
-								<ActivityIndicator color="#FFF" size="small" />
+								<ActivityIndicator
+									color="#FFF"
+									size="small"
+								/>
 							) : (
-								<AppText style={styles.publishText}>Publicar</AppText>
+								<AppText
+									style={styles.publishText}
+								>
+									Publicar
+								</AppText>
 							)}
 						</LinearGradient>
 					</TouchableOpacity>
 				</View>
 
 				{/* PROGRESS */}
-				{loading && uploadProgress > 0 && uploadProgress < 1 && (
-					<View style={styles.progressContainer}>
-						<View style={styles.progressBarBg}>
-							<View
-								style={[
-									styles.progressBar,
-									{
-										width: `${uploadProgress * 100}%`,
-									},
-								]}
-							/>
-						</View>
+				{loading &&
+					uploadProgress > 0 &&
+					uploadProgress < 1 && (
+						<View style={styles.progressContainer}>
+							<View style={styles.progressBarBg}>
+								<View
+									style={[
+										styles.progressBar,
+										{
+											width: `${
+												uploadProgress * 100
+											}%`,
+										},
+									]}
+								/>
+							</View>
 
-						<AppText style={styles.progressText}>
-							Enviando imagem {Math.round(uploadProgress * 100)}%
-						</AppText>
-					</View>
-				)}
+							<AppText
+								style={styles.progressText}
+							>
+								Enviando imagem{" "}
+								{Math.round(
+									uploadProgress * 100
+								)}
+								%
+							</AppText>
+						</View>
+					)}
 			</LinearGradient>
 
 			{/* CONTEÚDO */}
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
+				behavior={
+					Platform.OS === "ios"
+						? "padding"
+						: undefined
+				}
 			>
 				<ScrollView
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={{
-						paddingBottom: insets.bottom + 140,
+						paddingBottom:
+							insets.bottom + 140,
 					}}
 				>
 					<MotiView
@@ -270,27 +343,47 @@ export default function CriarPost({ navigation }) {
 									/>
 
 									<LinearGradient
-										colors={["transparent", "rgba(0,0,0,0.85)"]}
-										style={styles.imageOverlay}
+										colors={[
+											"transparent",
+											"rgba(0,0,0,0.85)",
+										]}
+										style={
+											styles.imageOverlay
+										}
 									>
-										<View style={styles.changePhoto}>
+										<View
+											style={
+												styles.changePhoto
+											}
+										>
 											<MaterialCommunityIcons
 												name="camera"
 												size={18}
 												color="#FFF"
 											/>
 
-											<AppText style={styles.changePhotoText}>
+											<AppText
+												style={
+													styles.changePhotoText
+												}
+											>
 												Alterar foto
 											</AppText>
 										</View>
 									</LinearGradient>
 								</>
 							) : (
-								<View style={styles.placeholder}>
+								<View
+									style={styles.placeholder}
+								>
 									<LinearGradient
-										colors={["#7C3AED", "#5B21B6"]}
-										style={styles.placeholderIcon}
+										colors={[
+											"#7C3AED",
+											"#5B21B6",
+										]}
+										style={
+											styles.placeholderIcon
+										}
 									>
 										<MaterialCommunityIcons
 											name="image-plus"
@@ -299,42 +392,65 @@ export default function CriarPost({ navigation }) {
 										/>
 									</LinearGradient>
 
-									<AppText style={styles.placeholderTitle}>
+									<AppText
+										style={
+											styles.placeholderTitle
+										}
+									>
 										Adicionar imagem
 									</AppText>
 
-									<AppText style={styles.placeholderText}>
-										Escolha uma imagem incrível para o seu post
+									<AppText
+										style={
+											styles.placeholderText
+										}
+									>
+										Escolha uma imagem incrível
+										para o seu post
 									</AppText>
 								</View>
 							)}
 						</TouchableOpacity>
 
 						{/* INPUT */}
-						<View style={styles.inputContainer}>
-							<View style={styles.inputHeader}>
+						<View
+							style={styles.inputContainer}
+						>
+							<View
+								style={styles.inputHeader}
+							>
 								<MaterialCommunityIcons
 									name="text-box-outline"
 									size={20}
 									color={Colors.primary}
 								/>
 
-								<AppText style={styles.inputLabel}>Descrição</AppText>
+								<AppText
+									style={styles.inputLabel}
+								>
+									Descrição
+								</AppText>
 							</View>
 
 							<TextInput
 								placeholder="Escreva algo sobre esse momento..."
-								placeholderTextColor={Colors.textMuted}
+								placeholderTextColor={
+									Colors.textMuted
+								}
 								value={descricao}
 								onChangeText={setDescricao}
 								multiline
+								maxLength={500}
 								style={styles.input}
 							/>
 
-							<View style={styles.counterRow}>
-								<AppText style={styles.counter}>
-									{descricao.length}
-									/500
+							<View
+								style={styles.counterRow}
+							>
+								<AppText
+									style={styles.counter}
+								>
+									{descricao.length}/500
 								</AppText>
 							</View>
 						</View>
@@ -343,44 +459,16 @@ export default function CriarPost({ navigation }) {
 			</KeyboardAvoidingView>
 
 			{/* MODAL */}
-			<Modal transparent animationType="fade" visible={modalVisible}>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalBox}>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor:
-										modalData.type === "success"
-											? "rgba(34,197,94,0.18)"
-											: "rgba(239,68,68,0.18)",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={
-									modalData.type === "success" ? "check-circle" : "alert-circle"
-								}
-								size={42}
-								color={modalData.type === "success" ? "#22C55E" : "#EF4444"}
-							/>
-						</View>
-
-						<AppText style={styles.modalTitle}>{modalData.title}</AppText>
-
-						<AppText style={styles.modalMessage}>{modalData.message}</AppText>
-
-						<TouchableOpacity onPress={() => setModalVisible(false)}>
-							<LinearGradient
-								colors={["#7C3AED", "#5B21B6"]}
-								style={styles.modalBtn}
-							>
-								<AppText style={styles.modalBtnText}>OK</AppText>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalData.title}
+				message={modalData.message}
+				type={modalData.type}
+				confirmText="OK"
+				onConfirm={() =>
+					setModalVisible(false)
+				}
+			/>
 		</View>
 	);
 }
@@ -459,23 +547,14 @@ const styles = StyleSheet.create({
 
 	imageBox: {
 		height: 340,
-
 		marginHorizontal: 18,
-
 		marginTop: 24,
-
 		borderRadius: 30,
-
 		backgroundColor: "#111827",
-
 		overflow: "hidden",
-
 		borderWidth: 1,
-
 		borderColor: "rgba(255,255,255,0.08)",
-
 		justifyContent: "center",
-
 		alignItems: "center",
 	},
 
@@ -539,19 +618,12 @@ const styles = StyleSheet.create({
 
 	inputContainer: {
 		marginTop: 24,
-
 		marginHorizontal: 18,
-
 		marginBottom: 20,
-
 		backgroundColor: "#111827",
-
 		borderRadius: 26,
-
 		padding: 20,
-
 		borderWidth: 1,
-
 		borderColor: "rgba(255,255,255,0.08)",
 	},
 
@@ -584,59 +656,5 @@ const styles = StyleSheet.create({
 	counter: {
 		color: "rgba(255,255,255,0.45)",
 		fontSize: 12,
-	},
-
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.7)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-
-	modalBox: {
-		width: "100%",
-		backgroundColor: "#111827",
-		borderRadius: 30,
-		padding: 28,
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
-	},
-
-	modalIcon: {
-		width: 84,
-		height: 84,
-		borderRadius: 30,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 18,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-		fontSize: 22,
-		fontWeight: "800",
-		marginBottom: 10,
-	},
-
-	modalMessage: {
-		color: "rgba(255,255,255,0.72)",
-		fontSize: 15,
-		lineHeight: 24,
-		textAlign: "center",
-		marginBottom: 24,
-	},
-
-	modalBtn: {
-		paddingHorizontal: 40,
-		paddingVertical: 14,
-		borderRadius: 18,
-	},
-
-	modalBtnText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 15,
 	},
 });

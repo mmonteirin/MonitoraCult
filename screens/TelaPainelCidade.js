@@ -1,695 +1,1375 @@
-import React, { useEffect, useState } from "react";
+import React, {
+	useEffect,
+	useMemo,
+	useState,
+	useCallback,
+	memo,
+} from "react";
 
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  RefreshControl,
+	View,
+	Text,
+	StyleSheet,
+	TouchableOpacity,
+	Dimensions,
+	ActivityIndicator,
+	StatusBar,
+	FlatList,
 } from "react-native";
+
+import { Image } from "expo-image";
+
+import Animated, {
+	FadeInDown,
+	FadeInUp,
+	FadeInLeft,
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+	interpolate,
+	useAnimatedScrollHandler,
+} from "react-native-reanimated";
 
 import * as Location from "expo-location";
 
 import { LinearGradient } from "expo-linear-gradient";
+
+import { BlurView } from "expo-blur";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useNavigation } from "@react-navigation/native";
+
+import { FlashList } from "@shopify/flash-list";
+
+import {
+	collection,
+	getDocs,
+	limit,
+	orderBy,
+	query,
+	where,
+	Timestamp,
+} from "firebase/firestore";
+
+import { db } from "../firebaseConfig";
+
+import { useAuth } from "../context/AuthContext";
+
 import { Colors } from "../styles/Colors";
+
 import { getMapaSummary } from "../services/mapaVivoService";
 
-export default function TelaPainelCidade({
-  navigation,
-}) {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] =
-    useState(false);
+import {
+	subscribeToEvent,
+	unsubscribeFromEvent,
+	getSubscribedEvents,
+} from "../services/subscribedEventsService";
 
-  const [cidade, setCidade] = useState("---");
-  const [bairro, setBairro] = useState("---");
-  const [regiao, setRegiao] = useState("---");
+import {
+	getUserFeedLikes,
+	toggleFeedLike,
+} from "../services/feedService";
 
-  const [endereco, setEndereco] =
-    useState("Endereço desconhecido");
+const { width, height } = Dimensions.get("window");
 
-  const [stats, setStats] = useState({
-    eventos: 12,
-    ocorrencias: 4,
-    verificadas: 9,
-    alertas: 2,
-    proximos: 0,
-    checkIns: 0,
-    hotspots: 0,
-  });
+const DEFAULT_EVENT_IMAGE =
+	"https://placehold.co/600x600/1B1D26/6C5CE7?text=Evento";
 
-  async function carregarLocalizacao() {
-    try {
-      setLoading(true);
+const AnimatedFlashList =
+	Animated.createAnimatedComponent(FlashList);
 
-      const { status } =
-        await Location.requestForegroundPermissionsAsync();
+const AnimatedImage =
+	Animated.createAnimatedComponent(Image);
 
-      if (status !== "granted") {
-        setLoading(false);
-        return;
-      }
+const categorias = [
+	"Todos",
+	"Shows",
+	"Teatro",
+	"Arte",
+	"Gastronomia",
+	"Festival",
+];
 
-      const location =
-        await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
+const ACOES_RAPIDAS = [
+	{
+		id: "mapa",
+		icon: "map-marker-radius",
+		label: "Mapa Vivo",
+		route: "MapaVivo",
+		color: "#6C5CE7",
+		bg: "rgba(108,92,231,0.18)",
+	},
+	{
+		id: "agenda",
+		icon: "calendar-month",
+		label: "Agenda",
+		route: "AgendaEventos",
+		color: "#22D3EE",
+		bg: "rgba(34,211,238,0.15)",
+	},
+	{
+		id: "busca",
+		icon: "magnify",
+		label: "Explorar",
+		route: "Busca",
+		color: "#F472B6",
+		bg: "rgba(244,114,182,0.15)",
+	},
+	{
+		id: "comunidade",
+		icon: "account-group",
+		label: "Comunidade",
+		route: "Comunidade",
+		color: "#F97316",
+		bg: "rgba(249,115,22,0.15)",
+	},
+];
 
-      const resumo = await getMapaSummary(
-        location.coords.latitude,
-        location.coords.longitude
-      );
+// ──────────────────────────────────────────────
+// LikeButton
+// ──────────────────────────────────────────────
+const LikeButton = memo(({ isLiked, onPress }) => {
+	const scale = useSharedValue(1);
 
-      setStats((current) => ({
-        ...current,
-        eventos: resumo.totalEventos,
-        verificadas: resumo.totalEventos,
-        proximos: resumo.proximos,
-        checkIns: resumo.totalCheckins,
-        hotspots: resumo.hotspots,
-      }));
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
 
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.coords.latitude}&lon=${location.coords.longitude}`
-      );
+	const handlePress = () => {
+		scale.value = withSpring(1.3, { damping: 6 });
+		setTimeout(() => {
+			scale.value = withSpring(1);
+		}, 130);
+		onPress();
+	};
 
-      const data = await response.json();
+	return (
+		<TouchableOpacity
+			style={styles.actionBtn}
+			onPress={handlePress}
+		>
+			<Animated.View style={animatedStyle}>
+				<MaterialCommunityIcons
+					name={isLiked ? "heart" : "heart-outline"}
+					size={24}
+					color={isLiked ? "#A855F7" : "#FFF"}
+				/>
+			</Animated.View>
+		</TouchableOpacity>
+	);
+});
 
-      setCidade(
-        data?.address?.city ||
-          data?.address?.town ||
-          data?.address?.municipality ||
-          "Cidade desconhecida"
-      );
+// ──────────────────────────────────────────────
+// StatCard
+// ──────────────────────────────────────────────
+const StatCard = memo(({ value, label, icon, color, delay }) => (
+	<Animated.View
+		entering={FadeInUp.delay(delay).springify()}
+		style={[styles.statCard, { borderColor: color + "30" }]}
+	>
+		<View style={[styles.statIconWrap, { backgroundColor: color + "20" }]}>
+			<MaterialCommunityIcons name={icon} size={18} color={color} />
+		</View>
+		<Text style={styles.statNumber}>{value}</Text>
+		<Text style={styles.statLabel}>{label}</Text>
+	</Animated.View>
+));
 
-      setBairro(
-        data?.address?.suburb ||
-          data?.address?.neighbourhood ||
-          "Bairro desconhecido"
-      );
+// ──────────────────────────────────────────────
+// AcaoRapidaCard
+// ──────────────────────────────────────────────
+const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
+	<Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+		<TouchableOpacity
+			style={[styles.acaoCard, { backgroundColor: acao.bg }]}
+			onPress={() => onPress(acao.route)}
+			activeOpacity={0.8}
+		>
+			<MaterialCommunityIcons
+				name={acao.icon}
+				size={28}
+				color={acao.color}
+			/>
+			<Text style={[styles.acaoLabel, { color: acao.color }]}>
+				{acao.label}
+			</Text>
+		</TouchableOpacity>
+	</Animated.View>
+));
 
-      setRegiao(
-        data?.address?.state ||
-          "Estado desconhecido"
-      );
+// ──────────────────────────────────────────────
+// FeedCard vertical
+// ──────────────────────────────────────────────
+const FeedCard = memo(
+	({ item, index, isLiked, isSubscribed, onLike, onNotification }) => (
+		<Animated.View
+			entering={FadeInDown.delay(index * 80).springify()}
+			style={styles.feedCard}
+		>
+			<TouchableOpacity activeOpacity={0.92} style={styles.feedCardInner}>
+				<AnimatedImage
+					source={{ uri: item.imagem }}
+					style={styles.feedImage}
+					contentFit="cover"
+				/>
 
-      setEndereco(
-        `${
-          data?.address?.road ||
-          "Rua desconhecida"
-        }${
-          data?.address?.house_number
-            ? `, ${data.address.house_number}`
-            : ""
-        }`
-      );
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
+				<LinearGradient
+					colors={["transparent", "rgba(0,0,0,0.92)"]}
+					style={styles.feedGradient}
+				/>
 
-  useEffect(() => {
-    carregarLocalizacao();
-  }, []);
+				{/* Badge categoria */}
+				<View style={styles.feedBadge}>
+					<Text style={styles.feedBadgeText}>{item.categoria}</Text>
+				</View>
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    carregarLocalizacao();
-  };
+				<View style={styles.feedContent}>
+					<Text numberOfLines={2} style={styles.feedTitle}>
+						{item.titulo}
+					</Text>
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator
-          size="large"
-          color={Colors.primary}
-        />
+					<View style={styles.feedMeta}>
+						<MaterialCommunityIcons
+							name="map-marker"
+							size={13}
+							color="rgba(255,255,255,0.65)"
+						/>
+						<Text style={styles.feedLocation} numberOfLines={1}>
+							{item.local}
+						</Text>
+					</View>
 
-        <Text style={styles.loadingText}>
-          Carregando painel...
-        </Text>
-      </View>
-    );
-  }
+					<View style={styles.feedActions}>
+						<View style={styles.leftActions}>
+							<LikeButton
+								isLiked={isLiked}
+								onPress={() => onLike(item.id, item.type)}
+							/>
+							<TouchableOpacity style={styles.actionBtn}>
+								<MaterialCommunityIcons
+									name="share-variant-outline"
+									size={22}
+									color="#FFF"
+								/>
+							</TouchableOpacity>
+						</View>
 
-  return (
-    <View style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-          />
-        }
-      >
-        {/* HEADER */}
-        <LinearGradient
-          colors={[
-            Colors.primary,
-            "#5B4CF0",
-            "#241B4B",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          {/* GLOW */}
-          <View style={styles.glow} />
+						<TouchableOpacity
+							style={[
+								styles.notifBtn,
+								isSubscribed && styles.notifBtnActive,
+							]}
+							onPress={() => onNotification(item)}
+						>
+							<MaterialCommunityIcons
+								name={
+									isSubscribed
+										? "bell-check"
+										: "bell-plus-outline"
+								}
+								size={16}
+								color={isSubscribed ? "#6C5CE7" : "#FFF"}
+							/>
+							<Text
+								style={[
+									styles.notifBtnText,
+									isSubscribed && styles.notifBtnTextActive,
+								]}
+							>
+								{isSubscribed ? "Inscrito" : "Notificar"}
+							</Text>
+						</TouchableOpacity>
+					</View>
+				</View>
+			</TouchableOpacity>
+		</Animated.View>
+	)
+);
 
-          {/* BACK */}
-          <TouchableOpacity
-            onPress={() =>
-              navigation.goBack()
-            }
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={22}
-              color="#fff"
-            />
-          </TouchableOpacity>
+// ──────────────────────────────────────────────
+// MAIN SCREEN
+// ──────────────────────────────────────────────
+export default function TelaPainelCidade() {
+	const navigation = useNavigation();
+	const insets = useSafeAreaInsets();
+	const { user, nome } = useAuth();
 
-          {/* CONTENT */}
-          <View style={styles.headerContent}>
-            {/* ÍCONE */}
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons
-                name="city-variant-outline"
-                size={34}
-                color="#fff"
-              />
-            </View>
+	const [loading, setLoading] = useState(true);
+	const [eventos, setEventos] = useState([]);
+	const [likedIds, setLikedIds] = useState([]);
+	const [subscribedEvents, setSubscribedEvents] = useState({});
+	const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
+	const [cidade, setCidade] = useState("Fortaleza");
+	const [bairro, setBairro] = useState("Sua região");
+	const [regiao, setRegiao] = useState("CE");
+	const [painelCidade, setPainelCidade] = useState({
+		eventos: 0,
+		proximos: 0,
+		hotspots: 0,
+	});
 
-            {/* INFOS */}
-            <View style={styles.headerTexts}>
-              <Text style={styles.headerTitle}>
-                Painel da Cidade
-              </Text>
+	const scrollY = useSharedValue(0);
+	const horizontalX = useSharedValue(0);
 
-              <Text style={styles.cityName}>
-                {cidade}
-              </Text>
+	const scrollHandler = useAnimatedScrollHandler({
+		onScroll: (event) => {
+			scrollY.value = event.contentOffset.y;
+		},
+	});
 
-              <Text style={styles.regionText}>
-                {bairro} • {regiao}
-              </Text>
-            </View>
+	const horizontalHandler = useAnimatedScrollHandler({
+		onScroll: (event) => {
+			horizontalX.value = event.contentOffset.x;
+		},
+	});
 
-            {/* LOCAL */}
-            <View style={styles.locationMiniCard}>
-              <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={18}
-                color="#fff"
-              />
+	const nomeUsuario =
+		nome ||
+		user?.displayName ||
+		user?.email?.split("@")[0] ||
+		"Explorador";
 
-              <Text
-                style={styles.locationMiniTitle}
-              >
-                Sua localização
-              </Text>
+	const saudacaoHorario = useMemo(() => {
+		const hora = new Date().getHours();
+		if (hora < 12) return "Bom dia ☀️";
+		if (hora < 18) return "Boa tarde 🌤️";
+		return "Boa noite 🌙";
+	}, []);
 
-              <Text
-                numberOfLines={2}
-                style={styles.locationMiniText}
-              >
-                {endereco}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
+	useEffect(() => {
+		carregarTudo();
+	}, []);
 
-        {/* STATS */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="calendar-star"
-              size={26}
-              color="#8b5cf6"
-            />
+	async function carregarTudo() {
+		try {
+			setLoading(true);
+			await Promise.all([
+				carregarLikes(),
+				carregarSubscribedEvents(),
+				carregarGeolocalizacao(),
+				carregarFeed(),
+			]);
+		} catch (e) {
+			console.log(e);
+		} finally {
+			setLoading(false);
+		}
+	}
 
-            <Text style={styles.statNumber}>
-              {stats.eventos}
-            </Text>
+	async function carregarGeolocalizacao() {
+		try {
+			const { status } =
+				await Location.requestForegroundPermissionsAsync();
+			if (status !== "granted") return;
 
-            <Text style={styles.statLabel}>
-              Eventos
-            </Text>
-          </View>
+			const localizacao = await Location.getCurrentPositionAsync({
+				accuracy: Location.Accuracy.Balanced,
+			});
 
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="fire"
-              size={26}
-              color="#ef4444"
-            />
+			const resumo = await getMapaSummary(
+				localizacao.coords.latitude,
+				localizacao.coords.longitude
+			);
 
-            <Text style={styles.statNumber}>
-              {stats.hotspots}
-            </Text>
+			setPainelCidade({
+				eventos: resumo.totalEventos || 0,
+				proximos: resumo.proximos || 0,
+				hotspots: resumo.hotspots || 0,
+			});
 
-            <Text style={styles.statLabel}>
-              Hotspots
-            </Text>
-          </View>
-        </View>
+			const response = await fetch(
+				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${localizacao.coords.latitude}&lon=${localizacao.coords.longitude}`
+			);
+			const data = await response.json();
 
-        {/* STATUS */}
-        <View style={styles.statusContainer}>
-          <View style={styles.statusCard}>
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor: "#22c55e",
-                },
-              ]}
-            />
+			setCidade(data?.address?.city || "Fortaleza");
+			setBairro(
+				data?.address?.suburb ||
+					data?.address?.neighbourhood ||
+					"Sua região"
+			);
+			setRegiao(data?.address?.state || "CE");
+		} catch (e) {
+			console.log(e);
+		}
+	}
 
-            <View>
-              <Text style={styles.statusTitle}>
-                Eventos próximos
-              </Text>
+	async function carregarFeed() {
+		try {
+			const eventosQuery = query(
+				collection(db, "eventos"),
+				orderBy("createdAt", "desc"),
+				limit(12)
+			);
+			const snap = await getDocs(eventosQuery);
+			const lista = snap.docs.map((doc) => {
+				const data = doc.data();
+				return {
+					id: doc.id,
+					type: "evento",
+					...data,
+					imagem: data.imagemEvento || DEFAULT_EVENT_IMAGE,
+					titulo: data.tituloEvento || "Evento",
+					local: data.localEvento || "Local",
+					categoria: data.categoria || "Evento",
+					score: data.likes || 0,
+					data: data.dataEvento || null,
+				};
+			});
+			setEventos(lista);
+		} catch (e) {
+			console.log(e);
+		}
+	}
 
-              <Text style={styles.statusValue}>
-                {stats.proximos} em até 5km
-              </Text>
-            </View>
-          </View>
+	async function carregarLikes() {
+		try {
+			if (!user?.uid) return;
+			const likes = await getUserFeedLikes(user.uid);
+			setLikedIds(likes);
+		} catch (e) {
+			console.log(e);
+		}
+	}
 
-          <View style={styles.statusCard}>
-            <View
-              style={[
-                styles.statusDot,
-                {
-                  backgroundColor: "#f59e0b",
-                },
-              ]}
-            />
+	async function carregarSubscribedEvents() {
+		try {
+			if (!user?.uid) return;
+			const eventosInscritos = await getSubscribedEvents(user.uid);
+			const mapa = {};
+			eventosInscritos.forEach((evento) => {
+				mapa[evento.id] = true;
+			});
+			setSubscribedEvents(mapa);
+		} catch (e) {
+			console.log(e);
+		}
+	}
 
-            <View>
-              <Text style={styles.statusTitle}>
-                Check-ins culturais
-              </Text>
+	const toggleLike = useCallback(
+		async (itemId, itemType) => {
+			try {
+				const liked = await toggleFeedLike(itemId, itemType, user?.uid);
+				const itemKey = `${itemType}-${itemId}`;
+				if (liked) {
+					setLikedIds((prev) =>
+						prev.includes(itemKey) ? prev : [...prev, itemKey]
+					);
+				} else {
+					setLikedIds((prev) => prev.filter((id) => id !== itemKey));
+				}
+			} catch (e) {
+				console.log(e);
+			}
+		},
+		[user?.uid]
+	);
 
-              <Text style={styles.statusValue}>
-                {stats.checkIns} registros recentes
-              </Text>
-            </View>
-          </View>
-        </View>
+	const toggleNotification = useCallback(
+		async (evento) => {
+			try {
+				const isSubscribed = subscribedEvents[evento.id];
+				if (isSubscribed) {
+					await unsubscribeFromEvent(user?.uid, evento.id);
+					setSubscribedEvents((prev) => ({
+						...prev,
+						[evento.id]: false,
+					}));
+				} else {
+					await subscribeToEvent(user?.uid, evento);
+					setSubscribedEvents((prev) => ({
+						...prev,
+						[evento.id]: true,
+					}));
+				}
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		[user?.uid, subscribedEvents]
+	);
 
-        {/* AÇÕES */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            Ações rápidas
-          </Text>
+	const eventosFiltrados = useMemo(() => {
+		if (categoriaAtiva === "Todos") return eventos;
+		return eventos.filter((evento) =>
+			evento.categoria
+				?.toLowerCase()
+				.includes(categoriaAtiva.toLowerCase())
+		);
+	}, [eventos, categoriaAtiva]);
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() =>
-              navigation.navigate("MapaVivo")
-            }
-          >
-            <View style={styles.actionLeft}>
-              <MaterialCommunityIcons
-                name="map-marker-radius"
-                size={22}
-                color={Colors.primary}
-              />
+	const destaques = useMemo(
+		() =>
+			eventosFiltrados
+				.slice()
+				.sort((a, b) => b.score - a.score)
+				.slice(0, 6),
+		[eventosFiltrados]
+	);
 
-              <Text style={styles.actionText}>
-                Abrir Mapa Vivo da Cultura
-              </Text>
-            </View>
+	const proximosEventos = useMemo(
+		() => eventosFiltrados.slice(0, 8),
+		[eventosFiltrados]
+	);
 
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={22}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
+	// ── animated header parallax ──
+	const headerStyle = useAnimatedStyle(() => {
+		const translateY = interpolate(
+			scrollY.value,
+			[0, 300],
+			[0, -100]
+		);
+		const scale = interpolate(scrollY.value, [-100, 0], [1.08, 1]);
+		return { transform: [{ translateY }, { scale }] };
+	});
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() =>
-              navigation.navigate("HomeTabs", {
-                screen: "Ingressos",
-                params: {
-                  screen: "EventosApp",
-                },
-              })
-            }
-          >
-            <View style={styles.actionLeft}>
-              <MaterialCommunityIcons
-                name="bookmark-check-outline"
-                size={22}
-                color={Colors.primary}
-              />
+	// ── sticky top bar opacity ──
+	const stickyBarStyle = useAnimatedStyle(() => {
+		const opacity = interpolate(scrollY.value, [200, 280], [0, 1]);
+		return { opacity };
+	});
 
-              <Text style={styles.actionText}>
-                Ver próximos eventos
-              </Text>
-            </View>
+	// ──────────── LOADING ────────────
+	if (loading) {
+		return (
+			<View style={styles.loadingContainer}>
+				<ActivityIndicator size="large" color={Colors.primary} />
+				<Text style={styles.loadingText}>
+					Carregando experiências...
+				</Text>
+			</View>
+		);
+	}
 
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={22}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
+	// ──────────── HeroCard (destaques horizontais) ────────────
+	const HeroCard = ({ item, index }) => {
+		const imageStyle = useAnimatedStyle(() => {
+			const imageScale = interpolate(
+				horizontalX.value,
+				[
+					(index - 1) * (width * 0.78 + 16),
+					index * (width * 0.78 + 16),
+					(index + 1) * (width * 0.78 + 16),
+				],
+				[1, 1.06, 1]
+			);
+			return { transform: [{ scale: imageScale }] };
+		});
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() =>
-              navigation.navigate("HomeTabs", {
-                screen: "Feed",
-              })
-            }
-          >
-            <View style={styles.actionLeft}>
-              <MaterialCommunityIcons
-                name="rss"
-                size={22}
-                color={Colors.primary}
-              />
+		return (
+			<Animated.View
+				entering={FadeInUp.delay(index * 80).springify()}
+			>
+				<TouchableOpacity
+					activeOpacity={0.94}
+					style={styles.heroCard}
+					onPress={() =>
+						navigation.navigate("Detalhes", { evento: item })
+					}
+				>
+					<AnimatedImage
+						source={{ uri: item.imagem }}
+						style={[styles.heroImage, imageStyle]}
+						contentFit="cover"
+					/>
+					<LinearGradient
+						colors={["transparent", "rgba(0,0,0,0.96)"]}
+						style={styles.heroGradient}
+					/>
+					<View style={styles.heroContent}>
+						<View style={styles.heroBadge}>
+							<Text style={styles.heroBadgeText}>
+								{item.categoria}
+							</Text>
+						</View>
+						<Text numberOfLines={2} style={styles.heroTitle}>
+							{item.titulo}
+						</Text>
+						<Text style={styles.heroLocation}>
+							📍 {item.local}
+						</Text>
+					</View>
+				</TouchableOpacity>
+			</Animated.View>
+		);
+	};
 
-              <Text style={styles.actionText}>
-                Ver Feed de Eventos
-              </Text>
-            </View>
+	// ──────────── RENDER ────────────
+	return (
+		<View style={styles.container}>
+			<StatusBar barStyle="light-content" />
 
-            <MaterialCommunityIcons
-              name="chevron-right"
-              size={22}
-              color={Colors.textMuted}
-            />
-          </TouchableOpacity>
-        </View>
+			{/* Sticky top bar (aparece ao rolar) */}
+			<Animated.View
+				style={[
+					styles.stickyBar,
+					{ paddingTop: insets.top },
+					stickyBarStyle,
+				]}
+			>
+				<BlurView intensity={60} tint="dark" style={styles.stickyBarBlur}>
+					<MaterialCommunityIcons
+						name="map-marker-radius"
+						size={16}
+						color="#A78BFA"
+					/>
+					<Text style={styles.stickyBarText}>
+						{bairro} • {cidade}
+					</Text>
+				</BlurView>
+			</Animated.View>
 
-        {/* ATIVIDADE */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>
-            Atividade recente
-          </Text>
+			<Animated.ScrollView
+				onScroll={scrollHandler}
+				scrollEventThrottle={16}
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{ paddingBottom: 140 }}
+			>
+				{/* ── HEADER ── */}
+				<Animated.View style={headerStyle}>
+					<LinearGradient
+						colors={["#111827", "#0F172A", "#05060A"]}
+						style={[styles.header, { paddingTop: insets.top + 16 }]}
+					>
+						{/* Glow decorativo */}
+						<View style={styles.headerGlow} />
+						<View style={styles.headerGlow2} />
 
-          <View style={styles.activityItem}>
-            <MaterialCommunityIcons
-              name="calendar-check"
-              size={20}
-              color="#22c55e"
-            />
+						{/* Top row */}
+						<View style={styles.headerTop}>
+							<View>
+								<Text style={styles.greeting}>
+									{saudacaoHorario}
+								</Text>
+								<Text style={styles.name}>{nomeUsuario}</Text>
+								<View style={styles.locationRow}>
+									<MaterialCommunityIcons
+										name="map-marker-radius"
+										size={16}
+										color="#A78BFA"
+									/>
+									<Text style={styles.locationTextHeader}>
+										{bairro} • {cidade}
+									</Text>
+								</View>
+							</View>
 
-            <View style={{ flex: 1 }}>
-              <Text
-                style={styles.activityTitle}
-              >
-                Você confirmou presença
-              </Text>
+							<View style={styles.headerButtons}>
+								<TouchableOpacity
+									style={styles.headerBtn}
+									onPress={() =>
+										navigation.navigate("CriarPost")
+									}
+								>
+									<MaterialCommunityIcons
+										name="plus"
+										size={22}
+										color="#FFF"
+									/>
+								</TouchableOpacity>
+								<TouchableOpacity
+									style={styles.headerBtn}
+									onPress={() =>
+										navigation.navigate("Notificacoes")
+									}
+								>
+									<MaterialCommunityIcons
+										name="bell-outline"
+										size={22}
+										color="#FFF"
+									/>
+								</TouchableOpacity>
+							</View>
+						</View>
 
-              <Text
-                style={styles.activityText}
-              >
-                Festival Cultural do Ceará
-              </Text>
-            </View>
-          </View>
+						{/* City Card */}
+						<View style={styles.cityCard}>
+							<View style={styles.cityTop}>
+								<View>
+									<Text style={styles.cityLabel}>
+										SUA REGIÃO
+									</Text>
+									<Text style={styles.cityTitle}>
+										{cidade}
+									</Text>
+									<Text style={styles.citySub}>
+										{bairro} • {regiao}
+									</Text>
+								</View>
+								<View style={styles.livePill}>
+									<View style={styles.liveDot} />
+									<Text style={styles.liveText}>AO VIVO</Text>
+								</View>
+							</View>
 
-          <View style={styles.activityItem}>
-            <MaterialCommunityIcons
-              name="alert-outline"
-              size={20}
-              color="#f59e0b"
-            />
+							{/* Stats */}
+							<View style={styles.statsRow}>
+								<StatCard
+									value={painelCidade.eventos}
+									label="Eventos"
+									icon="calendar-star"
+									color="#6C5CE7"
+									delay={0}
+								/>
+								<StatCard
+									value={painelCidade.proximos}
+									label="Próximos"
+									icon="clock-fast"
+									color="#22D3EE"
+									delay={80}
+								/>
+								<StatCard
+									value={painelCidade.hotspots}
+									label="Hotspots"
+									icon="fire"
+									color="#F97316"
+									delay={160}
+								/>
+							</View>
 
-            <View style={{ flex: 1 }}>
-              <Text
-                style={styles.activityTitle}
-              >
-                Nova ocorrência registrada
-              </Text>
+							{/* Botão mapa */}
+							<TouchableOpacity
+								style={styles.mapButton}
+								onPress={() =>
+									navigation.navigate("MapaVivo")
+								}
+							>
+								<LinearGradient
+									colors={["#6C5CE7", "#5746D6"]}
+									start={{ x: 0, y: 0 }}
+									end={{ x: 1, y: 0 }}
+									style={styles.mapButtonGradient}
+								>
+									<MaterialCommunityIcons
+										name="radar"
+										size={20}
+										color="#FFF"
+									/>
+									<Text style={styles.mapButtonText}>
+										Explorar mapa cultural
+									</Text>
+									<MaterialCommunityIcons
+										name="chevron-right"
+										size={20}
+										color="rgba(255,255,255,0.7)"
+									/>
+								</LinearGradient>
+							</TouchableOpacity>
+						</View>
+					</LinearGradient>
+				</Animated.View>
 
-              <Text
-                style={styles.activityText}
-              >
-                Praça do Mondubim
-              </Text>
-            </View>
-          </View>
-        </View>
+				{/* ── AÇÕES RÁPIDAS ── */}
+				<View style={styles.sectionHeader}>
+					<Text style={styles.sectionTitle}>Acesso rápido</Text>
+				</View>
+				<View style={styles.acoesGrid}>
+					{ACOES_RAPIDAS.map((acao, i) => (
+						<AcaoRapidaCard
+							key={acao.id}
+							acao={acao}
+							index={i}
+							onPress={(route) => navigation.navigate(route)}
+						/>
+					))}
+				</View>
 
-        <View style={{ height: 30 }} />
-      </ScrollView>
-    </View>
-  );
+				{/* ── CATEGORIAS ── */}
+				<FlatList
+					data={categorias}
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.categoriasList}
+					keyExtractor={(item) => item}
+					renderItem={({ item }) => {
+						const active = categoriaAtiva === item;
+						return (
+							<TouchableOpacity
+								onPress={() => setCategoriaAtiva(item)}
+								style={[
+									styles.categoryPill,
+									active && styles.categoryPillActive,
+								]}
+							>
+								<Text
+									style={[
+										styles.categoryText,
+										active && styles.categoryTextActive,
+									]}
+								>
+									{item}
+								</Text>
+							</TouchableOpacity>
+						);
+					}}
+				/>
+
+				{/* ── DESTAQUES (carrossel horizontal) ── */}
+				<View style={styles.sectionHeader}>
+					<View>
+						<Text style={styles.sectionTitle}>Destaques</Text>
+						<Text style={styles.sectionSub}>
+							Eventos em alta na sua região
+						</Text>
+					</View>
+					<TouchableOpacity
+						onPress={() => navigation.navigate("EventosApp")}
+					>
+						<Text style={styles.sectionLink}>Ver todos</Text>
+					</TouchableOpacity>
+				</View>
+
+				{destaques.length === 0 ? (
+					<View style={styles.emptySection}>
+						<MaterialCommunityIcons
+							name="calendar-blank-outline"
+							size={42}
+							color="rgba(255,255,255,0.2)"
+						/>
+						<Text style={styles.emptyText}>
+							Nenhum destaque encontrado
+						</Text>
+					</View>
+				) : (
+					<AnimatedFlashList
+						data={destaques}
+						horizontal
+						renderItem={({ item, index }) => (
+							<HeroCard item={item} index={index} />
+						)}
+						keyExtractor={(item) => item.id.toString()}
+						estimatedItemSize={320}
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{ paddingHorizontal: 18 }}
+						onScroll={horizontalHandler}
+						scrollEventThrottle={16}
+					/>
+				)}
+
+				{/* ── DIVISOR ── */}
+				<View style={styles.divider} />
+
+				{/* ── FEED VERTICAL ── */}
+				<View style={styles.sectionHeader}>
+					<View>
+						<Text style={styles.sectionTitle}>Explorar</Text>
+						<Text style={styles.sectionSub}>
+							Todos os eventos recentes
+						</Text>
+					</View>
+				</View>
+
+				{proximosEventos.map((item, index) => (
+					<FeedCard
+						key={item.id}
+						item={item}
+						index={index}
+						isLiked={likedIds.includes(
+							`${item.type}-${item.id}`
+						)}
+						isSubscribed={!!subscribedEvents[item.id]}
+						onLike={toggleLike}
+						onNotification={toggleNotification}
+					/>
+				))}
+
+				{proximosEventos.length === 0 && (
+					<View style={styles.emptySection}>
+						<MaterialCommunityIcons
+							name="calendar-search"
+							size={42}
+							color="rgba(255,255,255,0.2)"
+						/>
+						<Text style={styles.emptyText}>
+							Nenhum evento encontrado para esta categoria
+						</Text>
+					</View>
+				)}
+			</Animated.ScrollView>
+
+			{/* ── FAB criar evento ── */}
+			<Animated.View
+				entering={FadeInDown.delay(400).springify()}
+				style={[styles.fab, { bottom: insets.bottom + 90 }]}
+			>
+				<TouchableOpacity
+					onPress={() => navigation.navigate("CriarPost")}
+					activeOpacity={0.85}
+				>
+					<LinearGradient
+						colors={["#8B7CFF", "#6C5CE7"]}
+						style={styles.fabGradient}
+					>
+						<MaterialCommunityIcons
+							name="plus"
+							size={26}
+							color="#FFF"
+						/>
+					</LinearGradient>
+				</TouchableOpacity>
+			</Animated.View>
+		</View>
+	);
 }
 
+// ──────────────────────────────────────────────
+// STYLES
+// ──────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+	container: {
+		flex: 1,
+		backgroundColor: Colors.background,
+	},
 
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.background,
-  },
+	// ── Loading ──
+	loadingContainer: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: Colors.background,
+	},
+	loadingText: {
+		color: "rgba(255,255,255,0.6)",
+		marginTop: 16,
+		fontSize: 15,
+	},
 
-  loadingText: {
-    marginTop: 12,
-    color: Colors.textMuted,
-  },
+	// ── Sticky bar ──
+	stickyBar: {
+		position: "absolute",
+		top: 0,
+		left: 0,
+		right: 0,
+		zIndex: 100,
+	},
+	stickyBarBlur: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		paddingVertical: 12,
+		gap: 6,
+	},
+	stickyBarText: {
+		color: "rgba(255,255,255,0.8)",
+		fontSize: 13,
+		fontWeight: "600",
+	},
 
-  header: {
-    paddingTop: 54,
-    paddingBottom: 26,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    overflow: "hidden",
-  },
+	// ── Header ──
+	header: {
+		paddingBottom: 34,
+		paddingHorizontal: 20,
+		borderBottomLeftRadius: 36,
+		borderBottomRightRadius: 36,
+		overflow: "hidden",
+	},
+	headerGlow: {
+		position: "absolute",
+		width: 280,
+		height: 280,
+		borderRadius: 140,
+		backgroundColor: "rgba(139,92,246,0.18)",
+		top: -120,
+		right: -100,
+	},
+	headerGlow2: {
+		position: "absolute",
+		width: 180,
+		height: 180,
+		borderRadius: 90,
+		backgroundColor: "rgba(34,211,238,0.08)",
+		top: 40,
+		left: -60,
+	},
+	headerTop: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+	},
+	greeting: {
+		color: "rgba(255,255,255,0.55)",
+		fontSize: 15,
+	},
+	name: {
+		color: "#FFF",
+		fontSize: 32,
+		fontWeight: "800",
+		marginTop: 4,
+	},
+	locationRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 10,
+		gap: 5,
+	},
+	locationTextHeader: {
+		color: "rgba(255,255,255,0.6)",
+		fontSize: 13,
+	},
+	headerButtons: {
+		flexDirection: "row",
+		gap: 10,
+	},
+	headerBtn: {
+		width: 48,
+		height: 48,
+		borderRadius: 18,
+		backgroundColor: "rgba(255,255,255,0.08)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
 
-  glow: {
-    position: "absolute",
-    width: 240,
-    height: 240,
-    borderRadius: 140,
-    backgroundColor:
-      "rgba(255,255,255,0.08)",
-    top: -80,
-    right: -80,
-  },
+	// ── City card ──
+	cityCard: {
+		marginTop: 28,
+		backgroundColor: "rgba(255,255,255,0.06)",
+		borderRadius: 28,
+		padding: 20,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.09)",
+	},
+	cityTop: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+	},
+	cityLabel: {
+		color: "rgba(255,255,255,0.4)",
+		fontSize: 11,
+		fontWeight: "700",
+		letterSpacing: 1.4,
+	},
+	cityTitle: {
+		color: "#FFF",
+		fontSize: 30,
+		fontWeight: "800",
+		marginTop: 4,
+	},
+	citySub: {
+		color: "rgba(255,255,255,0.55)",
+		marginTop: 4,
+		fontSize: 13,
+	},
+	livePill: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(34,197,94,0.14)",
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 20,
+		gap: 6,
+	},
+	liveDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: "#22C55E",
+	},
+	liveText: {
+		color: "#22C55E",
+		fontWeight: "700",
+		fontSize: 11,
+	},
 
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor:
-      "rgba(255,255,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
+	// ── Stat cards ──
+	statsRow: {
+		flexDirection: "row",
+		gap: 10,
+		marginTop: 22,
+	},
+	statCard: {
+		flex: 1,
+		backgroundColor: "rgba(255,255,255,0.05)",
+		borderRadius: 18,
+		padding: 14,
+		alignItems: "center",
+		borderWidth: 1,
+	},
+	statIconWrap: {
+		width: 36,
+		height: 36,
+		borderRadius: 12,
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: 8,
+	},
+	statNumber: {
+		color: "#FFF",
+		fontSize: 24,
+		fontWeight: "800",
+	},
+	statLabel: {
+		color: "rgba(255,255,255,0.45)",
+		fontSize: 11,
+		marginTop: 4,
+		textAlign: "center",
+	},
 
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+	// ── Map button ──
+	mapButton: {
+		marginTop: 18,
+		borderRadius: 20,
+		overflow: "hidden",
+	},
+	mapButtonGradient: {
+		height: 56,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 10,
+	},
+	mapButtonText: {
+		color: "#FFF",
+		fontWeight: "700",
+		fontSize: 15,
+	},
 
-  iconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 26,
-    backgroundColor:
-      "rgba(255,255,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
+	// ── Ações rápidas ──
+	acoesGrid: {
+		flexDirection: "row",
+		paddingHorizontal: 18,
+		gap: 12,
+		marginBottom: 8,
+	},
+	acaoCard: {
+		flex: 1,
+		aspectRatio: 0.9,
+		borderRadius: 22,
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 10,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.06)",
+	},
+	acaoLabel: {
+		fontSize: 12,
+		fontWeight: "700",
+	},
 
-  headerTexts: {
-    flex: 1,
-  },
+	// ── Categorias ──
+	categoriasList: {
+		paddingHorizontal: 18,
+		paddingVertical: 8,
+		gap: 10,
+	},
+	categoryPill: {
+		height: 40,
+		paddingHorizontal: 18,
+		borderRadius: 20,
+		backgroundColor: "rgba(255,255,255,0.07)",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	categoryPillActive: {
+		backgroundColor: Colors.primary,
+	},
+	categoryText: {
+		color: "rgba(255,255,255,0.6)",
+		fontWeight: "600",
+		fontSize: 14,
+	},
+	categoryTextActive: {
+		color: "#FFF",
+	},
 
-  headerTitle: {
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 13,
-    marginBottom: 2,
-  },
+	// ── Section ──
+	sectionHeader: {
+		paddingHorizontal: 18,
+		marginTop: 28,
+		marginBottom: 14,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-end",
+	},
+	sectionTitle: {
+		color: "#FFF",
+		fontSize: 24,
+		fontWeight: "800",
+	},
+	sectionSub: {
+		color: "rgba(255,255,255,0.45)",
+		marginTop: 4,
+		fontSize: 13,
+	},
+	sectionLink: {
+		color: Colors.primaryLight,
+		fontWeight: "600",
+		fontSize: 14,
+	},
 
-  cityName: {
-    color: "#fff",
-    fontSize: 30,
-    fontWeight: "800",
-  },
+	// ── Hero card ──
+	heroCard: {
+		width: width * 0.78,
+		height: 300,
+		marginRight: 16,
+		borderRadius: 30,
+		overflow: "hidden",
+	},
+	heroImage: {
+		width: "100%",
+		height: "100%",
+	},
+	heroGradient: {
+		...StyleSheet.absoluteFillObject,
+	},
+	heroContent: {
+		position: "absolute",
+		left: 20,
+		right: 20,
+		bottom: 20,
+	},
+	heroBadge: {
+		alignSelf: "flex-start",
+		backgroundColor: Colors.primary,
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 20,
+		marginBottom: 12,
+	},
+	heroBadgeText: {
+		color: "#FFF",
+		fontWeight: "700",
+		fontSize: 11,
+	},
+	heroTitle: {
+		color: "#FFF",
+		fontSize: 24,
+		fontWeight: "800",
+	},
+	heroLocation: {
+		color: "rgba(255,255,255,0.7)",
+		marginTop: 8,
+		fontSize: 13,
+	},
 
-  regionText: {
-    color: "rgba(255,255,255,0.75)",
-    marginTop: 2,
-    fontSize: 13,
-  },
+	// ── Divisor ──
+	divider: {
+		height: 1,
+		backgroundColor: "rgba(255,255,255,0.07)",
+		marginHorizontal: 18,
+		marginTop: 30,
+	},
 
-  locationMiniCard: {
-    width: 140,
-    backgroundColor:
-      "rgba(255,255,255,0.10)",
-    borderRadius: 18,
-    padding: 12,
-    marginLeft: 12,
-  },
+	// ── Feed card ──
+	feedCard: {
+		marginHorizontal: 18,
+		marginBottom: 18,
+		borderRadius: 28,
+		overflow: "hidden",
+		backgroundColor: "#111827",
+	},
+	feedCardInner: {
+		height: 380,
+	},
+	feedImage: {
+		width: "100%",
+		height: "100%",
+	},
+	feedGradient: {
+		...StyleSheet.absoluteFillObject,
+	},
+	feedBadge: {
+		position: "absolute",
+		top: 18,
+		left: 18,
+		backgroundColor: "rgba(108,92,231,0.85)",
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 20,
+	},
+	feedBadgeText: {
+		color: "#FFF",
+		fontWeight: "700",
+		fontSize: 11,
+	},
+	feedContent: {
+		position: "absolute",
+		left: 18,
+		right: 18,
+		bottom: 18,
+	},
+	feedTitle: {
+		color: "#FFF",
+		fontSize: 26,
+		fontWeight: "800",
+	},
+	feedMeta: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginTop: 8,
+		gap: 4,
+	},
+	feedLocation: {
+		color: "rgba(255,255,255,0.65)",
+		fontSize: 13,
+		flex: 1,
+	},
+	feedActions: {
+		marginTop: 16,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+	},
+	leftActions: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	actionBtn: {
+		padding: 8,
+	},
+	notifBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(255,255,255,0.12)",
+		paddingHorizontal: 14,
+		paddingVertical: 9,
+		borderRadius: 20,
+		gap: 6,
+	},
+	notifBtnActive: {
+		backgroundColor: "rgba(108,92,231,0.22)",
+	},
+	notifBtnText: {
+		color: "#FFF",
+		fontWeight: "600",
+		fontSize: 13,
+	},
+	notifBtnTextActive: {
+		color: "#6C5CE7",
+	},
 
-  locationMiniTitle: {
-    color: "#fff",
-    fontSize: 11,
-    marginTop: 8,
-    marginBottom: 4,
-    fontWeight: "700",
-  },
+	// ── Empty state ──
+	emptySection: {
+		alignItems: "center",
+		paddingVertical: 40,
+		gap: 12,
+	},
+	emptyText: {
+		color: "rgba(255,255,255,0.3)",
+		fontSize: 14,
+		textAlign: "center",
+		paddingHorizontal: 40,
+	},
 
-  locationMiniText: {
-    color: "rgba(255,255,255,0.82)",
-    fontSize: 11,
-    lineHeight: 16,
-  },
-
-  statsGrid: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-
-  statCard: {
-    width: "48%",
-    backgroundColor: Colors.surface,
-    borderRadius: 22,
-    paddingVertical: 22,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-
-  statNumber: {
-    color: Colors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-    marginTop: 10,
-  },
-
-  statLabel: {
-    color: Colors.textMuted,
-    marginTop: 4,
-    fontSize: 13,
-  },
-
-  statusContainer: {
-    paddingHorizontal: 16,
-    marginTop: 14,
-  },
-
-  statusCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 10,
-    marginRight: 14,
-  },
-
-  statusTitle: {
-    color: Colors.textPrimary,
-    fontWeight: "700",
-    fontSize: 14,
-  },
-
-  statusValue: {
-    color: Colors.textMuted,
-    marginTop: 3,
-    fontSize: 12,
-  },
-
-  card: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 16,
-    marginTop: 14,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 14,
-  },
-
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    marginBottom: 12,
-  },
-
-  actionLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  actionText: {
-    color: Colors.textPrimary,
-    marginLeft: 12,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-
-  activityItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-  },
-
-  activityTitle: {
-    color: Colors.textPrimary,
-    fontWeight: "700",
-    marginLeft: 12,
-    fontSize: 13,
-  },
-
-  activityText: {
-    color: Colors.textMuted,
-    marginLeft: 12,
-    marginTop: 4,
-    fontSize: 12,
-  },
+	// ── FAB ──
+	fab: {
+		position: "absolute",
+		right: 22,
+		borderRadius: 30,
+		overflow: "hidden",
+		shadowColor: "#6C5CE7",
+		shadowOpacity: 0.5,
+		shadowRadius: 16,
+		shadowOffset: { width: 0, height: 8 },
+		elevation: 12,
+	},
+	fabGradient: {
+		width: 58,
+		height: 58,
+		borderRadius: 30,
+		justifyContent: "center",
+		alignItems: "center",
+	},
 });

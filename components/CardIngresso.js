@@ -17,6 +17,21 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Colors } from "../styles/Colors";
+import * as Clipboard from "expo-clipboard";
+
+// Converte "DD/MM/AAAA" ou Timestamp Firebase → Date
+const parseDateBR = (value) => {
+  if (!value) return new Date(0);
+  if (value?.toDate) return value.toDate();
+  if (value instanceof Date) return value;
+  const br = String(value).match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (br) {
+    const [, d, m, y] = br;
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+  const iso = new Date(value);
+  return isNaN(iso.getTime()) ? new Date(0) : iso;
+};
 
 const CardIngresso = memo(({ compra, ingresso, index, total }) => {
   const [modalVisivel, setModalVisivel] = useState(false);
@@ -27,14 +42,16 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
   const statusConfig = getStatusConfig(ingresso.status);
 
   // Verificar se é evento futuro
-  const isFuturo = new Date(dataEvento) > new Date();
+  const isFuturo = parseDateBR(compra.eventoData ?? dataEvento) > new Date();
 
-  const handleCopiar = () => {
-    // Seria importar Clipboard: import * as Clipboard from 'expo-clipboard';
-    // Clipboard.setStringAsync(ingresso.codigoIngresso);
-    Alert.alert("Copiado!", `Código: ${ingresso.codigoIngresso}`);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2000);
+  const handleCopiar = async () => {
+    try {
+      await Clipboard.setStringAsync(ingresso.codigoIngresso);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      Alert.alert("Copiado!", `Código: ${ingresso.codigoIngresso}`);
+    }
   };
 
   const handleCompartilhar = async () => {

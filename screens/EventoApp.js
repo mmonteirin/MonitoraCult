@@ -263,6 +263,19 @@ export default function EventosApp() {
 				</TouchableOpacity>
 
 				<Text style={styles.headerTitle}>Meus Eventos</Text>
+
+				<TouchableOpacity
+					style={styles.calendarBtn}
+					onPress={() =>
+						navigation.navigate("AgendaEventos")
+					}
+				>
+					<MaterialCommunityIcons
+						name="calendar-month"
+						size={22}
+						color="#FFF"
+					/>
+				</TouchableOpacity>
 			</LinearGradient>
 
 			{/* PERFIL */}
@@ -387,6 +400,18 @@ const styles = StyleSheet.create({
 		fontFamily: "PoppinsBold",
 
 		marginLeft: 16,
+
+		flex: 1,
+	},
+
+	calendarBtn: {
+		width: 46,
+		height: 46,
+		borderRadius: 18,
+		backgroundColor: "rgba(255,255,255,0.08)",
+		justifyContent: "center",
+		alignItems: "center",
+		marginLeft: 12,
 	},
 
 	/* PROFILE */

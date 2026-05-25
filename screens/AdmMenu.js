@@ -45,9 +45,7 @@ export default function AdmMenu() {
     useState(false);
 
   const goToAdmin = (screen) => {
-    navigation.navigate("Admin", {
-      screen,
-    });
+    navigation.navigate(screen);
   };
 
   const handleLogout = async () => {
@@ -290,15 +288,15 @@ export default function AdmMenu() {
             />
 
             <MenuCard
-              icon="help-circle"
-              label="Ajuda"
-              subtitle="Suporte"
+              icon="headset"
+              label="Atendimento"
+              subtitle="Fila de suporte"
               gradient={[
                 "#EA580C",
                 "#C2410C",
               ]}
               onPress={() =>
-                goToAdmin("Ajuda")
+                goToAdmin("AdmSuporte")
               }
             />
           </View>
