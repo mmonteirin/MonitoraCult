@@ -185,20 +185,31 @@ const StatCard = memo(({ value, label, icon, color, delay }) => (
 // AcaoRapidaCard
 // ──────────────────────────────────────────────
 const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
-	<Animated.View entering={FadeInDown.delay(index * 60).springify()}>
+	<Animated.View
+		entering={FadeInDown.delay(index * 60).springify()}
+		style={styles.acaoCardWrapper}
+	>
 		<TouchableOpacity
-			style={[styles.acaoCard, { backgroundColor: acao.bg }]}
+			style={styles.acaoCard}
 			onPress={() => onPress(acao.route, acao.nestedScreen)}
-			activeOpacity={0.8}
+			activeOpacity={0.75}
 		>
-			<MaterialCommunityIcons
-				name={acao.icon}
-				size={28}
-				color={acao.color}
-			/>
-			<Text style={[styles.acaoLabel, { color: acao.color }]}>
+			<View style={[styles.acaoIconCircle, { backgroundColor: acao.bg }]}>
+				<MaterialCommunityIcons
+					name={acao.icon}
+					size={22}
+					color={acao.color}
+				/>
+			</View>
+			<Text style={styles.acaoLabel}>
 				{acao.label}
 			</Text>
+			<MaterialCommunityIcons
+				name="chevron-right"
+				size={18}
+				color={Colors.textMuted}
+				style={styles.acaoChevron}
+			/>
 		</TouchableOpacity>
 	</Animated.View>
 ));
@@ -1173,23 +1184,40 @@ const styles = StyleSheet.create({
 	// ── Ações rápidas ──
 	acoesGrid: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		paddingHorizontal: 18,
-		gap: 12,
-		marginBottom: 8,
+		gap: 10,
+		marginBottom: 12,
+	},
+	acaoCardWrapper: {
+		width: (width - 46) / 2,
 	},
 	acaoCard: {
-		flex: 1,
-		aspectRatio: 0.9,
-		borderRadius: 22,
+		flexDirection: "row",
+		alignItems: "center",
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		borderRadius: 16,
+		backgroundColor: Colors.surface,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+		gap: 10,
+	},
+	acaoIconCircle: {
+		width: 40,
+		height: 40,
+		borderRadius: 12,
 		alignItems: "center",
 		justifyContent: "center",
-		gap: 10,
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.06)",
 	},
 	acaoLabel: {
+		flex: 1,
 		fontSize: 12,
 		fontWeight: "700",
+		color: Colors.textPrimary,
+	},
+	acaoChevron: {
+		opacity: 0.5,
 	},
 
 	// ── Categorias ──
