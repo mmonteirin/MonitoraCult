@@ -1,3 +1,15 @@
+// ✅ AdmEventoMetricas.jsx COMPLETO
+// 🔥 Agora conectado com TODOS os eventos do administrador
+// 🔥 Mostra:
+// - Total de Eventos
+// - Total de Avaliações
+// - Média Geral
+// - Total de Likes
+// - Total de Views
+// - Total de Participantes
+// - Gráfico de avaliações
+// - Sentimento geral
+
 import React, { useEffect, useState } from "react";
 
 import {
@@ -13,9 +25,10 @@ import {
 
 import {
   collection,
-  onSnapshot,
   query,
-  orderBy,
+  where,
+  onSnapshot,
+  getDocs,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
@@ -37,135 +50,151 @@ import { MotiView } from "moti";
 
 import { Colors } from "../styles/Colors";
 
+import { useAuth } from "../context/AuthContext";
+
 const screenWidth =
   Dimensions.get("window").width;
 
-export default function AdmEventoMetrica({
-  route,
+export default function AdmEventoMetricas({
   navigation,
 }) {
-  const eventoId =
-    route?.params?.eventoId;
-
-  const [avaliacoes, setAvaliacoes] =
-    useState([]);
+  const { user } = useAuth();
 
   const [loading, setLoading] =
     useState(true);
 
-  const [error, setError] =
-    useState(false);
+  const [eventos, setEventos] =
+    useState([]);
 
-  if (!eventoId) {
-    return (
-      <Fallback
-        icon="alert-circle-outline"
-        message="Evento não encontrado"
-        navigation={navigation}
-      />
-    );
-  }
+  const [avaliacoes, setAvaliacoes] =
+    useState([]);
+
+  const [metricas, setMetricas] =
+    useState({
+      totalEventos: 0,
+      totalLikes: 0,
+      totalViews: 0,
+      totalParticipantes: 0,
+    });
 
   useEffect(() => {
+    if (!user?.uid) return;
+
+    carregarDados();
+  }, [user?.uid]);
+
+  const carregarDados = async () => {
     try {
-      const q = query(
-        collection(
-          db,
-          "eventos",
-          eventoId,
-          "avaliacoes"
-        ),
-        orderBy("createdAt", "desc")
+      setLoading(true);
+
+      // 🔥 BUSCAR EVENTOS DO ADM
+      const eventosQuery = query(
+        collection(db, "eventos"),
+        where(
+          "uidEvento",
+          "==",
+          user.uid
+        )
       );
 
-      const unsubscribe =
-        onSnapshot(
-          q,
-          (snapshot) => {
-            const lista =
-              snapshot.docs.map(
-                (doc) => ({
-                  id: doc.id,
-                  ...doc.data(),
-                })
-              );
+      const eventosSnap =
+        await getDocs(eventosQuery);
 
-            setAvaliacoes(lista);
-            setLoading(false);
-          },
+      const listaEventos =
+        eventosSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-          (err) => {
-            console.error(err);
+      setEventos(listaEventos);
 
-            setError(true);
-            setLoading(false);
-          }
-        );
+      // 🔥 MÉTRICAS
+      let totalLikes = 0;
+      let totalViews = 0;
+      let totalParticipantes = 0;
 
-      return () => unsubscribe();
+      listaEventos.forEach((evento) => {
+        totalLikes +=
+          evento.likes || 0;
+
+        totalViews +=
+          evento.views || 0;
+
+        totalParticipantes +=
+          evento.participantes || 0;
+      });
+
+      // 🔥 BUSCAR TODAS AVALIAÇÕES
+      let todasAvaliacoes = [];
+
+      for (const evento of listaEventos) {
+        const avaliacoesSnap =
+          await getDocs(
+            collection(
+              db,
+              "eventos",
+              evento.id,
+              "avaliacoes"
+            )
+          );
+
+        const lista =
+          avaliacoesSnap.docs.map(
+            (doc) => ({
+              id: doc.id,
+              eventoId: evento.id,
+              ...doc.data(),
+            })
+          );
+
+        todasAvaliacoes.push(...lista);
+      }
+
+      setAvaliacoes(todasAvaliacoes);
+
+      setMetricas({
+        totalEventos:
+          listaEventos.length,
+
+        totalLikes,
+
+        totalViews,
+
+        totalParticipantes,
+      });
+
+      setLoading(false);
     } catch (err) {
-      console.error(err);
+      console.log(err);
 
-      setError(true);
       setLoading(false);
     }
-  }, [eventoId]);
+  };
 
-  if (loading) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator
-          size="large"
-          color={Colors.primary}
-        />
+  /* 🔥 ESTATÍSTICAS */
 
-        <Text style={styles.loadingText}>
-          Carregando métricas...
-        </Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <Fallback
-        icon="alert-outline"
-        message="Erro ao carregar dados"
-        navigation={navigation}
-      />
-    );
-  }
-
-  if (
-    !avaliacoes ||
-    avaliacoes.length === 0
-  ) {
-    return (
-      <Fallback
-        icon="chart-bar-off"
-        message="Sem métricas disponíveis"
-        navigation={navigation}
-      />
-    );
-  }
-
-  const total = avaliacoes.length;
+  const totalAvaliacoes =
+    avaliacoes.length;
 
   const media =
-    total > 0
+    totalAvaliacoes > 0
       ? (
           avaliacoes.reduce(
-            (a, b) =>
-              a + (b?.nota || 0),
+            (acc, item) =>
+              acc +
+              (item?.nota || 0),
             0
-          ) / total
+          ) / totalAvaliacoes
         ).toFixed(1)
       : 0;
 
-  const contar = (n) =>
+  const contar = (nota) =>
     avaliacoes.filter(
-      (a) => (a?.nota || 0) === n
+      (a) =>
+        (a?.nota || 0) === nota
     ).length;
+
+  /* 🔥 CHARTS */
 
   const chartDataBar = {
     labels: [
@@ -195,8 +224,7 @@ export default function AdmEventoMetrica({
       population:
         contar(5) + contar(4),
       color: "#22C55E",
-      legendFontColor:
-        Colors.textPrimary,
+      legendFontColor: "#FFF",
       legendFontSize: 12,
     },
 
@@ -204,8 +232,7 @@ export default function AdmEventoMetrica({
       name: "Neutro",
       population: contar(3),
       color: "#F59E0B",
-      legendFontColor:
-        Colors.textPrimary,
+      legendFontColor: "#FFF",
       legendFontSize: 12,
     },
 
@@ -214,20 +241,25 @@ export default function AdmEventoMetrica({
       population:
         contar(2) + contar(1),
       color: "#EF4444",
-      legendFontColor:
-        Colors.textPrimary,
+      legendFontColor: "#FFF",
       legendFontSize: 12,
     },
   ];
 
-  const hasBarData =
-    chartDataBar.datasets[0].data.some(
-      (v) => v > 0
-    );
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator
+          size="large"
+          color={Colors.primary}
+        />
 
-  const hasPieData = pieData.some(
-    (p) => p.population > 0
-  );
+        <Text style={styles.loadingText}>
+          Carregando métricas...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -244,7 +276,6 @@ export default function AdmEventoMetrica({
         ]}
         style={styles.header}
       >
-
         <TouchableOpacity
           style={styles.backButton}
           onPress={() =>
@@ -260,173 +291,125 @@ export default function AdmEventoMetrica({
 
         <View>
           <Text style={styles.headerTitle}>
-            Dashboard do Evento
+            Dashboard Geral
           </Text>
 
           <Text
-            style={
-              styles.headerSubtitle
-            }
+            style={styles.headerSubtitle}
           >
-            Métricas e desempenho
+            Todos os eventos
           </Text>
         </View>
-
       </LinearGradient>
 
       <ScrollView
-        contentContainerStyle={
-          styles.content
-        }
         showsVerticalScrollIndicator={
           false
         }
+        contentContainerStyle={
+          styles.content
+        }
       >
-
         {/* CARDS */}
         <View style={styles.grid}>
-
           <MetricCard
-            title="Avaliações"
-            value={total}
-            icon="star-circle"
+            title="Eventos"
+            value={
+              metricas.totalEventos
+            }
+            icon="calendar"
             color="#8B5CF6"
           />
 
           <MetricCard
-            title="Média Geral"
+            title="Avaliações"
+            value={totalAvaliacoes}
+            icon="star"
+            color="#F59E0B"
+          />
+
+          <MetricCard
+            title="Média"
             value={`${media} ★`}
             icon="chart-line"
             color="#06B6D4"
           />
 
           <MetricCard
-            title="5 Estrelas"
-            value={contar(5)}
-            icon="emoticon-happy"
+            title="Likes"
+            value={
+              metricas.totalLikes
+            }
+            icon="heart"
+            color="#EF4444"
+          />
+
+          <MetricCard
+            title="Views"
+            value={
+              metricas.totalViews
+            }
+            icon="eye"
             color="#22C55E"
           />
 
           <MetricCard
-            title="1 Estrela"
-            value={contar(1)}
-            icon="emoticon-sad"
-            color="#EF4444"
+            title="Participantes"
+            value={
+              metricas.totalParticipantes
+            }
+            icon="account-group"
+            color="#6366F1"
           />
-
         </View>
 
-        {/* BAR CHART */}
-        {hasBarData && (
-          <>
-            <Text
-              style={styles.sectionTitle}
-            >
-              Distribuição de Notas
-            </Text>
+        {/* BAR */}
+        <Text style={styles.section}>
+          Distribuição de Notas
+        </Text>
 
-            <MotiView
-              from={{
-                opacity: 0,
-                translateY: 20,
-              }}
-              animate={{
-                opacity: 1,
-                translateY: 0,
-              }}
-              transition={{
-                type: "timing",
-                duration: 700,
-              }}
-            >
+        <BlurView
+          intensity={50}
+          tint="dark"
+          style={styles.chartCard}
+        >
+          <BarChart
+            data={chartDataBar}
+            width={screenWidth - 50}
+            height={240}
+            fromZero
+            showValuesOnTopOfBars
+            withInnerLines={false}
+            chartConfig={chartConfig}
+          />
+        </BlurView>
 
-              <BlurView
-                intensity={50}
-                tint="dark"
-                style={styles.chartCard}
-              >
+        {/* PIE */}
+        <Text style={styles.section}>
+          Sentimento Geral
+        </Text>
 
-                <BarChart
-                  data={chartDataBar}
-                  width={
-                    screenWidth - 60
-                  }
-                  height={240}
-                  fromZero
-                  showValuesOnTopOfBars
-                  withInnerLines={false}
-                  chartConfig={
-                    chartConfig
-                  }
-                  style={{
-                    borderRadius: 20,
-                  }}
-                />
-
-              </BlurView>
-
-            </MotiView>
-          </>
-        )}
-
-        {/* PIE CHART */}
-        {hasPieData && (
-          <>
-            <Text
-              style={styles.sectionTitle}
-            >
-              Sentimento Geral
-            </Text>
-
-            <MotiView
-              from={{
-                opacity: 0,
-                translateY: 20,
-              }}
-              animate={{
-                opacity: 1,
-                translateY: 0,
-              }}
-              transition={{
-                type: "timing",
-                duration: 850,
-              }}
-            >
-
-              <BlurView
-                intensity={50}
-                tint="dark"
-                style={styles.chartCard}
-              >
-
-                <PieChart
-                  data={pieData}
-                  width={
-                    screenWidth - 60
-                  }
-                  height={230}
-                  accessor="population"
-                  backgroundColor="transparent"
-                  chartConfig={
-                    chartConfig
-                  }
-                  paddingLeft="10"
-                  absolute
-                />
-
-              </BlurView>
-
-            </MotiView>
-          </>
-        )}
-
+        <BlurView
+          intensity={50}
+          tint="dark"
+          style={styles.chartCard}
+        >
+          <PieChart
+            data={pieData}
+            width={screenWidth - 50}
+            height={230}
+            accessor="population"
+            backgroundColor="transparent"
+            chartConfig={chartConfig}
+            absolute
+          />
+        </BlurView>
       </ScrollView>
-
     </View>
   );
 }
 
-/* CARD */
+/* 🔥 CARD */
 function MetricCard({
   title,
   value,
@@ -449,7 +432,6 @@ function MetricCard({
       }}
       style={styles.metricCard}
     >
-
       <LinearGradient
         colors={[
           "rgba(255,255,255,0.08)",
@@ -457,95 +439,34 @@ function MetricCard({
         ]}
         style={styles.metricGradient}
       >
-
         <View
           style={[
             styles.iconBox,
             {
-              backgroundColor:
-                color,
+              backgroundColor: color,
             },
           ]}
         >
-
           <MaterialCommunityIcons
             name={icon}
             size={22}
             color="#FFF"
           />
-
         </View>
 
-        <Text
-          style={styles.metricTitle}
-        >
+        <Text style={styles.metricTitle}>
           {title}
         </Text>
 
-        <Text
-          style={styles.metricValue}
-        >
+        <Text style={styles.metricValue}>
           {value}
         </Text>
-
       </LinearGradient>
-
     </MotiView>
   );
 }
 
-/* FALLBACK */
-function Fallback({
-  icon,
-  message,
-  navigation,
-}) {
-  return (
-    <View style={styles.container}>
-
-      <LinearGradient
-        colors={[
-          "#0F172A",
-          "#111827",
-          "#1E1B4B",
-        ]}
-        style={styles.header}
-      >
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() =>
-            navigation.goBack()
-          }
-        >
-          <MaterialCommunityIcons
-            name="arrow-left"
-            size={24}
-            color="#FFF"
-          />
-        </TouchableOpacity>
-
-      </LinearGradient>
-
-      <View style={styles.fallback}>
-        <MaterialCommunityIcons
-          name={icon}
-          size={70}
-          color="rgba(255,255,255,0.25)"
-        />
-
-        <Text
-          style={styles.fallbackText}
-        >
-          {message}
-        </Text>
-      </View>
-
-    </View>
-  );
-}
-
-/* CONFIG CHART */
+/* CHART CONFIG */
 const chartConfig = {
   backgroundGradientFrom:
     "transparent",
@@ -566,10 +487,6 @@ const chartConfig = {
       "rgba(255,255,255,0.08)",
   },
 
-  propsForLabels: {
-    fontSize: 12,
-  },
-
   barPercentage: 0.7,
 };
 
@@ -582,35 +499,25 @@ const styles = StyleSheet.create({
 
   loading: {
     flex: 1,
-
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: "#070B14",
   },
 
   loadingText: {
-    color:
-      "rgba(255,255,255,0.65)",
-
-    marginTop: 15,
+    color: "#FFF",
+    marginTop: 14,
   },
 
-  /* HEADER */
   header: {
     paddingTop: 60,
-    paddingBottom: 22,
+    paddingBottom: 24,
     paddingHorizontal: 20,
 
     flexDirection: "row",
     alignItems: "center",
 
     gap: 16,
-
-    borderBottomWidth: 1,
-
-    borderBottomColor:
-      "rgba(255,255,255,0.05)",
   },
 
   backButton: {
@@ -619,16 +526,15 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    justifyContent: "center",
-    alignItems: "center",
-
     backgroundColor:
       "rgba(255,255,255,0.08)",
+
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   headerTitle: {
     color: "#FFF",
-
     fontSize: 22,
     fontWeight: "bold",
   },
@@ -637,26 +543,21 @@ const styles = StyleSheet.create({
     color:
       "rgba(255,255,255,0.6)",
 
-    marginTop: 2,
+    marginTop: 4,
   },
 
-  /* CONTENT */
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
 
-  /* GRID */
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent:
       "space-between",
-
-    marginBottom: 20,
   },
 
-  /* METRIC CARD */
   metricCard: {
     width: "48%",
     marginBottom: 16,
@@ -664,18 +565,17 @@ const styles = StyleSheet.create({
 
   metricGradient: {
     borderRadius: 24,
-
     padding: 18,
 
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.06)",
+      "rgba(255,255,255,0.05)",
   },
 
   iconBox: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
 
     borderRadius: 16,
 
@@ -701,24 +601,22 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 
-  /* SECTION */
-  sectionTitle: {
+  section: {
     color: "#FFF",
 
     fontSize: 18,
     fontWeight: "bold",
 
+    marginTop: 20,
     marginBottom: 14,
-    marginTop: 10,
   },
 
-  /* CHART CARD */
   chartCard: {
-    overflow: "hidden",
-
     borderRadius: 26,
 
-    paddingVertical: 18,
+    overflow: "hidden",
+
+    paddingVertical: 20,
 
     marginBottom: 24,
 
@@ -726,22 +624,5 @@ const styles = StyleSheet.create({
 
     borderColor:
       "rgba(255,255,255,0.06)",
-  },
-
-  /* FALLBACK */
-  fallback: {
-    flex: 1,
-
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  fallbackText: {
-    color:
-      "rgba(255,255,255,0.6)",
-
-    marginTop: 16,
-
-    fontSize: 15,
   },
 });

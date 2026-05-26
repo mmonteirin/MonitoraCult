@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import {
 	View,
 	TouchableOpacity,
@@ -7,6 +8,7 @@ import {
 	ActivityIndicator,
 	Alert,
 	Platform,
+	StatusBar,
 } from "react-native";
 
 import {
@@ -18,375 +20,1119 @@ import {
 	doc,
 	getDoc,
 } from "firebase/firestore";
-import { auth, db } from "../firebaseConfig";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+import { BlurView } from "expo-blur";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { auth, db } from "../firebaseConfig";
+
 import AppText from "../components/AppText";
-import { Colors } from "../styles/Colors";
 
-export default function PerfilHistorico({ navigation }) {
-	const [tab, setTab] = useState("avaliacoes");
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
-	const [avaliacoes, setAvaliacoes] = useState([]);
-	const [ocorrencias, setOcorrencias] = useState([]);
-	const [loadingAval, setLoadingAval] = useState(true);
-	const [loadingOcorr, setLoadingOcorr] = useState(true);
 
-	const userId = auth.currentUser?.uid;
+export default function PerfilHistorico({
+	navigation,
+}) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
+	const insets =
+		useSafeAreaInsets();
 
-	const confirmarAcao = (mensagem, callback) => {
+	const [tab, setTab] =
+		useState("avaliacoes");
+
+	const [avaliacoes, setAvaliacoes] =
+		useState([]);
+
+	const [ocorrencias, setOcorrencias] =
+		useState([]);
+
+	const [loadingAval, setLoadingAval] =
+		useState(true);
+
+	const [loadingOcorr, setLoadingOcorr] =
+		useState(true);
+
+	const userId =
+		auth.currentUser?.uid;
+
+	const confirmarAcao = (
+		mensagem,
+		callback
+	) => {
 		if (Platform.OS === "web") {
-			const confirmado = window.confirm(mensagem);
+			const confirmado =
+				window.confirm(
+					mensagem
+				);
 
 			if (confirmado) {
 				callback();
 			}
 		} else {
-			Alert.alert("Confirmar", mensagem, [
-				{
-					text: "Cancelar",
-					style: "cancel",
-				},
-				{
-					text: "Confirmar",
-					style: "destructive",
-					onPress: callback,
-				},
-			]);
+			Alert.alert(
+				"Confirmar",
+				mensagem,
+				[
+					{
+						text: "Cancelar",
+						style: "cancel",
+					},
+					{
+						text: "Confirmar",
+						style:
+							"destructive",
+						onPress:
+							callback,
+					},
+				]
+			);
 		}
 	};
 
-	const deletarAvaliacao = async (item) => {
-		try {
-			// remove do histórico
-			await deleteDoc(doc(db, "users", userId, "avaliacoes", item.id));
-
-			// remove da subcoleção do evento
-			if (item.eventoId && item.avaliacaoId) {
+	const deletarAvaliacao =
+		async (item) => {
+			try {
 				await deleteDoc(
-					doc(db, "eventos", item.eventoId, "avaliacoes", item.avaliacaoId)
+					doc(
+						db,
+						"users",
+						userId,
+						"avaliacoes",
+						item.id
+					)
+				);
+
+				if (
+					item.eventoId &&
+					item.avaliacaoId
+				) {
+					await deleteDoc(
+						doc(
+							db,
+							"eventos",
+							item.eventoId,
+							"avaliacoes",
+							item.avaliacaoId
+						)
+					);
+				}
+			} catch (e) {
+				console.log(e);
+
+				Alert.alert(
+					"Erro",
+					"Não foi possível remover."
 				);
 			}
-		} catch (e) {
-			console.log(e);
-			Alert.alert("Erro", "Não foi possível remover.");
-		}
-	};
+		};
 
-	const deletarOcorrencia = async (item) => {
-		try {
-			// remove histórico
-			await deleteDoc(doc(db, "users", userId, "ocorrencias", item.id));
-
-			// remove ocorrência do evento
-			if (item.eventoId && item.ocorrenciaId) {
+	const deletarOcorrencia =
+		async (item) => {
+			try {
 				await deleteDoc(
-					doc(db, "eventos", item.eventoId, "ocorrencias", item.ocorrenciaId)
+					doc(
+						db,
+						"users",
+						userId,
+						"ocorrencias",
+						item.id
+					)
+				);
+
+				if (
+					item.eventoId &&
+					item.ocorrenciaId
+				) {
+					await deleteDoc(
+						doc(
+							db,
+							"eventos",
+							item.eventoId,
+							"ocorrencias",
+							item.ocorrenciaId
+						)
+					);
+				}
+			} catch (e) {
+				console.log(e);
+
+				Alert.alert(
+					"Erro",
+					"Não foi possível remover."
 				);
 			}
-		} catch (e) {
-			console.log(e);
-			Alert.alert("Erro", "Não foi possível remover.");
-		}
-	};
+		};
 
-	const abrirEvento = async (eventoId) => {
-		try {
-			const eventoRef = doc(db, "eventos", eventoId);
+	const abrirEvento =
+		async (eventoId) => {
+			try {
+				const eventoRef = doc(
+					db,
+					"eventos",
+					eventoId
+				);
 
-			const snap = await getDoc(eventoRef);
+				const snap =
+					await getDoc(
+						eventoRef
+					);
 
-			if (!snap.exists()) {
-				Alert.alert("Erro", "Evento não encontrado.");
-				return;
+				if (!snap.exists()) {
+					Alert.alert(
+						"Erro",
+						"Evento não encontrado."
+					);
+
+					return;
+				}
+
+				navigation.navigate(
+					"Detalhes",
+					{
+						evento: {
+							id: snap.id,
+							...snap.data(),
+						},
+					}
+				);
+			} catch (e) {
+				console.log(e);
+
+				Alert.alert(
+					"Erro",
+					"Não foi possível abrir o evento."
+				);
 			}
+		};
 
-			navigation.navigate("Detalhes", {
-				evento: {
-					id: snap.id,
-					...snap.data(),
-				},
-			});
-		} catch (e) {
-			console.log(e);
-			Alert.alert("Erro", "Não foi possível abrir o evento.");
-		}
-	};
-
-	/* ⭐ AVALIAÇÕES — users/{uid}/avaliacoes */
+	/* ⭐ AVALIAÇÕES */
 	useEffect(() => {
 		if (!userId) return;
 
 		const q = query(
-			collection(db, "users", userId, "avaliacoes"),
-			orderBy("createdAt", "desc")
+			collection(
+				db,
+				"users",
+				userId,
+				"avaliacoes"
+			),
+			orderBy(
+				"createdAt",
+				"desc"
+			)
 		);
 
-		const unsub = onSnapshot(
-			q,
-			(snapshot) => {
-				setAvaliacoes(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-				setLoadingAval(false);
-			},
-			(err) => {
-				console.log("Erro avaliações:", err);
-				setLoadingAval(false);
-			}
-		);
+		const unsub =
+			onSnapshot(
+				q,
+				(snapshot) => {
+					setAvaliacoes(
+						snapshot.docs.map(
+							(d) => ({
+								id: d.id,
+								...d.data(),
+							})
+						)
+					);
+
+					setLoadingAval(
+						false
+					);
+				},
+				(err) => {
+					console.log(
+						"Erro avaliações:",
+						err
+					);
+
+					setLoadingAval(
+						false
+					);
+				}
+			);
 
 		return () => unsub();
 	}, [userId]);
 
-	/* 🚨 OCORRÊNCIAS — users/{uid}/ocorrencias */
+	/* 🚨 OCORRÊNCIAS */
 	useEffect(() => {
 		if (!userId) return;
 
 		const q = query(
-			collection(db, "users", userId, "ocorrencias"),
-			orderBy("createdAt", "desc")
+			collection(
+				db,
+				"users",
+				userId,
+				"ocorrencias"
+			),
+			orderBy(
+				"createdAt",
+				"desc"
+			)
 		);
 
-		const unsub = onSnapshot(
-			q,
-			(snapshot) => {
-				setOcorrencias(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-				setLoadingOcorr(false);
-			},
-			(err) => {
-				console.log("Erro ocorrências:", err);
-				setLoadingOcorr(false);
-			}
-		);
+		const unsub =
+			onSnapshot(
+				q,
+				(snapshot) => {
+					setOcorrencias(
+						snapshot.docs.map(
+							(d) => ({
+								id: d.id,
+								...d.data(),
+							})
+						)
+					);
+
+					setLoadingOcorr(
+						false
+					);
+				},
+				(err) => {
+					console.log(
+						"Erro ocorrências:",
+						err
+					);
+
+					setLoadingOcorr(
+						false
+					);
+				}
+			);
 
 		return () => unsub();
 	}, [userId]);
 
-	const isLoading = tab === "avaliacoes" ? loadingAval : loadingOcorr;
-	const dados = tab === "avaliacoes" ? avaliacoes : ocorrencias;
+	const isLoading =
+		tab === "avaliacoes"
+			? loadingAval
+			: loadingOcorr;
 
-	const renderItem = ({ item }) => (
+	const dados =
+		tab === "avaliacoes"
+			? avaliacoes
+			: ocorrencias;
+
+	const renderItem = ({
+		item,
+		index,
+	}) => (
 		<TouchableOpacity
-			activeOpacity={0.8}
-			style={styles.card}
-			onPress={() => abrirEvento(item.eventoId)}
+			activeOpacity={0.9}
+			style={styles.cardWrapper}
+			onPress={() =>
+				abrirEvento(
+					item.eventoId
+				)
+			}
 		>
-			<View
-				style={{
-					flexDirection: "row",
-					justifyContent: "space-between",
-					alignItems: "flex-start",
-				}}
+			<BlurView
+				intensity={45}
+				tint={blurTint}
+				style={styles.card}
 			>
-				<View style={{ flex: 1 }}>
-					<AppText style={styles.localText}>
-						📍 {item.tituloEvento || item.local || "Evento"}
-					</AppText>
+				{/* Glow */}
+				<LinearGradient
+					colors={[
+						"rgba(124,58,237,0.22)",
+						"transparent",
+					]}
+					style={
+						styles.cardGlow
+					}
+				/>
 
-					{/* AVALIAÇÃO */}
-					{tab === "avaliacoes" && (
-						<>
-							<View style={styles.starsRow}>
-								{[1, 2, 3, 4, 5].map((n) => (
+				<View
+					style={
+						styles.cardHeader
+					}
+				>
+					<View
+						style={{
+							flex: 1,
+						}}
+					>
+						<View
+							style={
+								styles.eventBadge
+							}
+						>
+							<MaterialCommunityIcons
+								name={
+									tab ===
+									"avaliacoes"
+										? "star"
+										: "alert-circle"
+								}
+								size={14}
+								color="#FFF"
+							/>
+
+							<AppText
+								style={
+									styles.eventBadgeText
+								}
+							>
+								{tab ===
+								"avaliacoes"
+									? "Avaliação"
+									: "Ocorrência"}
+							</AppText>
+						</View>
+
+						<AppText
+							style={
+								styles.localText
+							}
+						>
+							📍{" "}
+							{item.tituloEvento ||
+								item.local ||
+								"Evento"}
+						</AppText>
+					</View>
+
+					<TouchableOpacity
+						style={
+							styles.deleteBtn
+						}
+						onPress={() =>
+							confirmarAcao(
+								tab ===
+									"avaliacoes"
+									? "Deseja apagar esta avaliação?"
+									: "Deseja apagar esta ocorrência?",
+								() =>
+									tab ===
+									"avaliacoes"
+										? deletarAvaliacao(
+												item
+										  )
+										: deletarOcorrencia(
+												item
+										  )
+							)
+						}
+					>
+						<MaterialCommunityIcons
+							name="trash-can-outline"
+							size={20}
+							color={
+								colors.error
+							}
+						/>
+					</TouchableOpacity>
+				</View>
+
+				{/* AVALIAÇÃO */}
+				{tab ===
+					"avaliacoes" && (
+					<>
+						<View
+							style={
+								styles.starsRow
+							}
+						>
+							{[
+								1,
+								2,
+								3,
+								4,
+								5,
+							].map(
+								(
+									n
+								) => (
 									<AppText
-										key={n}
-										style={{
-											color: n <= item.nota ? Colors.warning : Colors.border,
-											fontSize: 14,
-										}}
+										key={
+											n
+										}
+										style={[
+											styles.star,
+											{
+												color:
+													n <=
+													item.nota
+														? "#FACC15"
+														: "rgba(255,255,255,0.15)",
+											},
+										]}
 									>
 										★
 									</AppText>
-								))}
+								)
+							)}
 
-								<AppText style={styles.notaText}> {item.nota}/5</AppText>
-							</View>
-
-							<AppText style={styles.cardText}>
-								{item.comentario || "—"}
+							<AppText
+								style={
+									styles.notaText
+								}
+							>
+								{item.nota}
+								/5
 							</AppText>
-						</>
-					)}
+						</View>
 
-					{/* OCORRÊNCIA */}
-					{tab === "ocorrencias" && (
-						<>
-							{item.tipo ? (
-								<View style={styles.tipoBadge}>
-									<AppText style={styles.tipoText}>{item.tipo}</AppText>
-								</View>
-							) : null}
-
-							<AppText style={styles.cardText}>{item.descricao || "—"}</AppText>
-						</>
-					)}
-
-					{item.createdAt?.toDate && (
-						<AppText style={styles.dataText}>
-							{item.createdAt.toDate().toLocaleDateString("pt-BR")}
+						<AppText
+							style={
+								styles.cardText
+							}
+						>
+							{item.comentario ||
+								"—"}
 						</AppText>
-					)}
-				</View>
+					</>
+				)}
 
-				<TouchableOpacity
-					onPress={() =>
-						confirmarAcao(
-							tab === "avaliacoes"
-								? "Deseja apagar esta avaliação?"
-								: "Deseja apagar esta ocorrência?",
-							() =>
-								tab === "avaliacoes"
-									? deletarAvaliacao(item)
-									: deletarOcorrencia(item)
-						)
+				{/* OCORRÊNCIA */}
+				{tab ===
+					"ocorrencias" && (
+					<>
+						{item.tipo ? (
+							<View
+								style={
+									styles.tipoBadge
+								}
+							>
+								<AppText
+									style={
+										styles.tipoText
+									}
+								>
+									{
+										item.tipo
+									}
+								</AppText>
+							</View>
+						) : null}
+
+						<AppText
+							style={
+								styles.cardText
+							}
+						>
+							{item.descricao ||
+								"—"}
+						</AppText>
+					</>
+				)}
+
+				{/* FOOTER */}
+				<View
+					style={
+						styles.footerRow
 					}
 				>
-					<MaterialCommunityIcons
-						name="delete"
-						size={20}
-						color={Colors.error}
-					/>
-				</TouchableOpacity>
-			</View>
+					<AppText
+						style={
+							styles.dataText
+						}
+					>
+						{item.createdAt
+							?.toDate &&
+							item.createdAt
+								.toDate()
+								.toLocaleDateString(
+									"pt-BR"
+								)}
+					</AppText>
+
+					<View
+						style={
+							styles.openRow
+						}
+					>
+						<AppText
+							style={
+								styles.openText
+							}
+						>
+							Abrir evento
+						</AppText>
+
+						<MaterialCommunityIcons
+							name="chevron-right"
+							size={18}
+							color={
+								colors.primary
+							}
+						/>
+					</View>
+				</View>
+			</BlurView>
 		</TouchableOpacity>
 	);
 
 	return (
 		<View style={styles.container}>
-			{/* HEADER */}
-			<View style={styles.header}>
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<MaterialCommunityIcons
-						name="arrow-left"
-						size={26}
-						color={Colors.primary}
-					/>
-				</TouchableOpacity>
-				<AppText style={styles.title}>Meu Histórico</AppText>
-			</View>
+			<StatusBar
+				barStyle="light-content"
+			/>
 
-			{/* TABS */}
-			<View style={styles.tabsWrapper}>
-				{["avaliacoes", "ocorrencias"].map((t) => (
+			{/* HEADER */}
+			<LinearGradient
+				colors={[
+					"#111827",
+					"#070B14",
+				]}
+				style={[
+					styles.header,
+					{
+						paddingTop:
+							insets.top +
+							10,
+					},
+				]}
+			>
+				<View
+					style={
+						styles.headerRow
+					}
+				>
 					<TouchableOpacity
-						key={t}
-						onPress={() => setTab(t)}
-						style={[styles.tab, tab === t && styles.activeTab]}
+						style={
+							styles.backBtn
+						}
+						onPress={() =>
+							navigation.goBack()
+						}
+					>
+						<MaterialCommunityIcons
+							name="arrow-left"
+							size={24}
+							color="#FFF"
+						/>
+					</TouchableOpacity>
+
+					<View
+						style={{
+							flex: 1,
+						}}
 					>
 						<AppText
-							style={[styles.tabText, tab === t && styles.activeTabText]}
+							style={
+								styles.title
+							}
 						>
-							{t === "avaliacoes"
-								? `⭐ Avaliações (${avaliacoes.length})`
-								: `🚨 Ocorrências (${ocorrencias.length})`}
+							Meu Histórico
 						</AppText>
-					</TouchableOpacity>
-				))}
-			</View>
+
+						<AppText
+							style={
+								styles.subtitle
+							}
+						>
+							Acompanhe suas avaliações e ocorrências
+						</AppText>
+					</View>
+				</View>
+
+				{/* TABS */}
+				<View
+					style={
+						styles.tabsWrapper
+					}
+				>
+					{[
+						"avaliacoes",
+						"ocorrencias",
+					].map((t) => (
+						<TouchableOpacity
+							key={t}
+							onPress={() =>
+								setTab(
+									t
+								)
+							}
+							style={[
+								styles.tab,
+								tab ===
+									t &&
+									styles.activeTab,
+							]}
+						>
+							<LinearGradient
+								colors={
+									tab ===
+									t
+										? [
+												"#7C3AED",
+												"#5B21B6",
+										  ]
+										: [
+												"transparent",
+												"transparent",
+										  ]
+								}
+								style={
+									styles.tabGradient
+								}
+							>
+								<MaterialCommunityIcons
+									name={
+										t ===
+										"avaliacoes"
+											? "star"
+											: "alert-circle"
+									}
+									size={16}
+									color={
+										tab ===
+										t
+											? "#FFF"
+											: colors.textMuted
+									}
+								/>
+
+								<AppText
+									style={[
+										styles.tabText,
+										tab ===
+											t &&
+											styles.activeTabText,
+									]}
+								>
+									{t ===
+									"avaliacoes"
+										? `Avaliações (${avaliacoes.length})`
+										: `Ocorrências (${ocorrencias.length})`}
+								</AppText>
+							</LinearGradient>
+						</TouchableOpacity>
+					))}
+				</View>
+			</LinearGradient>
 
 			{/* LISTA */}
 			{isLoading ? (
-				<View style={styles.loadingBox}>
-					<ActivityIndicator size="large" color={Colors.primary} />
+				<View
+					style={
+						styles.loadingBox
+					}
+				>
+					<ActivityIndicator
+						size="large"
+						color={
+							colors.primary
+						}
+					/>
 				</View>
 			) : (
 				<FlatList
-					contentContainerStyle={styles.list}
+					contentContainerStyle={
+						styles.list
+					}
 					data={dados}
-					keyExtractor={(item) => item.id}
-					showsVerticalScrollIndicator={false}
+					keyExtractor={(
+						item
+					) => item.id}
+					showsVerticalScrollIndicator={
+						false
+					}
+					renderItem={
+						renderItem
+					}
 					ListEmptyComponent={
-						<View style={styles.emptyBox}>
-							<MaterialCommunityIcons
-								name={
-									tab === "avaliacoes" ? "star-outline" : "alert-circle-outline"
+						<View
+							style={
+								styles.emptyBox
+							}
+						>
+							<View
+								style={
+									styles.emptyIcon
 								}
-								size={44}
-								color={Colors.textMuted}
-							/>
-							<AppText style={styles.empty}>
-								{tab === "avaliacoes"
-									? "Nenhuma avaliação registrada"
-									: "Nenhuma ocorrência registrada"}
+							>
+								<MaterialCommunityIcons
+									name={
+										tab ===
+										"avaliacoes"
+											? "star-outline"
+											: "alert-circle-outline"
+									}
+									size={42}
+									color={
+										colors.primary
+									}
+								/>
+							</View>
+
+							<AppText
+								style={
+									styles.emptyTitle
+								}
+							>
+								{tab ===
+								"avaliacoes"
+									? "Nenhuma avaliação"
+									: "Nenhuma ocorrência"}
+							</AppText>
+
+							<AppText
+								style={
+									styles.emptyText
+								}
+							>
+								{tab ===
+								"avaliacoes"
+									? "Você ainda não avaliou eventos."
+									: "Você ainda não registrou ocorrências."}
 							</AppText>
 						</View>
 					}
-					renderItem={renderItem}
 				/>
 			)}
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
-	header: {
-		paddingTop: 50,
-		paddingBottom: 20,
-		paddingHorizontal: 16,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	title: { fontSize: 18, fontWeight: "bold", color: Colors.textPrimary },
-	tabsWrapper: {
-		flexDirection: "row",
-		marginHorizontal: 16,
-		backgroundColor: Colors.surface,
-		borderRadius: 14,
-		padding: 4,
-		borderWidth: 1,
-		borderColor: Colors.border,
-		marginBottom: 4,
-	},
-	tab: { flex: 1, padding: 10, borderRadius: 10 },
-	activeTab: { backgroundColor: Colors.primary },
-	tabText: {
-		textAlign: "center",
-		color: Colors.textSecondary,
-		fontWeight: "bold",
-		fontSize: 12,
-	},
-	activeTabText: { color: "#fff" },
-	list: { padding: 16 },
-	loadingBox: { flex: 1, justifyContent: "center", alignItems: "center" },
-	emptyBox: { alignItems: "center", marginTop: 50, gap: 12 },
-	empty: { color: Colors.textMuted, textAlign: "center", fontSize: 14 },
-	card: {
-		backgroundColor: Colors.surface,
-		padding: 16,
-		borderRadius: 16,
-		marginBottom: 12,
-		borderWidth: 1,
-		borderColor: Colors.border,
-	},
-	localText: {
-		color: Colors.primary,
-		fontSize: 13,
-		marginBottom: 6,
-		fontWeight: "bold",
-	},
-	starsRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
-	notaText: { color: Colors.textSecondary, fontSize: 12 },
-	tipoBadge: {
-		backgroundColor: Colors.card,
-		paddingHorizontal: 10,
-		paddingVertical: 4,
-		borderRadius: 20,
-		alignSelf: "flex-start",
-		marginBottom: 8,
-		borderWidth: 1,
-		borderColor: Colors.border,
-	},
-	tipoText: {
-		color: Colors.textMuted,
-		fontSize: 11,
-		textTransform: "uppercase",
-	},
-	cardText: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18 },
-	dataText: {
-		color: Colors.textMuted,
-		fontSize: 11,
-		marginTop: 8,
-		textAlign: "right",
-	},
-});
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
+		container: {
+			flex: 1,
+			backgroundColor:
+				"#070B14",
+		},
+
+		header: {
+			paddingBottom: 24,
+			paddingHorizontal: 20,
+		},
+
+		headerRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			marginBottom: 24,
+		},
+
+		backBtn: {
+			width: 46,
+			height: 46,
+
+			borderRadius: 16,
+
+			backgroundColor:
+				"rgba(255,255,255,0.08)",
+
+			justifyContent: "center",
+			alignItems: "center",
+
+			marginRight: 14,
+		},
+
+		title: {
+			color: "#FFF",
+
+			fontSize: 26,
+
+			fontWeight: "800",
+		},
+
+		subtitle: {
+			color:
+				"rgba(255,255,255,0.6)",
+
+			fontSize: 13,
+
+			marginTop: 4,
+		},
+
+		tabsWrapper: {
+			flexDirection: "row",
+
+			backgroundColor:
+				"rgba(255,255,255,0.06)",
+
+			padding: 6,
+
+			borderRadius: 22,
+
+			borderWidth: 1,
+
+			borderColor:
+				"rgba(255,255,255,0.06)",
+		},
+
+		tab: {
+			flex: 1,
+			borderRadius: 18,
+			overflow: "hidden",
+		},
+
+		activeTab: {},
+
+		tabGradient: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent:
+				"center",
+
+			paddingVertical: 14,
+
+			borderRadius: 18,
+
+			gap: 8,
+		},
+
+		tabText: {
+			color: c.textMuted,
+
+			fontSize: 12,
+
+			fontWeight: "700",
+		},
+
+		activeTabText: {
+			color: c.onPrimary,
+		},
+
+		list: {
+			padding: 18,
+			paddingBottom: 120,
+		},
+
+		cardWrapper: {
+			marginBottom: 16,
+		},
+
+		card: {
+			borderRadius: 28,
+
+			padding: 18,
+
+			overflow: "hidden",
+
+			backgroundColor:
+				"rgba(255,255,255,0.04)",
+
+			borderWidth: 1,
+
+			borderColor:
+				"rgba(255,255,255,0.06)",
+		},
+
+		cardGlow: {
+			position: "absolute",
+
+			top: 0,
+			left: 0,
+			right: 0,
+
+			height: 120,
+		},
+
+		cardHeader: {
+			flexDirection: "row",
+			alignItems: "flex-start",
+			marginBottom: 14,
+		},
+
+		eventBadge: {
+			alignSelf: "flex-start",
+
+			flexDirection: "row",
+			alignItems: "center",
+
+			backgroundColor:
+				"rgba(124,58,237,0.25)",
+
+			paddingHorizontal: 10,
+			paddingVertical: 6,
+
+			borderRadius: 20,
+
+			marginBottom: 10,
+		},
+
+		eventBadgeText: {
+			color: "#FFF",
+
+			fontSize: 11,
+
+			fontWeight: "700",
+
+			marginLeft: 6,
+		},
+
+		localText: {
+			color: "#FFF",
+
+			fontSize: 16,
+
+			fontWeight: "800",
+
+			lineHeight: 22,
+		},
+
+		deleteBtn: {
+			width: 40,
+			height: 40,
+
+			borderRadius: 14,
+
+			backgroundColor:
+				"rgba(239,68,68,0.08)",
+
+			justifyContent: "center",
+			alignItems: "center",
+		},
+
+		starsRow: {
+			flexDirection: "row",
+			alignItems: "center",
+
+			marginBottom: 12,
+		},
+
+		star: {
+			fontSize: 18,
+		},
+
+		notaText: {
+			color:
+				"rgba(255,255,255,0.7)",
+
+			marginLeft: 10,
+
+			fontSize: 13,
+
+			fontWeight: "700",
+		},
+
+		tipoBadge: {
+			backgroundColor:
+				"rgba(255,255,255,0.08)",
+
+			paddingHorizontal: 12,
+			paddingVertical: 6,
+
+			borderRadius: 18,
+
+			alignSelf: "flex-start",
+
+			marginBottom: 12,
+		},
+
+		tipoText: {
+			color: "#FFF",
+
+			fontSize: 11,
+
+			fontWeight: "700",
+
+			textTransform:
+				"uppercase",
+		},
+
+		cardText: {
+			color:
+				"rgba(255,255,255,0.72)",
+
+			fontSize: 14,
+
+			lineHeight: 24,
+		},
+
+		footerRow: {
+			marginTop: 18,
+
+			paddingTop: 14,
+
+			borderTopWidth: 1,
+
+			borderTopColor:
+				"rgba(255,255,255,0.06)",
+
+			flexDirection: "row",
+
+			justifyContent:
+				"space-between",
+
+			alignItems: "center",
+		},
+
+		dataText: {
+			color:
+				"rgba(255,255,255,0.45)",
+
+			fontSize: 12,
+		},
+
+		openRow: {
+			flexDirection: "row",
+			alignItems: "center",
+		},
+
+		openText: {
+			color: c.primary,
+
+			fontSize: 13,
+
+			fontWeight: "700",
+		},
+
+		loadingBox: {
+			flex: 1,
+
+			justifyContent:
+				"center",
+
+			alignItems: "center",
+		},
+
+		emptyBox: {
+			alignItems: "center",
+
+			marginTop: 90,
+
+			paddingHorizontal: 30,
+		},
+
+		emptyIcon: {
+			width: 90,
+			height: 90,
+
+			borderRadius: 45,
+
+			backgroundColor:
+				"rgba(124,58,237,0.12)",
+
+			justifyContent:
+				"center",
+
+			alignItems: "center",
+
+			marginBottom: 20,
+		},
+
+		emptyTitle: {
+			color: "#FFF",
+
+			fontSize: 18,
+
+			fontWeight: "800",
+
+			marginBottom: 10,
+		},
+
+		emptyText: {
+			color:
+				"rgba(255,255,255,0.6)",
+
+			fontSize: 14,
+
+			textAlign: "center",
+
+			lineHeight: 22,
+		},
+	});
+}

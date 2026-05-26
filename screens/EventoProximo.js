@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 
 import {
   View,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
+  Dimensions,
 } from "react-native";
 
 import {
@@ -25,9 +26,12 @@ import {
 
 import {
   MotiView,
+  AnimatePresence,
 } from "moti";
 
 import { Colors } from "../styles/Colors";
+
+const { width } = Dimensions.get("window");
 
 const eventosMock = [
   {
@@ -97,244 +101,355 @@ export default function TelaGerenciarEventos() {
     );
   };
 
-  const renderItem = ({
-    item,
-    index,
-  }) => {
-    const confirmado =
-      item.status ===
-      "confirmado";
+  const renderItem = useCallback(
+    ({ item, index }) => {
+      const confirmado =
+        item.status ===
+        "confirmado";
 
-    return (
-      <MotiView
-        from={{
-          opacity: 0,
-          translateY: 25,
-        }}
-        animate={{
-          opacity: 1,
-          translateY: 0,
-        }}
-        transition={{
-          type: "timing",
-          duration: 500,
-          delay: index * 120,
-        }}
-      >
-
-        <View style={styles.card}>
-
-          {/* IMAGEM */}
-          <ImageBackground
-            source={{
-              uri: item.imagem,
+      return (
+        <AnimatePresence>
+          <MotiView
+            from={{
+              opacity: 0,
+              translateY: 40,
+              scale: 0.92,
             }}
-            style={styles.imagem}
+            animate={{
+              opacity: 1,
+              translateY: 0,
+              scale: 1,
+            }}
+            exit={{
+              opacity: 0,
+              scale: 0.85,
+              translateX: width,
+            }}
+            transition={{
+              type: "timing",
+              duration: 550,
+              delay: index * 120,
+            }}
           >
-
-            <LinearGradient
-              colors={[
-                "transparent",
-                "rgba(0,0,0,0.95)",
-              ]}
-              style={
-                styles.overlay
-              }
+            <TouchableOpacity
+              activeOpacity={0.92}
+              style={styles.card}
             >
-
-              {/* STATUS */}
-              <View
-                style={[
-                  styles.status,
-
-                  confirmado
-                    ? styles.confirmado
-                    : styles.pendente,
-                ]}
+              {/* IMAGEM */}
+              <ImageBackground
+                source={{
+                  uri: item.imagem,
+                }}
+                style={styles.imagem}
               >
-
-                <Text
-                  style={
-                    styles.statusText
-                  }
-                >
-                  {confirmado
-                    ? "Confirmado"
-                    : "Pendente"}
-                </Text>
-
-              </View>
-
-            </LinearGradient>
-
-          </ImageBackground>
-
-          {/* CONTEUDO */}
-          <BlurView
-            intensity={50}
-            tint="dark"
-            style={
-              styles.conteudo
-            }
-          >
-
-            <Text
-              style={styles.titulo}
-              numberOfLines={1}
-            >
-              {item.titulo}
-            </Text>
-
-            {/* DATA */}
-            <View
-              style={
-                styles.infoRow
-              }
-            >
-
-              <MaterialCommunityIcons
-                name="calendar"
-                size={17}
-                color={
-                  Colors.primary
-                }
-              />
-
-              <Text
-                style={
-                  styles.infoText
-                }
-              >
-                {item.data}
-              </Text>
-
-            </View>
-
-            {/* LOCAL */}
-            <View
-              style={
-                styles.infoRow
-              }
-            >
-
-              <MaterialCommunityIcons
-                name="map-marker"
-                size={17}
-                color={
-                  Colors.primary
-                }
-              />
-
-              <Text
-                style={
-                  styles.infoText
-                }
-                numberOfLines={1}
-              >
-                {item.local}
-              </Text>
-
-            </View>
-
-            {/* ACTIONS */}
-            <View
-              style={
-                styles.actions
-              }
-            >
-
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={
-                  styles.botaoEvento
-                }
-              >
+                {/* EFEITO GLOW */}
+                <LinearGradient
+                  colors={[
+                    "rgba(124,58,237,0.20)",
+                    "transparent",
+                  ]}
+                  style={styles.glow}
+                />
 
                 <LinearGradient
                   colors={[
-                    "#7C3AED",
-                    "#5B21B6",
+                    "transparent",
+                    "rgba(0,0,0,0.35)",
+                    "rgba(0,0,0,0.98)",
                   ]}
                   style={
-                    styles.gradientBtn
+                    styles.overlay
                   }
                 >
+                  {/* STATUS */}
+                  <MotiView
+                    from={{
+                      scale: 0.7,
+                      opacity: 0,
+                    }}
+                    animate={{
+                      scale: 1,
+                      opacity: 1,
+                    }}
+                    transition={{
+                      delay:
+                        index * 140 +
+                        250,
+                      type: "spring",
+                    }}
+                    style={[
+                      styles.status,
 
-                  <MaterialCommunityIcons
-                    name="eye-outline"
-                    size={18}
-                    color="#FFF"
-                  />
+                      confirmado
+                        ? styles.confirmado
+                        : styles.pendente,
+                    ]}
+                  >
+                    <View
+                      style={
+                        styles.statusDot
+                      }
+                    />
 
-                  <Text
+                    <Text
+                      style={
+                        styles.statusText
+                      }
+                    >
+                      {confirmado
+                        ? "Confirmado"
+                        : "Pendente"}
+                    </Text>
+                  </MotiView>
+
+                  {/* FLOATING ACTION */}
+                  <TouchableOpacity
+                    activeOpacity={
+                      0.9
+                    }
                     style={
-                      styles.textoBtn
+                      styles.floatingBtn
                     }
                   >
-                    Ver Evento
-                  </Text>
-
+                    <BlurView
+                      intensity={
+                        60
+                      }
+                      tint="dark"
+                      style={
+                        styles.floatingBlur
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="heart-outline"
+                        size={20}
+                        color="#FFF"
+                      />
+                    </BlurView>
+                  </TouchableOpacity>
                 </LinearGradient>
+              </ImageBackground>
 
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() =>
-                  cancelarInscricao(
-                    item.id
-                  )
+              {/* CONTEUDO */}
+              <BlurView
+                intensity={55}
+                tint="dark"
+                style={
+                  styles.conteudo
                 }
               >
-
+                {/* TITULO */}
                 <Text
                   style={
-                    styles.cancelar
+                    styles.titulo
                   }
+                  numberOfLines={1}
                 >
-                  Cancelar
+                  {item.titulo}
                 </Text>
 
-              </TouchableOpacity>
+                {/* INFO */}
+                <View
+                  style={
+                    styles.infoContainer
+                  }
+                >
+                  <View
+                    style={
+                      styles.infoCard
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name="calendar"
+                      size={16}
+                      color={
+                        Colors.primary
+                      }
+                    />
 
-            </View>
+                    <Text
+                      style={
+                        styles.infoText
+                      }
+                    >
+                      {item.data}
+                    </Text>
+                  </View>
 
-          </BlurView>
+                  <View
+                    style={
+                      styles.infoCard
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      name="map-marker"
+                      size={16}
+                      color={
+                        Colors.primary
+                      }
+                    />
 
-        </View>
+                    <Text
+                      style={
+                        styles.infoText
+                      }
+                      numberOfLines={
+                        1
+                      }
+                    >
+                      {item.local}
+                    </Text>
+                  </View>
+                </View>
 
-      </MotiView>
-    );
-  };
+                {/* ACTIONS */}
+                <View
+                  style={
+                    styles.actions
+                  }
+                >
+                  <TouchableOpacity
+                    activeOpacity={
+                      0.9
+                    }
+                    style={
+                      styles.botaoEvento
+                    }
+                  >
+                    <LinearGradient
+                      colors={[
+                        "#8B5CF6",
+                        "#6D28D9",
+                      ]}
+                      start={{
+                        x: 0,
+                        y: 0,
+                      }}
+                      end={{
+                        x: 1,
+                        y: 1,
+                      }}
+                      style={
+                        styles.gradientBtn
+                      }
+                    >
+                      <MaterialCommunityIcons
+                        name="eye-outline"
+                        size={18}
+                        color="#FFF"
+                      />
+
+                      <Text
+                        style={
+                          styles.textoBtn
+                        }
+                      >
+                        Ver Evento
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={
+                      0.7
+                    }
+                    onPress={() =>
+                      cancelarInscricao(
+                        item.id
+                      )
+                    }
+                    style={
+                      styles.cancelarBtn
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.cancelar
+                      }
+                    >
+                      Cancelar
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </BlurView>
+            </TouchableOpacity>
+          </MotiView>
+        </AnimatePresence>
+      );
+    },
+    []
+  );
 
   return (
     <View style={styles.container}>
-
       <StatusBar
         barStyle="light-content"
+      />
+
+      {/* BG */}
+      <LinearGradient
+        colors={[
+          "#050816",
+          "#090F1F",
+          "#120F2B",
+        ]}
+        style={StyleSheet.absoluteFill}
       />
 
       {/* HEADER */}
       <LinearGradient
         colors={[
-          "#0F172A",
           "#111827",
           "#1E1B4B",
+          "#312E81",
         ]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-
-        <Text style={styles.headerTitle}>
-          Meus Eventos 🎟️
-        </Text>
-
-        <Text
-          style={
-            styles.headerSub
-          }
+        <MotiView
+          from={{
+            opacity: 0,
+            translateY: -20,
+          }}
+          animate={{
+            opacity: 1,
+            translateY: 0,
+          }}
+          transition={{
+            type: "timing",
+            duration: 700,
+          }}
         >
-          Gerencie suas inscrições
-        </Text>
+          <Text
+            style={
+              styles.headerTitle
+            }
+          >
+            Meus Eventos 🎟️
+          </Text>
 
+          <Text
+            style={
+              styles.headerSub
+            }
+          >
+            Gerencie suas inscrições
+          </Text>
+        </MotiView>
+
+        {/* BOLHAS */}
+        <View
+          style={
+            styles.circleOne
+          }
+        />
+
+        <View
+          style={
+            styles.circleTwo
+          }
+        />
       </LinearGradient>
 
       {/* LISTA */}
@@ -345,34 +460,67 @@ export default function TelaGerenciarEventos() {
         }
         renderItem={renderItem}
         contentContainerStyle={{
-          padding: 20,
-          paddingBottom: 50,
+          paddingHorizontal: 20,
+          paddingTop: 24,
+          paddingBottom: 60,
         }}
         showsVerticalScrollIndicator={
           false
         }
         ListEmptyComponent={
-          <View
+          <MotiView
+            from={{
+              opacity: 0,
+              scale: 0.9,
+            }}
+            animate={{
+              opacity: 1,
+              scale: 1,
+            }}
+            transition={{
+              type: "spring",
+            }}
             style={
               styles.emptyContainer
             }
           >
+            <LinearGradient
+              colors={[
+                "rgba(124,58,237,0.25)",
+                "rgba(255,255,255,0.03)",
+              ]}
+              style={
+                styles.emptyIconBox
+              }
+            >
+              <MaterialCommunityIcons
+                name="calendar-remove"
+                size={68}
+                color="rgba(255,255,255,0.35)"
+              />
+            </LinearGradient>
 
-            <MaterialCommunityIcons
-              name="calendar-remove"
-              size={70}
-              color="rgba(255,255,255,0.15)"
-            />
-
-            <Text style={styles.empty}>
+            <Text
+              style={
+                styles.empty
+              }
+            >
               Você ainda não se
               inscreveu em eventos
             </Text>
 
-          </View>
+            <Text
+              style={
+                styles.emptySub
+              }
+            >
+              Explore experiências
+              incríveis perto de
+              você
+            </Text>
+          </MotiView>
         }
       />
-
     </View>
   );
 }
@@ -386,25 +534,53 @@ const styles = StyleSheet.create({
 
   /* HEADER */
   header: {
-    paddingTop: 65,
-    paddingBottom: 28,
+    paddingTop: 72,
+    paddingBottom: 34,
     paddingHorizontal: 24,
 
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
+
+    overflow: "hidden",
+  },
+
+  circleOne: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+
+    backgroundColor:
+      "rgba(255,255,255,0.05)",
+
+    top: -50,
+    right: -40,
+  },
+
+  circleTwo: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+
+    backgroundColor:
+      "rgba(139,92,246,0.18)",
+
+    bottom: -35,
+    left: -20,
   },
 
   headerTitle: {
     color: "#FFF",
 
-    fontSize: 30,
+    fontSize: 32,
 
-    fontWeight: "bold",
+    fontWeight: "800",
   },
 
   headerSub: {
     color:
-      "rgba(255,255,255,0.7)",
+      "rgba(255,255,255,0.72)",
 
     marginTop: 8,
 
@@ -416,59 +592,89 @@ const styles = StyleSheet.create({
     backgroundColor:
       "rgba(255,255,255,0.04)",
 
-    borderRadius: 28,
+    borderRadius: 30,
 
     overflow: "hidden",
 
-    marginBottom: 22,
+    marginBottom: 24,
 
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.08)",
+      "rgba(255,255,255,0.06)",
+
+    shadowColor: "#000",
+
+    shadowOpacity: 0.25,
+
+    shadowRadius: 20,
+
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+
+    elevation: 10,
   },
 
   imagem: {
-    height: 200,
+    height: 230,
 
     justifyContent: "flex-end",
+  },
+
+  glow: {
+    ...StyleSheet.absoluteFillObject,
   },
 
   overlay: {
     flex: 1,
 
-    justifyContent: "flex-end",
+    justifyContent:
+      "space-between",
 
-    padding: 16,
+    padding: 18,
   },
 
   conteudo: {
-    padding: 18,
+    padding: 20,
+    backgroundColor:
+      "rgba(12,12,18,0.70)",
   },
 
   titulo: {
     color: "#FFF",
 
-    fontSize: 21,
+    fontSize: 23,
 
-    fontWeight: "bold",
+    fontWeight: "800",
 
-    marginBottom: 15,
+    marginBottom: 18,
   },
 
-  infoRow: {
+  infoContainer: {
+    gap: 12,
+  },
+
+  infoCard: {
     flexDirection: "row",
 
     alignItems: "center",
 
-    marginBottom: 10,
+    backgroundColor:
+      "rgba(255,255,255,0.05)",
+
+    borderRadius: 16,
+
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
 
   infoText: {
     color:
-      "rgba(255,255,255,0.72)",
+      "rgba(255,255,255,0.78)",
 
-    marginLeft: 8,
+    marginLeft: 10,
 
     fontSize: 13,
 
@@ -479,10 +685,24 @@ const styles = StyleSheet.create({
   status: {
     alignSelf: "flex-start",
 
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    flexDirection: "row",
 
-    borderRadius: 18,
+    alignItems: "center",
+
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+
+    borderRadius: 20,
+  },
+
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+
+    backgroundColor: "#FFF",
+
+    marginRight: 8,
   },
 
   confirmado: {
@@ -500,7 +720,29 @@ const styles = StyleSheet.create({
 
     fontSize: 12,
 
-    fontWeight: "bold",
+    fontWeight: "800",
+  },
+
+  floatingBtn: {
+    position: "absolute",
+
+    top: 18,
+    right: 18,
+
+    borderRadius: 22,
+
+    overflow: "hidden",
+  },
+
+  floatingBlur: {
+    width: 44,
+    height: 44,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    backgroundColor:
+      "rgba(0,0,0,0.25)",
   },
 
   /* ACTIONS */
@@ -512,7 +754,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    marginTop: 20,
+    marginTop: 24,
   },
 
   botaoEvento: {
@@ -526,8 +768,8 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    paddingVertical: 12,
-    paddingHorizontal: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
 
     gap: 8,
   },
@@ -535,15 +777,20 @@ const styles = StyleSheet.create({
   textoBtn: {
     color: "#FFF",
 
-    fontWeight: "bold",
+    fontWeight: "800",
 
     fontSize: 13,
+  },
+
+  cancelarBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
 
   cancelar: {
     color: "#EF4444",
 
-    fontWeight: "bold",
+    fontWeight: "800",
 
     fontSize: 14,
   },
@@ -552,17 +799,45 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: "center",
 
-    marginTop: 90,
+    marginTop: 100,
+
+    paddingHorizontal: 30,
+  },
+
+  emptyIconBox: {
+    width: 130,
+    height: 130,
+
+    borderRadius: 65,
+
+    justifyContent: "center",
+    alignItems: "center",
+
+    marginBottom: 26,
   },
 
   empty: {
-    color:
-      "rgba(255,255,255,0.55)",
-
-    marginTop: 18,
+    color: "#FFF",
 
     textAlign: "center",
 
-    fontSize: 15,
+    fontSize: 18,
+
+    fontWeight: "700",
+
+    lineHeight: 28,
+  },
+
+  emptySub: {
+    color:
+      "rgba(255,255,255,0.55)",
+
+    marginTop: 10,
+
+    textAlign: "center",
+
+    fontSize: 14,
+
+    lineHeight: 22,
   },
 });

@@ -1,77 +1,114 @@
 import React, { useState } from "react";
-
 import {
   View,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 
+import { FontAwesome6 } from "@expo/vector-icons";
+
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
 
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
-
 import { MotiView } from "moti";
 
 import AppText from "../components/AppText";
 import { Colors } from "../styles/Colors";
+import ConfirmModal from "../components/ConfirmModal";
+import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciador de sessão
 
 export default function PerfilLogin({ navigation }) {
+  const { googleLogin, facebookLogin, microsoftLogin, twitterLogin } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [hasEmptyField, setHasEmptyField] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [focusedInput, setFocusedInput] = useState(null);
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalData, setModalData] = useState({
+    title: "",
+    message: "",
+    type: "error",
+  });
 
-  const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
+  const showModal = (title, message, type = "error") => {
+    setModalData({ title, message, type });
+    setModalVisible(true);
+  };
+
+  const isValidEmail = (value) => /\S+@\S+\.\S+/.test(value);
 
   const handleSubmit = async () => {
-    const emptyField = [email, password].some(
-      (f) => f.trim() === ""
-    );
+    const emptyField = [email, password].some((f) => f.trim() === "");
 
-    setHasEmptyField(emptyField);
+    if (emptyField) {
+      showModal("Campos obrigatórios", "Por favor, preencha seu e-mail e sua senha.");
+      return;
+    }
 
-    if (emptyField) return;
-
-    if (!isValidEmail(email)) {
-      alert("Email inválido");
+    if (!isValidEmail(email.trim())) {
+      showModal("E-mail inválido", "Insira um formato de e-mail válido.");
       return;
     }
 
     try {
       setLoading(true);
 
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      // 1. Autenticação no Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+
+      // 2. Busca o perfil e a Role (User/Admin) no Firestore para validação de rota
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        
+        // Exemplo de roteamento inteligente baseado nas suas regras de negócio
+        if (userData.role === "admin") {
+          // Se for administrador/organizador, você pode mandar para um fluxo ou home customizada
+          console.log("Organizador logado com sucesso.");
+        }
+      }
+
+      // O Firebase escuta o estado no App.js/AuthContext e muda a rota automaticamente,
+      // mas caso precise forçar a navegação manual:
+      // navigation.replace("MainTabs");
+
     } catch (error) {
-      // Firebase v9+ unifica "user-not-found" e "wrong-password" em "invalid-credential"
-      if (
-        error.code === "auth/invalid-credential" ||
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/wrong-password"
-      ) {
-        alert("Email ou senha incorretos");
-      } else if (error.code === "auth/too-many-requests") {
-        alert("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
-      } else {
-        alert("Erro ao fazer login. Tente novamente.");
+      console.log("Erro ao efetuar login:", error.code, error.message);
+      
+      switch (error.code) {
+        case "auth/invalid-credential":
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+          showModal("Acesso negado", "E-mail ou senha incorretos. Verifique suas credenciais.");
+          break;
+        case "auth/too-many-requests":
+          showModal("Conta bloqueada temporariamente", "Muitas tentativas malsucedidas. Aguarde alguns minutos.");
+          break;
+        case "auth/user-disabled":
+          showModal("Conta desativada", "Este usuário foi suspenso da plataforma.");
+          break;
+        case "auth/invalid-email":
+          showModal("E-mail inválido", "O endereço de e-mail informado é inválido.");
+          break;
+        default:
+          showModal("Falha no login", "Ocorreu um erro interno. Tente novamente mais tarde.");
       }
     } finally {
       setLoading(false);
@@ -86,111 +123,59 @@ export default function PerfilLogin({ navigation }) {
     >
       <StatusBar barStyle="light-content" />
 
-      {/* OVERLAY */}
       <LinearGradient
-        colors={[
-          "rgba(0,0,0,0.88)",
-          "rgba(15,15,30,0.72)",
-          "rgba(0,0,0,0.92)",
-        ]}
+        colors={["rgba(0,0,0,0.88)", "rgba(15,15,30,0.72)", "rgba(0,0,0,0.92)"]}
         style={styles.overlay}
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={
-            Platform.OS === "ios"
-              ? "padding"
-              : undefined
-          }
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
+            contentInsetAdjustmentBehavior="never"
+            contentContainerStyle={styles.container}
           >
-
             {/* HEADER */}
             <MotiView
-              from={{
-                opacity: 0,
-                translateY: -30,
-              }}
-              animate={{
-                opacity: 1,
-                translateY: 0,
-              }}
-              transition={{
-                type: "timing",
-                duration: 800,
-              }}
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 700 }}
               style={styles.logoContainer}
             >
-
               <LinearGradient
-                colors={[
-                  Colors.primary,
-                  "#7B5CFF",
-                ]}
+                colors={[Colors?.primary || "#7C3AED", "#7B5CFF"]}
                 style={styles.logoCircle}
               >
-                <Feather
-                  name="zap"
-                  size={38}
-                  color="#FFF"
-                />
+                <Feather name="zap" size={30} color="#FFF" />
               </LinearGradient>
 
-              <AppText style={styles.appName}>
-                MonitoraCult
-              </AppText>
-
-              <AppText style={styles.subtitle}>
-                Entre na sua conta e descubra
-                experiências incríveis
-              </AppText>
-
+              <AppText style={styles.appName}>MonitoraCult</AppText>
+              <AppText style={styles.subtitle}>Entre na sua conta</AppText>
             </MotiView>
 
-            {/* CARD */}
+            {/* CARD FORMULÁRIO */}
             <MotiView
-              from={{
-                opacity: 0,
-                translateY: 50,
-              }}
-              animate={{
-                opacity: 1,
-                translateY: 0,
-              }}
-              transition={{
-                type: "timing",
-                duration: 850,
-              }}
+              from={{ opacity: 0, translateY: 30 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 850 }}
             >
-
-              <BlurView
-                intensity={65}
-                tint="dark"
-                style={styles.card}
-              >
-
+              <BlurView intensity={65} tint="dark" style={styles.card}>
+                
                 {/* EMAIL */}
-                <AppText style={styles.label}>
-                  Email
-                </AppText>
-
-                <View
-                  style={[
-                    styles.inputContainer,
-                    focusedInput === "email" &&
-                      styles.inputFocused,
-                  ]}
-                >
+                <AppText style={styles.label}>Email</AppText>
+                <View style={[styles.inputContainer, focusedInput === "email" && styles.inputFocused]}>
                   <Feather
                     name="mail"
-                    size={20}
-                    color={Colors.textMuted}
+                    size={18}
+                    color={Colors?.textMuted || "#64748B"}
                     style={styles.icon}
                   />
-
                   <TextInput
                     style={styles.input}
                     value={email}
@@ -198,94 +183,52 @@ export default function PerfilLogin({ navigation }) {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     placeholder="Digite seu email"
-                    placeholderTextColor={
-                      Colors.textMuted
-                    }
-                    onFocus={() =>
-                      setFocusedInput("email")
-                    }
-                    onBlur={() =>
-                      setFocusedInput(null)
-                    }
+                    placeholderTextColor={Colors?.textMuted || "#64748B"}
+                    onFocus={() => setFocusedInput("email")}
+                    onBlur={() => setFocusedInput(null)}
+                    returnKeyType="next"
                   />
                 </View>
 
                 {/* SENHA */}
-                <AppText style={styles.label}>
-                  Senha
-                </AppText>
-
-                <View
-                  style={[
-                    styles.inputContainer,
-                    focusedInput === "password" &&
-                      styles.inputFocused,
-                  ]}
-                >
+                <AppText style={styles.label}>Senha</AppText>
+                <View style={[styles.inputContainer, focusedInput === "password" && styles.inputFocused]}>
                   <Feather
                     name="lock"
-                    size={20}
-                    color={Colors.textMuted}
+                    size={18}
+                    color={Colors?.textMuted || "#64748B"}
                     style={styles.icon}
                   />
-
                   <TextInput
                     style={styles.input}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     placeholder="Digite sua senha"
-                    placeholderTextColor={
-                      Colors.textMuted
-                    }
-                    onFocus={() =>
-                      setFocusedInput("password")
-                    }
-                    onBlur={() =>
-                      setFocusedInput(null)
-                    }
+                    placeholderTextColor={Colors?.textMuted || "#64748B"}
+                    onFocus={() => setFocusedInput("password")}
+                    onBlur={() => setFocusedInput(null)}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit}
                   />
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      setShowPassword(!showPassword)
-                    }
-                  >
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
                     <Feather
-                      name={
-                        showPassword
-                          ? "eye"
-                          : "eye-off"
-                      }
-                      size={20}
-                      color={Colors.primary}
+                      name={showPassword ? "eye" : "eye-off"}
+                      size={18}
+                      color={Colors?.primary || "#7C3AED"}
                     />
                   </TouchableOpacity>
                 </View>
 
-                {/* ERRO */}
-                {hasEmptyField && (
-                  <AppText style={styles.error}>
-                    Todos os campos são
-                    obrigatórios
-                  </AppText>
-                )}
-
-                {/* ESQUECI SENHA */}
+                {/* ESQUECI A SENHA */}
                 <TouchableOpacity
                   style={styles.forgot}
-                  onPress={() =>
-                    navigation.navigate(
-                      "ResetPassword"
-                    )
-                  }
+                  onPress={() => navigation.navigate("ResetPassword")}
                 >
-                  <AppText style={styles.link}>
-                    Esqueci minha senha
-                  </AppText>
+                  <AppText style={styles.link}>Esqueci minha senha</AppText>
                 </TouchableOpacity>
 
-                {/* BOTÃO LOGIN */}
+                {/* BOTÃO ENTRAR */}
                 <TouchableOpacity
                   activeOpacity={0.85}
                   onPress={handleSubmit}
@@ -293,410 +236,130 @@ export default function PerfilLogin({ navigation }) {
                   style={styles.buttonWrapper}
                 >
                   <LinearGradient
-                    colors={[
-                      Colors.primary,
-                      "#7B5CFF",
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                    colors={[Colors?.primary || "#7C3AED", "#7B5CFF"]}
                     style={styles.button}
                   >
                     {loading ? (
-                      <ActivityIndicator
-                        color="#FFF"
-                      />
+                      <ActivityIndicator color="#FFF" />
                     ) : (
-                      <AppText
-                        style={styles.buttonText}
-                      >
-                        Entrar
-                      </AppText>
+                      <AppText style={styles.buttonText}>Entrar</AppText>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* CADASTRO */}
+                {/* REDIRECIONAMENTO DE CADASTROS */}
                 <View style={styles.row}>
-                  <AppText
-                    style={styles.rowText}
-                  >
-                    Não possui uma conta?
-                  </AppText>
-
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate(
-                        "Cadastro"
-                      )
-                    }
-                  >
-                    <AppText
-                      style={styles.linkBold}
-                    >
-                      Criar conta
-                    </AppText>
+                  <AppText style={styles.rowText}>Não possui conta?</AppText>
+                  <TouchableOpacity onPress={() => navigation.navigate("Cadastro")}>
+                    <AppText style={styles.linkBold}>Criar conta</AppText>
                   </TouchableOpacity>
                 </View>
 
-                {/* DIVIDER */}
-                <View
-                  style={
-                    styles.dividerContainer
-                  }
-                >
+                {/* DIVIDER TRADICIONAL */}
+                <View style={styles.dividerContainer}>
                   <View style={styles.line} />
-
-                  <AppText
-                    style={styles.divider}
-                  >
-                    ou continue com
-                  </AppText>
-
+                  <AppText style={styles.divider}>ou continue com</AppText>
                   <View style={styles.line} />
                 </View>
 
-                {/* SOCIAL LOGIN */}
-                <View
-                  style={styles.socialContainer}
-                >
-
+                {/* LOGIN SOCIAL */}
+                <View style={styles.socialContainer}>
                   <TouchableOpacity
                     style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={googleLogin}
                   >
-                    <Feather
-                      name="chrome"
-                      size={22}
-                      color="#FFF"
-                    />
+                    <FontAwesome6 name="google" size={20} color="#FFF" />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={facebookLogin}
                   >
-                    <Feather
-                      name="facebook"
-                      size={22}
-                      color="#FFF"
-                    />
+                    <FontAwesome6 name="facebook" size={20} color="#FFF" />
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={microsoftLogin}
                   >
-                    <Feather
-                      name="twitter"
-                      size={22}
-                      color="#FFF"
-                    />
+                    <FontAwesome6 name="microsoft" size={20} color="#FFF" />
                   </TouchableOpacity>
 
+                  <TouchableOpacity
+                    style={styles.socialButton}
+                    activeOpacity={0.8}
+                    onPress={twitterLogin}
+                  >
+                    <FontAwesome6 name="x-twitter" size={20} color="#FFF" />
+                  </TouchableOpacity>
                 </View>
 
                 {/* ORGANIZADOR */}
                 <TouchableOpacity
-                  style={
-                    styles.organizadorButton
-                  }
-                  onPress={() =>
-                    navigation.navigate(
-                      "CadastroAdmin"
-                    )
-                  }
+                  style={styles.organizadorButton}
+                  onPress={() => navigation.navigate("CadastroAdmin")}
+                  activeOpacity={0.8}
                 >
-
-                  <Feather
-                    name="briefcase"
-                    size={18}
-                    color={Colors.warning}
-                  />
-
-                  <AppText
-                    style={styles.organizador}
-                  >
-                    Cadastrar como
-                    Organizador
+                  <Feather name="briefcase" size={16} color={Colors?.warning || "#FFD166"} />
+                  <AppText style={styles.organizador}>
+                    Cadastrar como Organizador
                   </AppText>
-
                 </TouchableOpacity>
 
-                {/* FOOTER */}
+                {/* FOOTER POLÍTICAS */}
                 <AppText style={styles.footer}>
-                  Ao continuar você concorda
-                  com nossos Termos de Uso e
-                  Política de Privacidade.
+                  Ao continuar você aceita nossos termos e políticas de uso de dados.
                 </AppText>
-
               </BlurView>
-
             </MotiView>
-
           </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
+
+      {/* MODAL DE ALERTAS INTEGRADO */}
+      <ConfirmModal
+        visible={modalVisible}
+        title={modalData.title}
+        message={modalData.message}
+        type={modalData.type}
+        confirmText="Entendi"
+        onConfirm={() => setModalVisible(false)}
+      />
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
-    flex: 1,
-  },
-
-  overlay: {
-    flex: 1,
-  },
-
-  scroll: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 22,
-  },
-
-  /* LOGO */
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 38,
-  },
-
-  logoCircle: {
-    width: 95,
-    height: 95,
-    borderRadius: 50,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.5,
-    shadowRadius: 25,
-    elevation: 15,
-  },
-
-  appName: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#FFF",
-    marginTop: 18,
-    letterSpacing: 1,
-  },
-
-  subtitle: {
-    marginTop: 10,
-    textAlign: "center",
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 15,
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-
-  /* CARD */
-  card: {
-    overflow: "hidden",
-
-    borderRadius: 30,
-
-    padding: 24,
-
-    backgroundColor:
-      "rgba(20,20,20,0.35)",
-
-    borderWidth: 1,
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
-
-  /* LABEL */
-  label: {
-    color: "rgba(255,255,255,0.75)",
-    marginBottom: 8,
-    marginLeft: 4,
-    fontSize: 14,
-  },
-
-  /* INPUT */
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.06)",
-
-    borderRadius: 18,
-
-    paddingHorizontal: 14,
-
-    marginBottom: 18,
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
-
-  inputFocused: {
-    borderColor: Colors.primary,
-
-    shadowColor: Colors.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-
-    elevation: 6,
-  },
-
-  icon: {
-    marginRight: 10,
-  },
-
-  input: {
-    flex: 1,
-    color: "#FFF",
-    paddingVertical: 16,
-    fontSize: 15,
-  },
-
-  /* ERRO */
-  error: {
-    color: "#FF7070",
-    marginTop: -6,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-
-  /* LINKS */
-  forgot: {
-    alignSelf: "flex-end",
-  },
-
-  link: {
-    color: Colors.primary,
-    fontWeight: "600",
-  },
-
-  linkBold: {
-    color: Colors.primary,
-    fontWeight: "bold",
-  },
-
-  /* BOTÃO */
-  buttonWrapper: {
-    marginTop: 28,
-    borderRadius: 18,
-    overflow: "hidden",
-  },
-
-  button: {
-    paddingVertical: 17,
-    borderRadius: 18,
-    alignItems: "center",
-  },
-
-  buttonText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
-
-  /* ROW */
-  row: {
-    flexDirection: "row",
-    justifyContent: "center",
-    flexWrap: "wrap",
-
-    marginTop: 24,
-
-    gap: 6,
-  },
-
-  rowText: {
-    color: "rgba(255,255,255,0.65)",
-  },
-
-  /* DIVIDER */
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-
-    marginVertical: 28,
-  },
-
-  line: {
-    flex: 1,
-    height: 1,
-
-    backgroundColor:
-      "rgba(255,255,255,0.10)",
-  },
-
-  divider: {
-    marginHorizontal: 12,
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 12,
-  },
-
-  /* SOCIAL */
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 16,
-
-    marginBottom: 28,
-  },
-
-  socialButton: {
-    width: 58,
-    height: 58,
-
-    borderRadius: 18,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.07)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
-
-  /* ORGANIZADOR */
-  organizadorButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-
-    gap: 8,
-
-    paddingVertical: 15,
-
-    borderRadius: 18,
-
-    backgroundColor:
-      "rgba(255,255,255,0.05)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.06)",
-  },
-
-  organizador: {
-    color: Colors.warning,
-    fontWeight: "bold",
-  },
-
-  /* FOOTER */
-  footer: {
-    marginTop: 26,
-
-    textAlign: "center",
-
-    fontSize: 12,
-
-    lineHeight: 20,
-
-    color: "rgba(255,255,255,0.45)",
-  },
+  background: { flex: 1 },
+  overlay: { flex: 1 },
+  container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 },
+  logoContainer: { alignItems: "center", marginBottom: 18 },
+  logoCircle: { width: 72, height: 72, borderRadius: 40, justifyContent: "center", alignItems: "center" },
+  appName: { fontSize: 24, fontWeight: "bold", color: "#FFF", marginTop: 12 },
+  subtitle: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 13 },
+  card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  label: { color: "rgba(255,255,255,0.75)", marginBottom: 6, marginLeft: 4, fontSize: 13 },
+  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  inputFocused: { borderColor: Colors?.primary || "#7C3AED" },
+  icon: { marginRight: 8 },
+  input: { flex: 1, color: "#FFF", paddingVertical: 14, fontSize: 14 },
+  forgot: { alignSelf: "flex-end" },
+  link: { color: Colors?.primary || "#7C3AED", fontWeight: "600", fontSize: 13 },
+  buttonWrapper: { marginTop: 18, borderRadius: 16, overflow: "hidden" },
+  button: { paddingVertical: 15, alignItems: "center" },
+  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 15 },
+  row: { flexDirection: "row", justifyContent: "center", marginTop: 16, gap: 5, flexWrap: "wrap" },
+  rowText: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
+  linkBold: { color: Colors?.primary || "#7C3AED", fontWeight: "bold", fontSize: 13 },
+  dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 18 },
+  line: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.10)" },
+  divider: { marginHorizontal: 10, color: "rgba(255,255,255,0.45)", fontSize: 11 },
+  socialContainer: { flexDirection: "row", justifyContent: "center", gap: 14, marginBottom: 18 },
+  socialButton: { width: 50, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.07)" },
+  organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
+  organizador: { color: Colors?.warning || "#FFD166", fontWeight: "bold", fontSize: 13 },
+  footer: { marginTop: 18, textAlign: "center", fontSize: 11, lineHeight: 18, color: "rgba(255,255,255,0.45)" },
 });

@@ -1,0 +1,127 @@
+// ============================================================
+// REGRAS DE SEGURANÇA FIRESTORE — Comunidades v2
+// Adicione ao seu arquivo rules do Firebase Console
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Funções auxiliares ──────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isGroupMember(groupId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/communityGroups/$(groupId))
+          .data.members.hasAny([request.auth.uid]);
+    }
+
+    function isGroupAdmin(groupId) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/communityGroups/$(groupId))
+          .data.admins.hasAny([request.auth.uid]);
+    }
+
+    // ── communityGroups ─────────────────────────────────────
+
+    match /communityGroups/{groupId} {
+      // Qualquer usuário autenticado pode listar e ver grupos públicos
+      allow read: if isAuthenticated();
+
+      // Qualquer usuário autenticado pode criar um grupo
+      allow create: if isAuthenticated()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.members.hasAll([request.auth.uid])
+        && request.resource.data.admins.hasAll([request.auth.uid]);
+
+      // Somente admins podem atualizar metadados do grupo
+      // Membros podem atualizar membersCount (via join/leave)
+      allow update: if isAuthenticated() && (
+        isGroupAdmin(groupId) ||
+        // Join: somente adiciona a si mesmo
+        (request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['members', 'membersCount', 'updatedAt']) &&
+          request.resource.data.members.hasAll([request.auth.uid]))
+      );
+
+      // Somente o criador pode excluir
+      allow delete: if isAuthenticated()
+        && resource.data.createdBy == request.auth.uid;
+
+      // ── Posts ───────────────────────────────────────────
+
+      match /posts/{postId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.authorId == request.auth.uid;
+        allow update: if isAuthenticated() && (
+          // Dono do post edita
+          resource.data.authorId == request.auth.uid ||
+          // Qualquer membro dá like
+          (isGroupMember(groupId) &&
+           request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['likes', 'likesCount']))
+        );
+        allow delete: if isAuthenticated()
+          && resource.data.authorId == request.auth.uid;
+
+        match /comments/{commentId} {
+          allow read: if isGroupMember(groupId);
+          allow create: if isGroupMember(groupId)
+            && request.resource.data.authorId == request.auth.uid;
+          allow delete: if isAuthenticated()
+            && resource.data.authorId == request.auth.uid;
+        }
+      }
+
+      // ── Fórum ───────────────────────────────────────────
+
+      match /forum/{threadId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.authorId == request.auth.uid;
+        allow update: if isGroupMember(groupId);
+        allow delete: if isAuthenticated()
+          && resource.data.authorId == request.auth.uid;
+
+        match /replies/{replyId} {
+          allow read: if isGroupMember(groupId);
+          allow create: if isGroupMember(groupId)
+            && request.resource.data.authorId == request.auth.uid;
+          allow delete: if isAuthenticated()
+            && resource.data.authorId == request.auth.uid;
+        }
+      }
+
+      // ── Notícias ────────────────────────────────────────
+
+      match /news/{newsId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupAdmin(groupId)
+          && request.resource.data.authorId == request.auth.uid;
+        allow update: if isAuthenticated() && (
+          isGroupAdmin(groupId) ||
+          // Qualquer membro dá like
+          (isGroupMember(groupId) &&
+           request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['likes', 'likesCount', 'viewsCount']))
+        );
+        allow delete: if isGroupAdmin(groupId);
+      }
+    }
+
+    // ── highlightedCreators ─────────────────────────────────
+
+    match /highlightedCreators/{creatorId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Gerenciado pelo admin via console/functions
+    }
+  }
+}

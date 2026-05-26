@@ -1,47 +1,83 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { followUser, unfollowUser, isFollowing } from "../services/followService";
 
 /**
  * Hook para gerenciar o estado de seguir/deixar de seguir um usuário
+ * ✅ Com limpeza de memória e otimizações
  */
 export const useFollow = (targetUserId, targetUserData) => {
   const [isFollowingUser, setIsFollowingUser] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isMountedRef = useRef(true);
 
-  // Verificar status inicial de follow
+  // ✅ Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // ✅ Verificar status inicial de follow
   useEffect(() => {
     const checkFollowing = async () => {
+      if (!targetUserId) {
+        setIsFollowingUser(false);
+        return;
+      }
+
       try {
         const following = await isFollowing(targetUserId);
-        setIsFollowingUser(following);
+        
+        if (isMountedRef.current) {
+          setIsFollowingUser(following);
+        }
       } catch (err) {
         console.log("Erro ao verificar follow:", err);
-        setError(err.message);
+        
+        if (isMountedRef.current) {
+          setError(err.message);
+        }
       }
     };
 
     checkFollowing();
   }, [targetUserId]);
 
-  // Toggle follow/unfollow
+  // ✅ Toggle follow/unfollow com useCallback
   const toggleFollow = useCallback(async () => {
+    if (!isMountedRef.current || !targetUserId) return isFollowingUser;
+
     setLoading(true);
     setError(null);
 
     try {
       if (isFollowingUser) {
         await unfollowUser(targetUserId);
-        setIsFollowingUser(false);
+
+        if (isMountedRef.current) {
+          setIsFollowingUser(false);
+        }
+        return false;
       } else {
         await followUser(targetUserId, targetUserData);
-        setIsFollowingUser(true);
+
+        if (isMountedRef.current) {
+          setIsFollowingUser(true);
+        }
+        return true;
       }
     } catch (err) {
       console.log("Erro ao togglear follow:", err);
-      setError(err.message);
+
+      if (isMountedRef.current) {
+        setError(err.message);
+      }
+      return isFollowingUser;
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [isFollowingUser, targetUserId, targetUserData]);
 

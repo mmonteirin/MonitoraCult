@@ -1,651 +1,905 @@
-import React, { useState } from "react";
+/**
+ * 🎫 TELA DE COMPRA DE INGRESSOS
+ *
+ * Fluxo completo:
+ *  1. Hero com info do evento
+ *  2. Seletor de tipos/quantidade (SeletorIngressos)
+ *  3. Carrinho com resumo (CarrinhoIngressos)
+ *  4. Confirmação com código do ingresso gerado
+ */
 
+import React, { useState, useCallback, useMemo } from "react";
 import {
-  View,
-  Text,
-  ImageBackground,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  StatusBar,
-  ActivityIndicator,
+	View,
+	Text,
+	ImageBackground,
+	TouchableOpacity,
+	ScrollView,
+	StyleSheet,
+	StatusBar,
+	Modal,
+	Share,
 } from "react-native";
 
-import {
-  LinearGradient,
-} from "expo-linear-gradient";
-
-import {
-  BlurView,
-} from "expo-blur";
-
-import {
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
-
-import {
-  MotiView,
-} from "moti";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MotiView } from "moti";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
-
-import {
-  comprarIngresso,
-} from "../services/ingressoService";
-
-import Colors from "../styles/Colors";
-
-export default function EventoIngresso({
-  route,
-  navigation,
-}) {
-  const { evento } = route.params;
-
-  const { user } = useAuth();
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const handleCompra =
-    async () => {
-      setLoading(true);
-
-      const sucesso =
-        await comprarIngresso({
-          eventoId: evento.id,
-          user,
-          valor:
-            evento.valor || 0,
-        });
-
-      setLoading(false);
-
-      if (sucesso) {
-        Alert.alert(
-          "Sucesso 🎉",
-          "Ingresso comprado!"
-        );
-
-        navigation.goBack();
-      } else {
-        Alert.alert(
-          "Erro",
-          "Não foi possível concluir"
-        );
-      }
-    };
-
-  return (
-    <View style={styles.container}>
-
-      <StatusBar
-        barStyle="light-content"
-      />
-
-      {/* HERO IMAGE */}
-      <ImageBackground
-        source={{
-          uri:
-            evento.imagem ||
-            "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1200",
-        }}
-        style={styles.hero}
-      >
-
-        <LinearGradient
-          colors={[
-            "rgba(0,0,0,0.15)",
-            "rgba(0,0,0,0.95)",
-          ]}
-          style={styles.overlay}
-        >
-
-          {/* HEADER */}
-          <View style={styles.header}>
-
-            <TouchableOpacity
-              onPress={() => {
-                if (
-                  navigation.canGoBack()
-                ) {
-                  navigation.goBack();
-                } else {
-                  navigation.navigate(
-                    "Inicio"
-                  );
-                }
-              }}
-              style={
-                styles.backBtn
-              }
-            >
-
-              <BlurView
-                intensity={60}
-                tint="dark"
-                style={
-                  styles.blurBtn
-                }
-              >
-
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={24}
-                  color="#FFF"
-                />
-
-              </BlurView>
-
-            </TouchableOpacity>
-
-          </View>
-
-          {/* TITULO */}
-          <MotiView
-            from={{
-              opacity: 0,
-              translateY: 30,
-            }}
-            animate={{
-              opacity: 1,
-              translateY: 0,
-            }}
-            transition={{
-              type: "timing",
-              duration: 700,
-            }}
-          >
-
-            <View
-              style={
-                styles.heroContent
-              }
-            >
-
-              <View
-                style={
-                  styles.badge
-                }
-              >
-
-                <MaterialCommunityIcons
-                  name="ticket-confirmation"
-                  size={16}
-                  color="#FFF"
-                />
-
-                <Text
-                  style={
-                    styles.badgeText
-                  }
-                >
-                  Ingresso
-                </Text>
-
-              </View>
-
-              <Text
-                style={
-                  styles.titulo
-                }
-              >
-                {evento.titulo}
-              </Text>
-
-              <Text
-                style={
-                  styles.local
-                }
-              >
-                📍{" "}
-                {evento.nomeLocal ||
-                  "Local não informado"}
-              </Text>
-
-            </View>
-
-          </MotiView>
-
-        </LinearGradient>
-
-      </ImageBackground>
-
-      {/* CONTENT */}
-      <ScrollView
-        showsVerticalScrollIndicator={
-          false
-        }
-        contentContainerStyle={
-          styles.content
-        }
-      >
-
-        {/* CARD */}
-        <MotiView
-          from={{
-            opacity: 0,
-            translateY: 20,
-          }}
-          animate={{
-            opacity: 1,
-            translateY: 0,
-          }}
-          transition={{
-            delay: 250,
-            duration: 700,
-          }}
-        >
-
-          <BlurView
-            intensity={40}
-            tint="dark"
-            style={styles.card}
-          >
-
-            {/* PREÇO */}
-            <View
-              style={
-                styles.priceRow
-              }
-            >
-
-              <View>
-
-                <Text
-                  style={
-                    styles.label
-                  }
-                >
-                  Tipo do ingresso
-                </Text>
-
-                <Text
-                  style={
-                    styles.tipo
-                  }
-                >
-                  {evento.tipoEvento ===
-                  "gratuito"
-                    ? "Evento Gratuito"
-                    : "Ingresso Pago"}
-                </Text>
-
-              </View>
-
-              <LinearGradient
-                colors={[
-                  "#7C3AED",
-                  "#5B21B6",
-                ]}
-                style={
-                  styles.priceBox
-                }
-              >
-
-                <Text
-                  style={
-                    styles.price
-                  }
-                >
-                  {evento.tipoEvento ===
-                  "gratuito"
-                    ? "FREE"
-                    : `R$ ${evento.valor}`}
-                </Text>
-
-              </LinearGradient>
-
-            </View>
-
-            {/* INFOS */}
-            <View
-              style={
-                styles.infoContainer
-              }
-            >
-
-              <View
-                style={
-                  styles.infoRow
-                }
-              >
-
-                <MaterialCommunityIcons
-                  name="calendar"
-                  size={18}
-                  color={
-                    Colors.primary
-                  }
-                />
-
-                <Text
-                  style={
-                    styles.infoText
-                  }
-                >
-                  {evento.dataEvento ||
-                    "Data não informada"}
-                </Text>
-
-              </View>
-
-              <View
-                style={
-                  styles.infoRow
-                }
-              >
-
-                <MaterialCommunityIcons
-                  name="map-marker"
-                  size={18}
-                  color={
-                    Colors.primary
-                  }
-                />
-
-                <Text
-                  style={
-                    styles.infoText
-                  }
-                >
-                  {evento.nomeLocal ||
-                    "Local não informado"}
-                </Text>
-
-              </View>
-
-            </View>
-
-          </BlurView>
-
-        </MotiView>
-
-        {/* BOTÃO */}
-        <MotiView
-          from={{
-            opacity: 0,
-            translateY: 20,
-          }}
-          animate={{
-            opacity: 1,
-            translateY: 0,
-          }}
-          transition={{
-            delay: 400,
-            duration: 700,
-          }}
-        >
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            disabled={loading}
-            onPress={handleCompra}
-          >
-
-            <LinearGradient
-              colors={[
-                "#7C3AED",
-                "#5B21B6",
-              ]}
-              style={
-                styles.button
-              }
-            >
-
-              {loading ? (
-                <ActivityIndicator
-                  color="#FFF"
-                />
-              ) : (
-                <>
-                  <MaterialCommunityIcons
-                    name="credit-card-outline"
-                    size={22}
-                    color="#FFF"
-                  />
-
-                  <Text
-                    style={
-                      styles.buttonText
-                    }
-                  >
-                    {evento.tipoEvento ===
-                    "gratuito"
-                      ? "Reservar ingresso"
-                      : "Comprar ingresso"}
-                  </Text>
-                </>
-              )}
-
-            </LinearGradient>
-
-          </TouchableOpacity>
-
-        </MotiView>
-
-      </ScrollView>
-
-    </View>
-  );
+import { useIngressos } from "../hooks/useIngressos";
+
+import SeletorIngressos from "../components/SeletorIngressos";
+import CarrinhoIngressos from "../components/CarrinhoIngressos";
+import ConfirmModal from "../components/ConfirmModal";
+
+import { Colors } from "../styles/Colors";
+import AppText from "../components/AppText";
+
+/* ──────────────────────────────────────────────
+   HELPER — preços extraídos do documento evento
+   Campo canônico: precoIngresso (AdmCadastroEvento)
+   Fallbacks: precoInteira → valor (legado)
+   ──────────────────────────────────────────── */
+const extrairPrecos = (evento) => {
+	const base = Number(
+		evento?.precoIngresso ??  // campo salvo pelo AdmCadastroEvento
+		evento?.precoInteira  ??  // alias alternativo
+		evento?.valor         ??  // legado
+		0
+	);
+	const gratuito = evento?.tipoEvento === "gratuito" || base === 0;
+
+	if (gratuito) {
+		return {
+			inteira: 0,
+			meia: 0,
+			estudante: 0,
+			senior: 0,
+			promocional: 0,
+		};
+	}
+
+	return {
+		inteira: base,
+		// Campos específicos por tipo têm prioridade; senão aplica desconto sobre a base
+		meia: Number(evento?.precoMeia || base * 0.5),
+		estudante: Number(evento?.precoEstudante || base * 0.7),
+		senior: Number(evento?.precoSenior || base * 0.5),
+		promocional: Number(evento?.precoPromocional || base * 0.5),
+	};
+};
+
+/* ──────────────────────────────────────────────
+   MODAL DE CONFIRMAÇÃO COM CÓDIGO(S)
+   ──────────────────────────────────────────── */
+function ModalConfirmacao({ visible, resultado, nomeEvento, onFechar }) {
+	if (!resultado) return null;
+
+	const { ingressos = [], compraId } = resultado;
+
+	const handleCompartilhar = async () => {
+		const codigos = ingressos
+			.map((ing, i) => `#${i + 1} ${ing.codigoIngresso}`)
+			.join("\n");
+
+		await Share.share({
+			message: `🎫 Meus ingressos para ${nomeEvento}:\n${codigos}\n\nApresente este código na entrada do evento.`,
+		});
+	};
+
+	return (
+		<Modal
+			visible={visible}
+			transparent
+			animationType="fade"
+			onRequestClose={onFechar}
+		>
+			<View style={conf.overlay}>
+				<MotiView
+					from={{ opacity: 0, scale: 0.85 }}
+					animate={{ opacity: 1, scale: 1 }}
+					transition={{ type: "spring", damping: 18 }}
+					style={conf.card}
+				>
+					{/* Ícone de sucesso */}
+					<LinearGradient
+						colors={["#22C55E", "#16A34A"]}
+						style={conf.iconCircle}
+					>
+						<MaterialCommunityIcons
+							name="check-bold"
+							size={36}
+							color="#FFF"
+						/>
+					</LinearGradient>
+
+					<Text style={conf.titulo}>
+						{ingressos.length > 1 ? "Ingressos confirmados!" : "Ingresso confirmado!"}
+					</Text>
+
+					<Text style={conf.subtitulo}>
+						{nomeEvento}
+					</Text>
+
+					{/* Lista de códigos */}
+					<View style={conf.codigosContainer}>
+						{ingressos.map((ing, idx) => (
+							<View key={ing.codigoIngresso} style={conf.codigoRow}>
+								<MaterialCommunityIcons
+									name="ticket-confirmation-outline"
+									size={16}
+									color={Colors.primary}
+								/>
+
+								<View style={conf.codigoInfo}>
+									<Text style={conf.codigoTipo}>
+										Ingresso {idx + 1} —{" "}
+										{ing.tipo.charAt(0).toUpperCase() + ing.tipo.slice(1)}
+									</Text>
+
+									<Text style={conf.codigoCodigo}>{ing.codigoIngresso}</Text>
+								</View>
+							</View>
+						))}
+					</View>
+
+					<Text style={conf.aviso}>
+						Apresente este código na entrada do evento.{"\n"}
+						Salve ou compartilhe agora.
+					</Text>
+
+					{/* Botões */}
+					<TouchableOpacity
+						style={conf.btnCompartilhar}
+						onPress={handleCompartilhar}
+					>
+						<MaterialCommunityIcons name="share-variant" size={18} color="#FFF" />
+						<Text style={conf.btnCompartilharText}>Compartilhar ingressos</Text>
+					</TouchableOpacity>
+
+					<TouchableOpacity style={conf.btnFechar} onPress={onFechar}>
+						<Text style={conf.btnFecharText}>Ver meus ingressos</Text>
+					</TouchableOpacity>
+				</MotiView>
+			</View>
+		</Modal>
+	);
 }
 
+/* ──────────────────────────────────────────────
+   TELA PRINCIPAL
+   ──────────────────────────────────────────── */
+// EventoIngresso agora é um alias para TelaIngressos (tela canônica de compra).
+// Mantido no stack para compatibilidade de links antigos.
+export default function EventoIngresso({ route, navigation }) {
+  React.useEffect(() => {
+    navigation.replace("TelaIngressos", route.params);
+  }, []);
+
+  return null;
+}
+
+// ─── Implementação original preservada abaixo (não exportada) ───
+function _EventoIngressoOriginal({ route, navigation }) {
+	const { evento } = route.params;
+	const { user, profile } = useAuth();
+	const insets = useSafeAreaInsets();
+
+	const {
+		carrinho,
+		loading,
+		error,
+		adicionarAoCarrinho,
+		removerDoCarrinho,
+		comprar,
+		total,
+		quantidadeTotal,
+	} = useIngressos();
+
+	const [modalConfirmacao, setModalConfirmacao] = useState(false);
+	const [resultado, setResultado] = useState(null);
+	const [modalAlerta, setModalAlerta] = useState({ visible: false, title: "", message: "", type: "error" });
+	const [modalCarrinho, setModalCarrinho] = useState(false);
+
+	const gratuito = evento?.tipoEvento === "gratuito" || !evento?.precoIngresso && !evento?.precoInteira && !evento?.valor;
+	const precos = useMemo(() => extrairPrecos(evento), [evento]);
+	const eventoId = evento?.id || evento?.eventoId;
+
+	/* Segurança: evento não encontrado */
+	if (!evento || !eventoId) {
+		return (
+			<View style={styles.center}>
+				<MaterialCommunityIcons
+					name="alert-circle-outline"
+					size={52}
+					color={Colors.error}
+				/>
+				<AppText style={styles.errorText}>Evento não encontrado</AppText>
+
+				<TouchableOpacity
+					style={styles.btnVoltar}
+					onPress={() => navigation.goBack()}
+				>
+					<AppText style={styles.btnVoltarText}>Voltar</AppText>
+				</TouchableOpacity>
+			</View>
+		);
+	}
+
+	/* Verificar capacidade antes de exibir */
+	const ingressosDisponiveis = useMemo(() => {
+		if (!evento.capacidade) return null; // sem limite
+		return Math.max(0, (evento.capacidade || 0) - (evento.ingressosVendidos || 0));
+	}, [evento]);
+
+	const semVagas = ingressosDisponiveis !== null && ingressosDisponiveis === 0;
+
+	/* ── Handler de compra ── */
+	const handleComprar = useCallback(async () => {
+		if (!user?.uid) {
+			setModalAlerta({
+				visible: true,
+				title: "Faça login",
+				message: "Você precisa estar logado para adquirir ingressos.",
+				type: "error",
+			});
+			return;
+		}
+
+		if (carrinho.length === 0) {
+			setModalAlerta({
+				visible: true,
+				title: "Carrinho vazio",
+				message: "Selecione pelo menos um ingresso antes de continuar.",
+				type: "error",
+			});
+			return;
+		}
+
+		try {
+			const res = await comprar(
+				eventoId,
+				user.uid,
+				profile?.nome || user.displayName || "Usuário",
+				profile?.email || user.email || "",
+				profile?.foto || user.photoURL || "",
+				"credit_card"
+			);
+
+			setResultado(res);
+			setModalConfirmacao(true);
+		} catch (err) {
+			const mensagem =
+				err.message?.includes("Capacidade limite")
+					? "Ingressos esgotados. Não há mais vagas disponíveis."
+					: err.message || "Não foi possível concluir a compra. Tente novamente.";
+
+			setModalAlerta({
+				visible: true,
+				title: "Erro na compra",
+				message: mensagem,
+				type: "error",
+			});
+		}
+	}, [user, profile, carrinho, comprar, eventoId]);
+
+	const handleFecharConfirmacao = () => {
+		setModalConfirmacao(false);
+		navigation.navigate("TelaIngressos");
+	};
+
+	return (
+		<View style={styles.container}>
+			<StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+
+			{/* ── MODAL ALERTA ── */}
+			<ConfirmModal
+				visible={modalAlerta.visible}
+				title={modalAlerta.title}
+				message={modalAlerta.message}
+				type={modalAlerta.type}
+				confirmText="Entendi"
+				onConfirm={() => setModalAlerta((p) => ({ ...p, visible: false }))}
+			/>
+
+			{/* ── MODAL CONFIRMAÇÃO ── */}
+			<ModalConfirmacao
+				visible={modalConfirmacao}
+				resultado={resultado}
+				nomeEvento={evento.tituloEvento}
+				onFechar={handleFecharConfirmacao}
+			/>
+
+			{/* ── HERO ── */}
+			<ImageBackground
+				source={{
+					uri:
+						evento.imagemEvento ||
+						"https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=1200",
+				}}
+				style={styles.hero}
+			>
+				<LinearGradient
+					colors={["rgba(0,0,0,0.10)", "rgba(7,11,20,0.98)"]}
+					style={styles.overlay}
+				>
+					{/* BACK */}
+					<View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+						<TouchableOpacity
+							onPress={() =>
+								navigation.canGoBack()
+									? navigation.goBack()
+									: navigation.navigate("Inicio")
+							}
+							style={styles.backBtn}
+						>
+							<BlurView intensity={60} tint="dark" style={styles.blurBtn}>
+								<MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+							</BlurView>
+						</TouchableOpacity>
+
+						{/* Badge de vagas */}
+						{ingressosDisponiveis !== null && (
+							<BlurView intensity={50} tint="dark" style={styles.vagasBadge}>
+								<MaterialCommunityIcons
+									name={semVagas ? "ticket-remove" : "ticket-account"}
+									size={14}
+									color={semVagas ? Colors.error : Colors.success}
+								/>
+
+								<Text style={[styles.vagasText, semVagas && { color: Colors.error }]}>
+									{semVagas
+										? "Esgotado"
+										: `${ingressosDisponiveis} vaga${ingressosDisponiveis !== 1 ? "s" : ""}`}
+								</Text>
+							</BlurView>
+						)}
+					</View>
+
+					{/* HERO CONTENT */}
+					<MotiView
+						from={{ opacity: 0, translateY: 28 }}
+						animate={{ opacity: 1, translateY: 0 }}
+						transition={{ type: "timing", duration: 650 }}
+					>
+						<View style={styles.heroContent}>
+							{/* Badge tipo */}
+							<View style={styles.badge}>
+								<MaterialCommunityIcons name="ticket-confirmation" size={14} color="#FFF" />
+								<Text style={styles.badgeText}>
+									{gratuito ? "Evento Gratuito" : "Ingresso Pago"}
+								</Text>
+							</View>
+
+							<Text style={styles.titulo} numberOfLines={2}>
+								{evento.tituloEvento}
+							</Text>
+
+							<View style={styles.metaRow}>
+								<MaterialCommunityIcons
+									name="calendar"
+									size={14}
+									color="rgba(255,255,255,0.6)"
+								/>
+								<Text style={styles.metaText}>
+									{evento.dataEvento || "Data não informada"}
+									{evento.horaInicio ? ` · ${evento.horaInicio}` : ""}
+								</Text>
+							</View>
+
+							<View style={styles.metaRow}>
+								<MaterialCommunityIcons
+									name="map-marker"
+									size={14}
+									color="rgba(255,255,255,0.6)"
+								/>
+								<Text style={styles.metaText} numberOfLines={1}>
+									{evento.localEvento || "Local não informado"}
+								</Text>
+							</View>
+						</View>
+					</MotiView>
+				</LinearGradient>
+			</ImageBackground>
+
+			{/* ── CONTENT ── */}
+			<ScrollView
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={[
+					styles.content,
+					{ paddingBottom: insets.bottom + 32 },
+				]}
+			>
+				{semVagas ? (
+					/* Evento esgotado */
+					<MotiView
+						from={{ opacity: 0, scale: 0.95 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ delay: 200, type: "timing", duration: 500 }}
+					>
+						<View style={styles.esgotadoCard}>
+							<MaterialCommunityIcons
+								name="ticket-remove"
+								size={44}
+								color={Colors.error}
+							/>
+							<Text style={styles.esgotadoTitulo}>Ingressos esgotados</Text>
+							<Text style={styles.esgotadoSub}>
+								Todas as vagas para este evento já foram preenchidas.
+							</Text>
+						</View>
+					</MotiView>
+				) : (
+					<>
+						{/* SELETOR */}
+						<MotiView
+							from={{ opacity: 0, translateY: 20 }}
+							animate={{ opacity: 1, translateY: 0 }}
+							transition={{ delay: 200, duration: 600 }}
+						>
+							<SeletorIngressos
+								precos={precos}
+								carrinho={carrinho}
+								onAdionar={adicionarAoCarrinho}
+								onRemover={removerDoCarrinho}
+								gratuito={gratuito}
+							/>
+						</MotiView>
+
+						{/* CARRINHO MODAL */}
+						<Modal
+							visible={modalCarrinho}
+							transparent
+							animationType="slide"
+							onRequestClose={() => setModalCarrinho(false)}
+						>
+							<View style={styles.carrinhoModalOverlay}>
+								<View style={styles.carrinhoModalContent}>
+									<TouchableOpacity
+										style={styles.carrinhoCloseBtn}
+										onPress={() => setModalCarrinho(false)}
+									>
+										<BlurView intensity={60} tint="dark" style={styles.blurBtn}>
+											<MaterialCommunityIcons name="close" size={24} color="#FFF" />
+										</BlurView>
+									</TouchableOpacity>
+									<CarrinhoIngressos
+										carrinho={carrinho}
+										total={total}
+										quantidadeTotal={quantidadeTotal}
+										loading={loading}
+										onRemover={removerDoCarrinho}
+										onComprar={handleComprar}
+										nomeEvento={evento.tituloEvento}
+										dataEvento={evento.dataEvento}
+										gratuito={gratuito}
+									/>
+								</View>
+							</View>
+						</Modal>
+
+						{/* FLOATING CART BUTTON */}
+						{carrinho.length > 0 && (
+							<TouchableOpacity
+								style={[styles.floatingCartBtn, { bottom: insets.bottom + 16 }]}
+								onPress={() => setModalCarrinho(true)}
+							>
+								<BlurView intensity={60} tint="dark" style={styles.floatingBlur}>
+									<MaterialCommunityIcons name="cart" size={20} color="#FFF" />
+									<View style={styles.cartBadge}>
+										<Text style={styles.cartBadgeText}>{quantidadeTotal}</Text>
+									</View>
+									<Text style={styles.floatingCartText}>
+										{gratuito || total === 0 ? "Gratuito" : `R$ ${total.toFixed(2)}`}
+									</Text>
+								</BlurView>
+							</TouchableOpacity>
+						)}
+
+						{/* Aviso de erro vindo do hook */}
+						{!!error && (
+							<View style={styles.erroRow}>
+								<MaterialCommunityIcons
+									name="alert-circle-outline"
+									size={16}
+									color={Colors.error}
+								/>
+								<Text style={styles.erroText}>{error}</Text>
+							</View>
+						)}
+
+						{/* Política */}
+						<Text style={styles.politica}>
+							Cancelamento disponível até 24h antes do evento.
+							Ingressos são pessoais e intransferíveis.
+						</Text>
+					</>
+				)}
+			</ScrollView>
+		</View>
+	);
+}
+
+/* ──────────────────────────────────────────────
+   STYLES
+   ──────────────────────────────────────────── */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor:
-      "#070B14",
-  },
-
-  /* HERO */
-  hero: {
-    height: 360,
-  },
-
-  overlay: {
-    flex: 1,
-
-    justifyContent:
-      "space-between",
-  },
-
-  header: {
-    paddingTop: 55,
-    paddingHorizontal: 20,
-  },
-
-  backBtn: {
-    alignSelf: "flex-start",
-  },
-
-  blurBtn: {
-    width: 48,
-    height: 48,
-
-    borderRadius: 18,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    overflow: "hidden",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
-
-  heroContent: {
-    padding: 24,
-  },
-
-  badge: {
-    alignSelf: "flex-start",
-
-    flexDirection: "row",
-    alignItems: "center",
-
-    backgroundColor:
-      "rgba(255,255,255,0.12)",
-
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-
-    borderRadius: 20,
-
-    marginBottom: 15,
-  },
-
-  badgeText: {
-    color: "#FFF",
-
-    marginLeft: 6,
-
-    fontWeight: "600",
-
-    fontSize: 12,
-  },
-
-  titulo: {
-    color: "#FFF",
-
-    fontSize: 30,
-
-    fontFamily:
-      "PoppinsBold",
-
-    lineHeight: 40,
-  },
-
-  local: {
-    color:
-      "rgba(255,255,255,0.75)",
-
-    marginTop: 10,
-
-    fontSize: 14,
-
-    lineHeight: 22,
-  },
-
-  /* CONTENT */
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-    marginTop: -40,
-  },
-
-  card: {
-    borderRadius: 28,
-
-    padding: 22,
-
-    overflow: "hidden",
-
-    backgroundColor:
-      "rgba(255,255,255,0.05)",
-
-    borderWidth: 1,
-
-    borderColor:
-      "rgba(255,255,255,0.08)",
-  },
-
-  priceRow: {
-    flexDirection: "row",
-
-    justifyContent:
-      "space-between",
-
-    alignItems: "center",
-  },
-
-  label: {
-    color:
-      "rgba(255,255,255,0.55)",
-
-    fontSize: 13,
-  },
-
-  tipo: {
-    color: "#FFF",
-
-    fontSize: 18,
-
-    marginTop: 4,
-
-    fontFamily:
-      "PoppinsSemiBold",
-  },
-
-  priceBox: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-
-    borderRadius: 18,
-  },
-
-  price: {
-    color: "#FFF",
-
-    fontSize: 16,
-
-    fontFamily:
-      "PoppinsBold",
-  },
-
-  infoContainer: {
-    marginTop: 25,
-
-    gap: 16,
-  },
-
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  infoText: {
-    color:
-      "rgba(255,255,255,0.72)",
-
-    marginLeft: 10,
-
-    fontSize: 14,
-
-    flex: 1,
-  },
-
-  /* BUTTON */
-  button: {
-    marginTop: 24,
-
-    borderRadius: 22,
-
-    paddingVertical: 18,
-
-    justifyContent: "center",
-    alignItems: "center",
-
-    flexDirection: "row",
-
-    gap: 10,
-
-    shadowColor: "#7C3AED",
-
-    shadowOpacity: 0.4,
-
-    shadowRadius: 10,
-
-    elevation: 8,
-  },
-
-  buttonText: {
-    color: "#FFF",
-
-    fontSize: 16,
-
-    fontFamily:
-      "PoppinsBold",
-  },
+	container: {
+		flex: 1,
+		backgroundColor: Colors.background,
+	},
+
+	/* Hero */
+	hero: {
+		height: 340,
+	},
+
+	overlay: {
+		flex: 1,
+		justifyContent: "space-between",
+	},
+
+	header: {
+		paddingHorizontal: 20,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+	},
+
+	backBtn: {
+		alignSelf: "flex-start",
+	},
+
+	blurBtn: {
+		width: 48,
+		height: 48,
+		borderRadius: 18,
+		justifyContent: "center",
+		alignItems: "center",
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.08)",
+	},
+
+	vagasBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		paddingHorizontal: 12,
+		paddingVertical: 8,
+		borderRadius: 20,
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.08)",
+	},
+
+	vagasText: {
+		color: Colors.success,
+		fontSize: 12,
+		fontWeight: "700",
+	},
+
+	heroContent: {
+		padding: 24,
+		paddingBottom: 36,
+	},
+
+	badge: {
+		alignSelf: "flex-start",
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(255,255,255,0.12)",
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 20,
+		marginBottom: 14,
+		gap: 6,
+	},
+
+	badgeText: {
+		color: "#FFF",
+		fontWeight: "600",
+		fontSize: 12,
+	},
+
+	titulo: {
+		color: "#FFF",
+		fontSize: 26,
+		fontWeight: "800",
+		lineHeight: 34,
+		marginBottom: 12,
+	},
+
+	metaRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 6,
+		marginTop: 4,
+	},
+
+	metaText: {
+		color: "rgba(255,255,255,0.65)",
+		fontSize: 13,
+		flex: 1,
+	},
+
+	/* Content */
+	content: {
+		padding: 16,
+		marginTop: -24,
+	},
+
+	/* Esgotado */
+	esgotadoCard: {
+		backgroundColor: Colors.surface,
+		borderRadius: 20,
+		padding: 36,
+		alignItems: "center",
+		borderWidth: 1,
+		borderColor: Colors.error + "30",
+	},
+
+	esgotadoTitulo: {
+		color: Colors.textPrimary,
+		fontSize: 18,
+		fontWeight: "700",
+		marginTop: 16,
+		marginBottom: 8,
+	},
+
+	esgotadoSub: {
+		color: Colors.textMuted,
+		fontSize: 13,
+		textAlign: "center",
+		lineHeight: 20,
+	},
+
+	/* Erro */
+	erroRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 8,
+		backgroundColor: Colors.error + "18",
+		borderRadius: 10,
+		padding: 12,
+		marginTop: 8,
+	},
+
+	erroText: {
+		color: Colors.error,
+		fontSize: 13,
+		flex: 1,
+	},
+
+	/* Política */
+	politica: {
+		marginTop: 16,
+		textAlign: "center",
+		fontSize: 11,
+		lineHeight: 18,
+		color: Colors.textMuted,
+	},
+
+	/* Fallback */
+	center: {
+		flex: 1,
+		justifyContent: "center",
+		alignItems: "center",
+		backgroundColor: Colors.background,
+		padding: 32,
+	},
+
+	errorText: {
+		color: Colors.textPrimary,
+		fontSize: 16,
+		marginTop: 12,
+	},
+
+	btnVoltar: {
+		marginTop: 20,
+		paddingHorizontal: 24,
+		paddingVertical: 12,
+		backgroundColor: Colors.primary,
+		borderRadius: 12,
+	},
+
+	btnVoltarText: {
+		color: "#FFF",
+		fontWeight: "700",
+	},
+
+	/* Carrinho Modal */
+	carrinhoModalOverlay: {
+		flex: 1,
+		backgroundColor: "rgba(0, 0, 0, 0.5)",
+		justifyContent: "flex-end",
+	},
+
+	carrinhoModalContent: {
+		backgroundColor: Colors.background,
+		borderTopLeftRadius: 28,
+		borderTopRightRadius: 28,
+		maxHeight: "85%",
+		position: "relative",
+	},
+
+	carrinhoCloseBtn: {
+		position: "absolute",
+		top: 16,
+		right: 16,
+		zIndex: 10,
+	},
+
+	blurBtn: {
+		width: 40,
+		height: 40,
+		borderRadius: 20,
+		justifyContent: "center",
+		alignItems: "center",
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.1)",
+	},
+
+	/* Floating Cart Button */
+	floatingCartBtn: {
+		position: "absolute",
+		right: 16,
+		zIndex: 100,
+	},
+
+	floatingBlur: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(0, 0, 0, 0.6)",
+		borderRadius: 28,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		gap: 12,
+		borderWidth: 1,
+		borderColor: "rgba(255,255,255,0.1)",
+		overflow: "hidden",
+	},
+
+	cartBadge: {
+		backgroundColor: Colors.primary,
+		borderRadius: 12,
+		minWidth: 24,
+		height: 24,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 6,
+	},
+
+	cartBadgeText: {
+		color: "#FFF",
+		fontSize: 12,
+		fontWeight: "700",
+	},
+
+	floatingCartText: {
+		color: "#FFF",
+		fontSize: 14,
+		fontWeight: "700",
+	},
+});
+
+/* ──────────────────────────────────────────────
+   MODAL CONFIRMAÇÃO — STYLES
+   ──────────────────────────────────────────── */
+const conf = StyleSheet.create({
+	overlay: {
+		flex: 1,
+		backgroundColor: "rgba(0,0,0,0.75)",
+		justifyContent: "center",
+		alignItems: "center",
+		padding: 24,
+	},
+
+	card: {
+		width: "100%",
+		backgroundColor: Colors.surface,
+		borderRadius: 28,
+		padding: 28,
+		alignItems: "center",
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+	},
+
+	iconCircle: {
+		width: 72,
+		height: 72,
+		borderRadius: 36,
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: 18,
+	},
+
+	titulo: {
+		color: Colors.textPrimary,
+		fontSize: 20,
+		fontWeight: "800",
+		marginBottom: 4,
+		textAlign: "center",
+	},
+
+	subtitulo: {
+		color: Colors.textMuted,
+		fontSize: 13,
+		marginBottom: 20,
+		textAlign: "center",
+	},
+
+	codigosContainer: {
+		width: "100%",
+		gap: 10,
+		marginBottom: 16,
+	},
+
+	codigoRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: Colors.primarySoft,
+		borderRadius: 12,
+		padding: 12,
+		gap: 10,
+	},
+
+	codigoInfo: {
+		flex: 1,
+	},
+
+	codigoTipo: {
+		color: Colors.textSecondary,
+		fontSize: 11,
+		marginBottom: 2,
+	},
+
+	codigoCodigo: {
+		color: Colors.textPrimary,
+		fontSize: 14,
+		fontWeight: "700",
+		letterSpacing: 1.5,
+		fontFamily: "monospace",
+	},
+
+	aviso: {
+		color: Colors.textMuted,
+		fontSize: 12,
+		textAlign: "center",
+		lineHeight: 18,
+		marginBottom: 20,
+	},
+
+	btnCompartilhar: {
+		width: "100%",
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "center",
+		gap: 8,
+		backgroundColor: Colors.primary,
+		borderRadius: 14,
+		paddingVertical: 14,
+		marginBottom: 10,
+	},
+
+	btnCompartilharText: {
+		color: "#FFF",
+		fontSize: 15,
+		fontWeight: "700",
+	},
+
+	btnFechar: {
+		width: "100%",
+		alignItems: "center",
+		paddingVertical: 12,
+	},
+
+	btnFecharText: {
+		color: Colors.textMuted,
+		fontSize: 14,
+		fontWeight: "600",
+	},
 });

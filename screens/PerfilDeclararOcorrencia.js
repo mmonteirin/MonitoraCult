@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, {
+	useState,
+	useEffect,
+} from "react";
 
 import {
 	View,
@@ -10,6 +13,7 @@ import {
 	ScrollView,
 	ImageBackground,
 	StatusBar,
+	Image,
 } from "react-native";
 
 import {
@@ -45,9 +49,10 @@ import {
 
 import AppText from "../components/AppText";
 
-import {
-	Colors,
-} from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Status } from "../styles/Colors";
+
 
 const PALAVROES = [
 	"porra",
@@ -110,13 +115,52 @@ export default function PerfilDeclararOcorrencia({
 	navigation,
 	route,
 }) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
+
 	const {
 		eventoId,
 		nomeEvento,
+		evento,
 	} = route.params;
+
+	const imagemEvento =
+		evento?.imagemEvento ||
+		evento?.imagem ||
+		null;
 
 	const insets =
 		useSafeAreaInsets();
+
+	/* ───────── TABBAR FIX ───────── */
+	useEffect(() => {
+		const parent =
+			navigation.getParent();
+
+		parent?.setOptions({
+			tabBarStyle: {
+				display: "none",
+			},
+		});
+
+		return () => {
+			parent?.setOptions({
+				tabBarStyle: {
+					backgroundColor:
+						"#0B1020",
+
+					borderTopWidth: 0,
+
+					height: 70,
+
+					paddingBottom: 10,
+
+					paddingTop: 10,
+				},
+			});
+		};
+	}, []);
 
 	const [descricao, setDescricao] =
 		useState("");
@@ -157,7 +201,9 @@ export default function PerfilDeclararOcorrencia({
 	];
 
 	const declarar = async () => {
+
 		if (!descricao.trim()) {
+
 			Alert.alert(
 				"Atenção",
 				"Descreva a ocorrência antes de enviar."
@@ -167,36 +213,37 @@ export default function PerfilDeclararOcorrencia({
 		}
 
 		try {
+
 			setLoading(true);
 
 			const user =
 				auth.currentUser;
 
-			const ocorrenciaData =
-				{
-					userId:
-						user.uid,
+			const ocorrenciaData = {
 
-					nome:
-						user.displayName ||
-						"Anônimo",
+				userId:
+					user.uid,
 
-					local:
-						nomeEvento ||
-						"Local não definido",
+				nome:
+					user.displayName ||
+					"Anônimo",
 
-					descricao:
-						censurarTexto(
-							descricao.trim()
-						),
+				local:
+					nomeEvento ||
+					"Local não definido",
 
-					tipo:
-						tipoSelecionado ||
-						"outro",
+				descricao:
+					censurarTexto(
+						descricao.trim()
+					),
 
-					createdAt:
-						serverTimestamp(),
-				};
+				tipo:
+					tipoSelecionado ||
+					"outro",
+
+				createdAt:
+					serverTimestamp(),
+			};
 
 			const ocorrenciaRef =
 				await addDoc(
@@ -238,320 +285,362 @@ export default function PerfilDeclararOcorrencia({
 			);
 
 			navigation.goBack();
+
 		} catch (error) {
+
 			console.log(error);
 
 			Alert.alert(
 				"Erro",
 				"Não foi possível registrar."
 			);
+
 		} finally {
+
 			setLoading(false);
 		}
 	};
 
 	return (
+
 		<View style={styles.container}>
+
 			<StatusBar
 				barStyle="light-content"
+				translucent
+				backgroundColor="transparent"
 			/>
 
-			{/* FUNDO */}
-			<ImageBackground
-				source={require("../assets/fundoTelaLogin.png")}
-				style={styles.bg}
-				blurRadius={12}
-			>
-				<View
-					style={
-						styles.overlay
-					}
+			{/* HERO */}
+			<View style={styles.heroContainer}>
+
+				<Image
+					source={{
+						uri:
+							imagemEvento ||
+							"https://placehold.co/600x400/111827/ffffff?text=Evento",
+					}}
+					style={styles.heroImage}
+					resizeMode="cover"
 				/>
 
-				{/* HEADER */}
 				<LinearGradient
 					colors={[
-						"rgba(8,10,20,0.98)",
-						"rgba(20,20,35,0.90)",
+						"transparent",
+						"rgba(5,8,18,0.95)",
 					]}
+					style={styles.heroOverlay}
+				/>
+
+				<TouchableOpacity
+					onPress={() =>
+						navigation.goBack()
+					}
 					style={[
-						styles.header,
+						styles.backButton,
 						{
-							paddingTop:
-								insets.top +
-								10,
+							top:
+								insets.top + 10,
 						},
 					]}
 				>
-					<TouchableOpacity
-						onPress={() =>
-							navigation.goBack()
-						}
-						style={
-							styles.backButton
-						}
-					>
+					<MaterialCommunityIcons
+						name="arrow-left"
+						size={24}
+						color="#fff"
+					/>
+				</TouchableOpacity>
+
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 30,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						type: "timing",
+						duration: 600,
+					}}
+					style={styles.heroContent}
+				>
+
+					<View style={styles.badge}>
 						<MaterialCommunityIcons
-							name="arrow-left"
-							size={24}
+							name="alert-circle"
+							size={16}
 							color="#fff"
 						/>
-					</TouchableOpacity>
 
-					<AppText
-						style={
-							styles.headerTitle
-						}
-					>
-						Declarar Ocorrência
-					</AppText>
-
-					<AppText
-						style={
-							styles.headerSub
-						}
-					>
-						Reporte problemas do
-						evento
-					</AppText>
-				</LinearGradient>
-
-				<ScrollView
-					showsVerticalScrollIndicator={
-						false
-					}
-					contentContainerStyle={
-						styles.content
-					}
-				>
-					{/* EVENTO */}
-					<MotiView
-						from={{
-							opacity: 0,
-							translateY: 20,
-						}}
-						animate={{
-							opacity: 1,
-							translateY: 0,
-						}}
-					>
-						<BlurView
-							intensity={50}
-							tint="dark"
-							style={
-								styles.card
-							}
+						<AppText
+							style={styles.badgeText}
 						>
-							<View
-								style={
-									styles.row
-								}
-							>
-								<View>
-									<AppText
-										style={
-											styles.label
-										}
-									>
-										Evento
-									</AppText>
+							Ocorrência
+						</AppText>
+					</View>
 
-									<AppText
-										style={
-											styles.evento
-										}
-									>
-										{nomeEvento ||
-											"Evento"}
-									</AppText>
-								</View>
+					<AppText
+						style={styles.heroTitle}
+					>
+						Declarar Problema
+					</AppText>
 
-								<View
+					<AppText
+						style={styles.heroSubtitle}
+					>
+						Ajude a melhorar a
+						segurança e organização
+						do evento.
+					</AppText>
+				</MotiView>
+			</View>
+
+			<ScrollView
+				showsVerticalScrollIndicator={
+					false
+				}
+				contentContainerStyle={
+					styles.content
+				}
+			>
+
+				{/* EVENTO */}
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 30,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						delay: 150,
+					}}
+				>
+					<BlurView
+						intensity={40}
+						tint={blurTint}
+						style={styles.card}
+					>
+
+						<View style={styles.row}>
+
+							<View style={{ flex: 1 }}>
+
+								<AppText
 									style={
-										styles.iconBox
+										styles.label
 									}
 								>
-									<MaterialCommunityIcons
-										name="alert-circle"
-										size={24}
-										color={
-											Colors.primary
-										}
-									/>
-								</View>
-							</View>
-						</BlurView>
-					</MotiView>
+									Evento
+								</AppText>
 
-					{/* TIPOS */}
-					<MotiView
-						from={{
-							opacity: 0,
-							translateY: 20,
-						}}
-						animate={{
-							opacity: 1,
-							translateY: 0,
-						}}
-						transition={{
-							delay: 120,
-						}}
-					>
-						<BlurView
-							intensity={40}
-							tint="dark"
-							style={
-								styles.card
-							}
-						>
-							<AppText
-								style={
-									styles.label
-								}
-							>
-								Tipo de ocorrência
-							</AppText>
+								<AppText
+									style={
+										styles.evento
+									}
+								>
+									{nomeEvento ||
+										"Evento"}
+								</AppText>
+							</View>
 
 							<View
 								style={
-									styles.grid
+									styles.iconBox
 								}
 							>
-								{tipos.map(
-									(tipo) => {
-										const ativo =
-											tipoSelecionado ===
-											tipo.id;
+								<MaterialCommunityIcons
+									name="alert"
+									size={24}
+									color={
+										colors.primary
+									}
+								/>
+							</View>
+						</View>
+					</BlurView>
+				</MotiView>
 
-										return (
-											<TouchableOpacity
-												key={
+				{/* TIPOS */}
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 30,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						delay: 250,
+					}}
+				>
+					<BlurView
+						intensity={45}
+						tint={blurTint}
+						style={styles.card}
+					>
+
+						<AppText
+							style={styles.label}
+						>
+							Tipo de ocorrência
+						</AppText>
+
+						<View
+							style={styles.grid}
+						>
+							{tipos.map(
+								(tipo) => {
+
+									const ativo =
+										tipoSelecionado ===
+										tipo.id;
+
+									return (
+
+										<TouchableOpacity
+											key={
+												tipo.id
+											}
+											activeOpacity={
+												0.9
+											}
+											onPress={() =>
+												setTipoSelecionado(
 													tipo.id
+												)
+											}
+											style={[
+												styles.tipoCard,
+
+												ativo && {
+													borderColor:
+														tipo.color,
+
+													backgroundColor:
+														`${tipo.color}20`,
+												},
+											]}
+										>
+
+											<MaterialCommunityIcons
+												name={
+													tipo.icon
 												}
-												activeOpacity={
-													0.9
+												size={
+													24
 												}
-												onPress={() =>
-													setTipoSelecionado(
-														tipo.id
-													)
+												color={
+													ativo
+														? tipo.color
+														: "#aaa"
 												}
+											/>
+
+											<AppText
 												style={[
-													styles.tipoCard,
+													styles.tipoText,
 
 													ativo && {
-														borderColor:
+														color:
 															tipo.color,
-
-														backgroundColor: `${tipo.color}25`,
 													},
 												]}
 											>
-												<MaterialCommunityIcons
-													name={
-														tipo.icon
-													}
-													size={
-														24
-													}
-													color={
-														ativo
-															? tipo.color
-															: "#aaa"
-													}
-												/>
+												{
+													tipo.label
+												}
+											</AppText>
+										</TouchableOpacity>
+									);
+								}
+							)}
+						</View>
+					</BlurView>
+				</MotiView>
 
-												<AppText
-													style={[
-														styles.tipoText,
-
-														ativo && {
-															color:
-																tipo.color,
-														},
-													]}
-												>
-													{
-														tipo.label
-													}
-												</AppText>
-											</TouchableOpacity>
-										);
-									}
-								)}
-							</View>
-						</BlurView>
-					</MotiView>
-
-					{/* DESCRIÇÃO */}
-					<MotiView
-						from={{
-							opacity: 0,
-							translateY: 20,
-						}}
-						animate={{
-							opacity: 1,
-							translateY: 0,
-						}}
-						transition={{
-							delay: 220,
-						}}
+				{/* DESCRIÇÃO */}
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 30,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						delay: 350,
+					}}
+				>
+					<BlurView
+						intensity={45}
+						tint={blurTint}
+						style={styles.card}
 					>
-						<BlurView
-							intensity={45}
-							tint="dark"
+
+						<AppText
+							style={styles.label}
+						>
+							Detalhes da ocorrência
+						</AppText>
+
+						<TextInput
+							value={descricao}
+							onChangeText={
+								setDescricao
+							}
+							multiline
+							maxLength={500}
+							placeholder="Explique detalhadamente o que aconteceu..."
+							placeholderTextColor="#777"
+							style={styles.input}
+						/>
+
+						<View
 							style={
-								styles.card
+								styles.counter
 							}
 						>
 							<AppText
 								style={
-									styles.label
+									styles.counterText
 								}
 							>
-								Detalhes da ocorrência
+								{
+									descricao.length
+								}
+								/500
 							</AppText>
+						</View>
+					</BlurView>
+				</MotiView>
 
-							<TextInput
-								value={
-									descricao
-								}
-								onChangeText={
-									setDescricao
-								}
-								multiline
-								placeholder="Explique detalhadamente o que aconteceu..."
-								placeholderTextColor="#777"
-								style={
-									styles.input
-								}
-							/>
-
-							<View
-								style={
-									styles.counter
-								}
-							>
-								<AppText
-									style={
-										styles.counterText
-									}
-								>
-									{
-										descricao.length
-									}
-									/500
-								</AppText>
-							</View>
-						</BlurView>
-					</MotiView>
-
-					{/* ALERTA */}
+				{/* ALERTA */}
+				<MotiView
+					from={{
+						opacity: 0,
+						scale: 0.95,
+					}}
+					animate={{
+						opacity: 1,
+						scale: 1,
+					}}
+					transition={{
+						delay: 450,
+					}}
+				>
 					<View
 						style={
 							styles.warningCard
 						}
 					>
+
 						<MaterialCommunityIcons
 							name="shield-check"
 							size={18}
@@ -568,8 +657,22 @@ export default function PerfilDeclararOcorrencia({
 							de organização.
 						</AppText>
 					</View>
+				</MotiView>
 
-					{/* BOTÃO */}
+				{/* BOTÃO */}
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 40,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						delay: 520,
+					}}
+				>
 					<TouchableOpacity
 						activeOpacity={0.9}
 						onPress={declarar}
@@ -578,19 +681,25 @@ export default function PerfilDeclararOcorrencia({
 							styles.buttonContainer
 						}
 					>
+
 						<LinearGradient
 							colors={[
-								Colors.primary,
+								colors.primary,
 								"#7C3AED",
 							]}
 							style={
 								styles.button
 							}
 						>
+
 							{loading ? (
+
 								<ActivityIndicator color="#fff" />
+
 							) : (
+
 								<>
+
 									<MaterialCommunityIcons
 										name="send"
 										size={20}
@@ -608,72 +717,106 @@ export default function PerfilDeclararOcorrencia({
 							)}
 						</LinearGradient>
 					</TouchableOpacity>
-				</ScrollView>
-			</ImageBackground>
+				</MotiView>
+			</ScrollView>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
+
 	container: {
 		flex: 1,
-		backgroundColor: "#060816",
+		backgroundColor: c.background,
 	},
 
-	bg: {
-		flex: 1,
+	heroContainer: {
+		height: 320,
+		position: "relative",
 	},
 
-	overlay: {
-		...StyleSheet.absoluteFillObject,
-		backgroundColor:
-			"rgba(5,8,18,0.82)",
+	heroImage: {
+		width: "100%",
+		height: "100%",
 	},
 
-	header: {
-		paddingHorizontal: 20,
-		paddingBottom: 25,
-		borderBottomLeftRadius: 30,
-		borderBottomRightRadius: 30,
+	heroOverlay: {
+		position: "absolute",
+		bottom: 0,
+		width: "100%",
+		height: 180,
 	},
 
 	backButton: {
-		width: 42,
-		height: 42,
-		borderRadius: 14,
+		position: "absolute",
+		left: 18,
+		width: 46,
+		height: 46,
+		borderRadius: 16,
 		backgroundColor:
-			"rgba(255,255,255,0.08)",
+			"rgba(0,0,0,0.35)",
 		justifyContent: "center",
 		alignItems: "center",
-		marginBottom: 18,
+		zIndex: 10,
 	},
 
-	headerTitle: {
+	heroContent: {
+		position: "absolute",
+		bottom: 28,
+		left: 20,
+		right: 20,
+	},
+
+	badge: {
+		flexDirection: "row",
+		alignItems: "center",
+		alignSelf: "flex-start",
+		backgroundColor:
+			"rgba(239,68,68,0.20)",
+		paddingHorizontal: 12,
+		paddingVertical: 6,
+		borderRadius: 20,
+		gap: 6,
+		marginBottom: 14,
+	},
+
+	badgeText: {
 		color: "#fff",
-		fontSize: 28,
+		fontSize: 12,
+		fontWeight: "700",
+	},
+
+	heroTitle: {
+		color: "#fff",
+		fontSize: 30,
 		fontWeight: "bold",
 	},
 
-	headerSub: {
+	heroSubtitle: {
 		color:
-			"rgba(255,255,255,0.70)",
-		marginTop: 6,
+			"rgba(255,255,255,0.75)",
 		fontSize: 14,
+		lineHeight: 22,
+		marginTop: 8,
 	},
 
 	content: {
 		padding: 18,
-		paddingBottom: 50,
+		paddingBottom: 60,
+		marginTop: -25,
 	},
 
 	card: {
-		borderRadius: 24,
+		borderRadius: 26,
 		padding: 18,
 		marginBottom: 18,
 		overflow: "hidden",
 		borderWidth: 1,
 		borderColor:
 			"rgba(255,255,255,0.08)",
+		backgroundColor:
+			"rgba(255,255,255,0.03)",
 	},
 
 	row: {
@@ -691,16 +834,16 @@ const styles = StyleSheet.create({
 
 	evento: {
 		color: "#fff",
-		fontSize: 18,
+		fontSize: 20,
 		fontWeight: "bold",
 	},
 
 	iconBox: {
-		width: 52,
-		height: 52,
-		borderRadius: 16,
+		width: 56,
+		height: 56,
+		borderRadius: 18,
 		backgroundColor:
-			"rgba(124,58,237,0.15)",
+			"rgba(124,58,237,0.18)",
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -714,8 +857,8 @@ const styles = StyleSheet.create({
 
 	tipoCard: {
 		width: "47%",
-		paddingVertical: 16,
-		borderRadius: 18,
+		paddingVertical: 18,
+		borderRadius: 20,
 		borderWidth: 1,
 		borderColor:
 			"rgba(255,255,255,0.08)",
@@ -732,8 +875,8 @@ const styles = StyleSheet.create({
 	},
 
 	input: {
-		height: 160,
-		borderRadius: 18,
+		height: 170,
+		borderRadius: 20,
 		padding: 16,
 		color: "#fff",
 		fontSize: 15,
@@ -765,7 +908,7 @@ const styles = StyleSheet.create({
 		borderColor:
 			"rgba(34,197,94,0.25)",
 		padding: 14,
-		borderRadius: 16,
+		borderRadius: 18,
 		marginBottom: 22,
 	},
 
@@ -777,13 +920,13 @@ const styles = StyleSheet.create({
 	},
 
 	buttonContainer: {
-		borderRadius: 20,
+		borderRadius: 24,
 		overflow: "hidden",
 	},
 
 	button: {
-		paddingVertical: 18,
-		borderRadius: 20,
+		paddingVertical: 20,
+		borderRadius: 24,
 		alignItems: "center",
 		justifyContent: "center",
 		flexDirection: "row",
@@ -796,3 +939,4 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 	},
 });
+}

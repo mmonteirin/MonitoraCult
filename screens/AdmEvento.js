@@ -5,32 +5,22 @@ import {
 	Text,
 	Image,
 	TouchableOpacity,
-	Alert,
+	Platform,
 	ActivityIndicator,
 	StyleSheet,
 	StatusBar,
 	ImageBackground,
 } from "react-native";
 
-import {
-	FlatList,
-} from "react-native-gesture-handler";
+import { FlatList } from "react-native-gesture-handler";
 
-import {
-	LinearGradient,
-} from "expo-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
 
-import {
-	BlurView,
-} from "expo-blur";
+import { BlurView } from "expo-blur";
 
-import {
-	MotiView,
-} from "moti";
+import { MotiView } from "moti";
 
-import {
-	MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
 	collection,
@@ -44,115 +34,105 @@ import {
 
 import { db } from "../firebaseConfig";
 
-import {
-	useAuth,
-} from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
-import {
-	Colors,
-} from "../styles/Colors";
+import { Colors } from "../styles/Colors";
+import ConfirmModal from "../components/ConfirmModal";
 
-export default function AdmEvento({
-	navigation,
-}) {
-	const { user, nome, foto } =
-		useAuth();
+const formatarDataEventoLista = (item) => {
+	if (item?.dataEvento) return item.dataEvento;
+	if (item?.dataInicio) {
+		return item.horaInicio
+			? `${item.dataInicio} · ${item.horaInicio}`
+			: item.dataInicio;
+	}
+	return "Data não informada";
+};
 
-	const [eventos, setEventos] =
-		useState([]);
+export default function AdmEvento({ navigation }) {
+	const { user, foto } = useAuth();
 
-	const [loading, setLoading] =
-		useState(true);
+	const [eventos, setEventos] = useState([]);
+
+	const [loading, setLoading] = useState(true);
+
+	const [refreshing, setRefreshing] = useState(false);
+
+	const [deleteModal, setDeleteModal] = useState({
+		visible: false,
+		id: null,
+	});
+
+	const [errorModal, setErrorModal] = useState({
+		visible: false,
+		message: "",
+	});
 
 	useEffect(() => {
 		if (!user?.uid) return;
 
 		const q = query(
 			collection(db, "eventos"),
-
-			where(
-				"uidEvento",
-				"==",
-				user.uid
-			),
-
-			orderBy(
-				"createdAt",
-				"desc"
-			)
+			where("uidEvento", "==", user.uid),
+			orderBy("createdAt", "desc")
 		);
 
-		const unsub =
-			onSnapshot(
-				q,
+		const unsub = onSnapshot(
+			q,
+			(snapshot) => {
+				const lista = snapshot.docs.map((d) => ({
+					id: d.id,
+					...d.data(),
+				}));
 
-				(snapshot) => {
-					const lista =
-						snapshot.docs.map(
-							(d) => ({
-								id: d.id,
-								...d.data(),
-							})
-						);
+				setEventos(lista);
 
-					setEventos(lista);
+				setLoading(false);
+			},
+			(err) => {
+				console.log(err);
 
-					setLoading(false);
-				},
-
-				(err) => {
-					console.log(err);
-
-					setLoading(false);
-				}
-			);
+				setLoading(false);
+			}
+		);
 
 		return () => unsub();
 	}, [user?.uid]);
 
-	const deletarEvento = (id) => {
-		Alert.alert(
-			"Excluir Evento",
-			"Deseja realmente excluir este evento?",
-			[
-				{
-					text: "Cancelar",
-					style: "cancel",
-				},
+	const onRefresh = async () => {
+		setRefreshing(true);
 
-				{
-					text: "Excluir",
-
-					style: "destructive",
-
-					onPress: async () => {
-						try {
-							await deleteDoc(
-								doc(
-									db,
-									"eventos",
-									id
-								)
-							);
-						} catch {
-							Alert.alert(
-								"Erro ao excluir"
-							);
-						}
-					},
-				},
-			]
-		);
+		setTimeout(() => {
+			setRefreshing(false);
+		}, 1200);
 	};
 
-	const renderItem = ({
-		item,
-		index,
-	}) => (
+	const deletarEvento = (id) => {
+		setDeleteModal({ visible: true, id });
+	};
+
+	const confirmarExclusao = async () => {
+		const id = deleteModal.id;
+		if (!id) return;
+
+		setDeleteModal({ visible: false, id: null });
+
+		try {
+			await deleteDoc(doc(db, "eventos", id));
+		} catch (error) {
+			console.log(error);
+			setErrorModal({
+				visible: true,
+				message: "Não foi possível excluir o evento. Tente novamente.",
+			});
+		}
+	};
+
+	const renderItem = ({ item, index }) => (
 		<MotiView
 			from={{
 				opacity: 0,
-				translateY: 25,
+				translateY: 20,
 			}}
 			animate={{
 				opacity: 1,
@@ -160,13 +140,11 @@ export default function AdmEvento({
 			}}
 			transition={{
 				type: "timing",
-				duration: 500,
-				delay: index * 80,
+				duration: 450,
+				delay: index * 70,
 			}}
 		>
-
 			<View style={styles.card}>
-
 				<ImageBackground
 					source={{
 						uri:
@@ -175,207 +153,142 @@ export default function AdmEvento({
 					}}
 					style={styles.image}
 				>
-
 					<LinearGradient
-						colors={[
-							"transparent",
-							"rgba(0,0,0,0.92)",
-						]}
-						style={
-							styles.overlay
-						}
+						colors={["transparent", "rgba(0,0,0,0.95)"]}
+						style={styles.overlay}
 					>
-
-						<View
-							style={
-								styles.badge
-							}
-						>
-
+						<View style={styles.badge}>
 							<MaterialCommunityIcons
 								name="calendar-star"
 								size={15}
 								color="#FFF"
 							/>
 
-							<Text
-								style={
-									styles.badgeText
-								}
-							>
-								Evento
-							</Text>
-
+							<Text style={styles.badgeText}>Evento</Text>
 						</View>
 
-					</LinearGradient>
-
-				</ImageBackground>
-
-				<BlurView
-					intensity={50}
-					tint="dark"
-					style={
-						styles.content
-					}
-				>
-
-					<Text
-						style={
-							styles.titulo
-						}
-						numberOfLines={1}
-					>
-						{item.tituloEvento ||
-							"Sem título"}
-					</Text>
-
-					<View
-						style={
-							styles.infoRow
-						}
-					>
-
-						<MaterialCommunityIcons
-							name="map-marker"
-							size={16}
-							color={
-								Colors.primary
-							}
-						/>
-
-						<Text
-							style={
-								styles.infoText
-							}
-							numberOfLines={1}
-						>
-							{item.localEvento ||
-								item.nomeLocal ||
-								"Local não informado"}
-						</Text>
-
-					</View>
-
-					<View
-						style={
-							styles.infoRow
-						}
-					>
-
-						<MaterialCommunityIcons
-							name="calendar-month"
-							size={16}
-							color={
-								Colors.primary
-							}
-						/>
-
-						<Text
-							style={
-								styles.infoText
-							}
-						>
-							{item.dataEvento ||
-								"Data não informada"}
-						</Text>
-
-					</View>
-
-					{/* ACTIONS */}
-					<View
-						style={
-							styles.actions
-						}
-					>
-
-						<TouchableOpacity
-							style={
-								styles.deleteBtn
-							}
-							onPress={() =>
-								deletarEvento(
-									item.id
-								)
-							}
-						>
-
+						<View style={[styles.badge, styles.priceBadge]}>
 							<MaterialCommunityIcons
-								name="delete-outline"
-								size={22}
+								name={
+									item.gratuito ||
+									item.tipoEvento === "gratuito" ||
+									Number(item.precoInteira || 0) === 0
+										? "ticket-confirmation"
+										: "cash"
+								}
+								size={15}
 								color="#FFF"
 							/>
 
-						</TouchableOpacity>
+							<Text style={styles.badgeText}>
+								{item.gratuito ||
+								item.tipoEvento === "gratuito" ||
+								Number(item.precoInteira || 0) === 0
+									? "Gratuito"
+									: "Pago"}
+							</Text>
+						</View>
+					</LinearGradient>
+				</ImageBackground>
 
-						<TouchableOpacity
-							activeOpacity={
-								0.85
-							}
-							onPress={() =>
-								navigation.navigate(
-									"Metricas",
-									{
-										eventoId:
-											item.id,
-									}
-								)
-							}
-						>
+				<BlurView intensity={40} tint="dark" style={styles.content}>
+					<Text style={styles.titulo} numberOfLines={1}>
+						{item.tituloEvento || "Sem título"}
+					</Text>
 
-							<LinearGradient
-								colors={[
-									"#7C3AED",
-									"#5B21B6",
-								]}
-								style={
-									styles.dashboardBtn
-								}
-							>
+					<View style={styles.infoRow}>
+						<MaterialCommunityIcons
+							name="map-marker"
+							size={16}
+							color="#A855F7"
+						/>
 
-								<MaterialCommunityIcons
-									name="chart-bar"
-									size={18}
-									color="#FFF"
-								/>
-
-								<Text
-									style={
-										styles.dashboardText
-									}
-								>
-									Dashboard
-								</Text>
-
-							</LinearGradient>
-
-						</TouchableOpacity>
-
+						<Text style={styles.infoText} numberOfLines={1}>
+							{item.localEvento || item.nomeLocal || "Local não informado"}
+						</Text>
 					</View>
 
+					<View style={styles.infoRow}>
+						<MaterialCommunityIcons
+							name="calendar-month"
+							size={16}
+							color="#A855F7"
+						/>
+
+						<Text style={styles.infoText}>
+							{formatarDataEventoLista(item)}
+						</Text>
+					</View>
+
+					<View style={styles.actions}>
+						<View style={styles.leftActions}>
+							<TouchableOpacity
+								style={styles.editBtn}
+								onPress={() =>
+									navigation.navigate("CriarEvento", {
+										eventoId: item.id,
+										evento: item,
+										isEditing: true,
+									})
+								}
+							>
+								<MaterialCommunityIcons
+									name="pencil-outline"
+									size={22}
+									color="#60A5FA"
+								/>
+							</TouchableOpacity>
+
+							<TouchableOpacity
+								style={styles.deleteBtn}
+								onPress={() => deletarEvento(item.id)}
+							>
+								<MaterialCommunityIcons
+									name="delete-outline"
+									size={22}
+									color="#F87171"
+								/>
+							</TouchableOpacity>
+						</View>
+
+						<TouchableOpacity
+							activeOpacity={0.75}
+							style={styles.dashboardBtn}
+							onPress={() =>
+								navigation.navigate("AdmEventoDashIndividual", {
+									eventoId: item.id,
+									evento: item,
+								})
+							}
+						>
+							<View style={[styles.dashboardIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
+								<MaterialCommunityIcons
+									name="chart-bar"
+									size={22}
+									color="#6C5CE7"
+								/>
+							</View>
+							<Text style={styles.dashboardLabel}>Dashboard</Text>
+							<MaterialCommunityIcons
+								name="chevron-right"
+								size={18}
+								color={Colors.textMuted}
+								style={styles.dashboardChevron}
+							/>
+						</TouchableOpacity>
+					</View>
 				</BlurView>
-
 			</View>
-
 		</MotiView>
 	);
 
 	if (loading) {
 		return (
 			<View style={styles.loading}>
-				<ActivityIndicator
-					size="large"
-					color={
-						Colors.primary
-					}
-				/>
+				<ActivityIndicator size="large" color="#9333EA" />
 
-				<Text
-					style={
-						styles.loadingText
-					}
-				>
-					Carregando eventos...
+				<Text style={styles.loadingText}>
+					Carregando seus eventos...
 				</Text>
 			</View>
 		);
@@ -383,154 +296,124 @@ export default function AdmEvento({
 
 	return (
 		<View style={styles.container}>
-
 			<StatusBar
+				translucent
+				backgroundColor="transparent"
 				barStyle="light-content"
 			/>
 
 			{/* HEADER */}
 			<LinearGradient
-				colors={[
-					"#0F172A",
-					"#111827",
-					"#1E1B4B",
-				]}
+				colors={["#240046", "#3C096C", "#5A189A"]}
 				style={styles.header}
 			>
-
-				<TouchableOpacity
-					style={
-						styles.backBtn
-					}
-					onPress={() =>
-						navigation.goBack()
-					}
-				>
-
-					<MaterialCommunityIcons
-						name="arrow-left"
-						size={24}
-						color="#FFF"
-					/>
-
-				</TouchableOpacity>
-
-				<View
-					style={
-						styles.profileRow
-					}
-				>
-
-					<Image
-						source={{
-							uri:
-								foto ||
-								"https://i.pravatar.cc/100",
-						}}
-						style={
-							styles.avatar
-						}
-					/>
-
-					<View>
-						<Text
-							style={
-								styles.nome
-							}
+				<BlurView intensity={35} tint="dark" style={styles.headerBlur}>
+					<View style={styles.headerTop}>
+						<TouchableOpacity
+							style={styles.backBtn}
+							onPress={() => navigation.goBack()}
 						>
-							{nome ||
-								"Usuário"}
-						</Text>
+							<MaterialCommunityIcons
+								name="arrow-left"
+								size={24}
+								color="#FFF"
+							/>
+						</TouchableOpacity>
 
-						<Text
-							style={
-								styles.sub
-							}
-						>
-							Organizador
-						</Text>
+						<View style={styles.headerCenter}>
+							<Text style={styles.title}>Meus Eventos</Text>
+
+							<Text style={styles.subtitle}>
+								{eventos.length} evento
+								{eventos.length !== 1 ? "s" : ""}
+							</Text>
+						</View>
+
+						<Image
+							source={{
+								uri:
+									foto ||
+									"https://ui-avatars.com/api/?name=Admin",
+							}}
+							style={styles.avatar}
+						/>
 					</View>
-
-				</View>
-
-				<Text
-					style={styles.title}
-				>
-					Meus Eventos
-				</Text>
-
+				</BlurView>
 			</LinearGradient>
 
 			{/* LISTA */}
 			<FlatList
 				data={eventos}
-				keyExtractor={(item) =>
-					item.id
-				}
+				keyExtractor={(item) => item.id}
 				renderItem={renderItem}
-				showsVerticalScrollIndicator={
-					false
-				}
+				showsVerticalScrollIndicator={false}
 				contentContainerStyle={{
 					padding: 18,
-					paddingBottom: 120,
+					paddingBottom: 140,
 				}}
+				refreshing={refreshing}
+				onRefresh={onRefresh}
 				ListEmptyComponent={
-					<View
-						style={
-							styles.emptyContainer
-						}
-					>
-
+					<View style={styles.emptyContainer}>
 						<MaterialCommunityIcons
 							name="calendar-remove"
-							size={70}
-							color="rgba(255,255,255,0.2)"
+							size={72}
+							color="rgba(255,255,255,0.18)"
 						/>
 
-						<Text
-							style={
-								styles.empty
-							}
-						>
-							Nenhum evento cadastrado
+						<Text style={styles.empty}>
+							Você ainda não criou nenhum evento
 						</Text>
 
+						<Text style={styles.emptySub}>
+							Toque no botão + para começar
+						</Text>
 					</View>
 				}
 			/>
 
 			{/* FAB */}
 			<TouchableOpacity
-				activeOpacity={0.85}
+				activeOpacity={0.9}
 				style={styles.fab}
-				onPress={() =>
-					navigation.navigate(
-						"CriarEvento"
-					)
-				}
+				onPress={() => navigation.navigate("CriarEvento")}
 			>
-
 				<LinearGradient
-					colors={[
-						"#7C3AED",
-						"#5B21B6",
-					]}
-					style={
-						styles.fabGradient
-					}
+					colors={["#8B7CFF", "#6C5CE7"]}
+					style={styles.fabGradient}
 				>
-
 					<MaterialCommunityIcons
 						name="plus"
-						size={28}
+						size={30}
 						color="#FFF"
 					/>
-
 				</LinearGradient>
-
 			</TouchableOpacity>
 
+			<ConfirmModal
+				visible={deleteModal.visible}
+				title="Excluir evento?"
+				message="Deseja realmente excluir este evento? Esta ação não pode ser desfeita."
+				confirmText="Excluir"
+				cancelText="Cancelar"
+				type="danger"
+				icon="delete-outline"
+				onCancel={() =>
+					setDeleteModal({ visible: false, id: null })
+				}
+				onConfirm={confirmarExclusao}
+			/>
+
+			<ConfirmModal
+				visible={errorModal.visible}
+				title="Erro"
+				message={errorModal.message}
+				confirmText="OK"
+				type="error"
+				onConfirm={() =>
+					setErrorModal({ visible: false, message: "" })
+				}
+			/>
 		</View>
 	);
 }
@@ -541,126 +424,103 @@ const styles = StyleSheet.create({
 		backgroundColor: "#070B14",
 	},
 
-	/* HEADER */
 	header: {
-		paddingTop: 58,
-		paddingBottom: 24,
+		paddingTop: Platform.OS === "ios" ? 58 : 46,
+		paddingBottom: 18,
 		paddingHorizontal: 20,
+		borderBottomLeftRadius: 30,
+		borderBottomRightRadius: 30,
+		overflow: "hidden",
+	},
 
-		borderBottomLeftRadius: 28,
-		borderBottomRightRadius: 28,
+	headerBlur: {
+		borderBottomLeftRadius: 30,
+		borderBottomRightRadius: 30,
+		overflow: "hidden",
+	},
+
+	headerTop: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+
+	headerCenter: {
+		flex: 1,
+		marginLeft: 16,
 	},
 
 	backBtn: {
 		width: 44,
 		height: 44,
-
-		borderRadius: 16,
-
-		backgroundColor:
-			"rgba(255,255,255,0.08)",
-
+		borderRadius: 14,
+		backgroundColor: "rgba(255,255,255,0.08)",
 		justifyContent: "center",
 		alignItems: "center",
-
-		marginBottom: 18,
-	},
-
-	profileRow: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-
-	avatar: {
-		width: 58,
-		height: 58,
-
-		borderRadius: 29,
-
-		marginRight: 14,
-
-		borderWidth: 2,
-
-		borderColor:
-			Colors.primary,
-	},
-
-	nome: {
-		color: "#FFF",
-
-		fontSize: 18,
-		fontWeight: "bold",
-	},
-
-	sub: {
-		color:
-			"rgba(255,255,255,0.65)",
-
-		marginTop: 2,
 	},
 
 	title: {
 		color: "#FFF",
-
-		fontSize: 26,
+		fontSize: 24,
 		fontWeight: "bold",
-
-		marginTop: 22,
 	},
 
-	/* CARD */
+	subtitle: {
+		color: "rgba(255,255,255,0.68)",
+		fontSize: 13,
+		marginTop: 3,
+	},
+
+	avatar: {
+		width: 44,
+		height: 44,
+		borderRadius: 22,
+		borderWidth: 2,
+		borderColor: "rgba(255,255,255,0.16)",
+	},
+
 	card: {
-		borderRadius: 28,
-
+		borderRadius: 30,
 		overflow: "hidden",
-
 		marginBottom: 22,
-
-		backgroundColor:
-			"rgba(255,255,255,0.04)",
-
+		backgroundColor: "rgba(255,255,255,0.045)",
 		borderWidth: 1,
-
-		borderColor:
-			"rgba(255,255,255,0.06)",
+		borderColor: "rgba(255,255,255,0.05)",
+		shadowColor: "#7C3AED",
+		shadowOpacity: 0.16,
+		shadowRadius: 18,
+		elevation: 10,
 	},
 
 	image: {
-		height: 190,
-
+		height: 200,
 		justifyContent: "flex-end",
 	},
 
 	overlay: {
 		flex: 1,
-
 		justifyContent: "flex-end",
-
-		padding: 16,
+		padding: 18,
 	},
 
 	badge: {
 		alignSelf: "flex-start",
-
 		flexDirection: "row",
 		alignItems: "center",
-
-		backgroundColor:
-			"rgba(124,58,237,0.85)",
-
+		backgroundColor: "rgba(124,58,237,0.88)",
 		paddingHorizontal: 12,
 		paddingVertical: 7,
-
 		borderRadius: 20,
-
 		gap: 6,
+	},
+
+	priceBadge: {
+		marginTop: 8,
+		backgroundColor: "rgba(34,197,94,0.82)",
 	},
 
 	badgeText: {
 		color: "#FFF",
-
 		fontWeight: "600",
-
 		fontSize: 12,
 	},
 
@@ -670,113 +530,126 @@ const styles = StyleSheet.create({
 
 	titulo: {
 		color: "#FFF",
-
-		fontSize: 20,
+		fontSize: 21,
 		fontWeight: "bold",
-
 		marginBottom: 14,
 	},
 
 	infoRow: {
 		flexDirection: "row",
 		alignItems: "center",
-
-		marginBottom: 8,
+		marginBottom: 10,
 	},
 
 	infoText: {
-		color:
-			"rgba(255,255,255,0.72)",
-
+		color: "rgba(255,255,255,0.74)",
 		marginLeft: 8,
-
 		fontSize: 13,
-
 		flex: 1,
 	},
 
-	/* ACTIONS */
 	actions: {
-		marginTop: 18,
-
+		marginTop: 22,
 		flexDirection: "row",
-
-		justifyContent:
-			"space-between",
-
 		alignItems: "center",
+		justifyContent: "space-between",
+	},
+
+	leftActions: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+	},
+
+	editBtn: {
+		width: 50,
+		height: 50,
+		borderRadius: 14,
+		backgroundColor: "rgba(59,130,246,0.16)",
+		justifyContent: "center",
+		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(59,130,246,0.24)",
 	},
 
 	deleteBtn: {
-		width: 48,
-		height: 48,
-
-		borderRadius: 16,
-
-		backgroundColor:
-			"rgba(239,68,68,0.18)",
-
+		width: 50,
+		height: 50,
+		borderRadius: 14,
+		backgroundColor: "rgba(239,68,68,0.16)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: "rgba(239,68,68,0.24)",
 	},
 
 	dashboardBtn: {
 		flexDirection: "row",
 		alignItems: "center",
-
-		paddingVertical: 12,
-		paddingHorizontal: 18,
-
-		borderRadius: 18,
-
-		gap: 8,
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		borderRadius: 16,
+		backgroundColor: Colors.surface,
+		borderWidth: 1,
+		borderColor: Colors.glassBorder,
+		gap: 10,
 	},
 
-	dashboardText: {
-		color: "#FFF",
-
-		fontWeight: "bold",
-
-		fontSize: 13,
-	},
-
-	/* EMPTY */
-	emptyContainer: {
+	dashboardIconCircle: {
+		width: 40,
+		height: 40,
+		borderRadius: 12,
 		alignItems: "center",
-
-		marginTop: 80,
+		justifyContent: "center",
 	},
 
-	empty: {
-		color:
-			"rgba(255,255,255,0.55)",
-
-		marginTop: 14,
-
-		fontSize: 15,
+	dashboardLabel: {
+		flex: 1,
+		fontSize: 13,
+		fontWeight: "700",
+		color: Colors.textPrimary,
 	},
 
-	/* LOADING */
+	dashboardChevron: {
+		opacity: 0.5,
+	},
+
 	loading: {
 		flex: 1,
-
 		justifyContent: "center",
 		alignItems: "center",
-
 		backgroundColor: "#070B14",
 	},
 
 	loadingText: {
-		color:
-			"rgba(255,255,255,0.65)",
-
+		color: "rgba(255,255,255,0.65)",
 		marginTop: 14,
+		fontSize: 14,
 	},
 
-	/* FAB */
+	emptyContainer: {
+		alignItems: "center",
+		marginTop: 100,
+		paddingHorizontal: 30,
+	},
+
+	empty: {
+		color: "rgba(255,255,255,0.62)",
+		marginTop: 18,
+		fontSize: 16,
+		textAlign: "center",
+		fontWeight: "600",
+	},
+
+	emptySub: {
+		color: "rgba(255,255,255,0.34)",
+		marginTop: 8,
+		fontSize: 13,
+		textAlign: "center",
+	},
+
 	fab: {
 		position: "absolute",
-
 		bottom: 28,
 		right: 24,
 	},
@@ -784,17 +657,12 @@ const styles = StyleSheet.create({
 	fabGradient: {
 		width: 68,
 		height: 68,
-
 		borderRadius: 34,
-
 		justifyContent: "center",
 		alignItems: "center",
-
-		elevation: 10,
-
-		shadowColor: "#7C3AED",
-
-		shadowOpacity: 0.4,
-		shadowRadius: 12,
+		elevation: 12,
+		shadowColor: "#6C5CE7",
+		shadowOpacity: 0.45,
+		shadowRadius: 18,
 	},
 });
