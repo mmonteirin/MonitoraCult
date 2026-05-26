@@ -1,4 +1,5 @@
 import { getEventos } from "./mapaCulturalService";
+import { gerarInsightsComOpenAI } from "./openaiService";
 
 /**
  * Constrói uma justificativa de recomendação inteligente e contextual em português.
@@ -127,7 +128,22 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = [], user
       }));
     }
 
-    // 2. Lógica de Filtragem e Atribuição de Score Inteligente baseado no Foco, Horário e Sinais do Usuário
+    // 2. Tenta usar OpenAI para insights mais sofisticados (se disponível)
+    const openaiInsights = await gerarInsightsComOpenAI(baseEventos, userSignals, termoFoco);
+
+    if (openaiInsights) {
+      // Usa os eventos recomendados pelo OpenAI
+      const eventosRecomendados = openaiInsights.eventosRecomendados || baseEventos.slice(0, 6);
+      
+      return eventosRecomendados.map((evento, index) => ({
+        ...evento,
+        matchPercent: calcularMatchPersonalizado(evento, userSignals, termoFoco),
+        aiReason: openaiInsights.recomendacao || obterMotivoIA(evento, termoFoco, new Date().getHours(), userSignals),
+        openaiGenerated: true,
+      }));
+    }
+
+    // 3. Fallback para lógica existente se OpenAI não estiver disponível
     const horaAtual = new Date().getHours();
     const roteiroProcessado = baseEventos.map((evento, index) => {
       let scoreAdicional = 0;
@@ -163,11 +179,12 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = [], user
         ...evento,
         score: (evento.score || 50) + scoreAdicional,
         matchPercent,
-        aiReason
+        aiReason,
+        openaiGenerated: false,
       };
     });
 
-    // 3. Ordena pelos maiores scores e retorna os 6 melhores resultados montados como roteiro exclusivo
+    // 4. Ordena pelos maiores scores e retorna os 6 melhores resultados montados como roteiro exclusivo
     return roteiroProcessado
       .sort((a, b) => b.score - a.score)
       .slice(0, 6);

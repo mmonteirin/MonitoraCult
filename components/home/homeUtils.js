@@ -280,9 +280,10 @@ function _buildHistorySummary(categories, places, totalLikes) {
  *  • ratingBoost      — avaliação média × 2
  *  • noveltyBoost     — evento recente que o usuário ainda não viu
  *  • repeatPenalty    — penalidade para eventos já interagidos (evita repetição)
- *  • diversityBoost   — incentivo para categoridades diferentes (evita filter bubble)
+ *  • diversityBoost   — incentivo para categorias diferentes (evita filter bubble)
+ *  • collaborativeBoost — boost baseado em usuários similares (collaborative filtering)
  */
-export function scoreRecommendation(evento, signals) {
+export function scoreRecommendation(evento, signals, allUserSignals = []) {
   if (!evento || !signals) return 0;
 
   const categoryAffinity = signals.categories[evento.categoria] || 0;
@@ -333,6 +334,9 @@ export function scoreRecommendation(evento, signals) {
   const categoryRatio = totalCategoryScore > 0 ? categoryAffinity / totalCategoryScore : 0;
   const diversityBoost = categoryRatio > 0.6 ? -5 : categoryRatio < 0.2 ? 3 : 0;
 
+  // Collaborative filtering boost (opcional, se dados de outros usuários disponíveis)
+  const collaborativeBoost = applyCollaborativeFiltering(evento, signals, allUserSignals);
+
   return (
     evento.score +
     categoryScore +
@@ -343,7 +347,8 @@ export function scoreRecommendation(evento, signals) {
     featuredBoost +
     ratingBoost +
     noveltyBoost +
-    diversityBoost -
+    diversityBoost +
+    collaborativeBoost -
     repeatPenalty
   );
 }
@@ -447,4 +452,91 @@ export function getCategoryColor(categoria = "") {
   if (cat.includes("arte")) return Colors.success;
   if (cat.includes("gastro")) return "#F97316";
   return Colors.textMuted;
+}
+
+// ─── Collaborative Filtering Básico ─────────────────────────────────────────────
+
+/**
+ * Calcula similaridade entre dois usuários baseada em suas preferências
+ * Usa similaridade de cosseno entre os vetores de categorias e locais
+ */
+export function calculateUserSimilarity(userSignals1, userSignals2) {
+  if (!userSignals1 || !userSignals2) return 0;
+
+  const cats1 = userSignals1.categories || {};
+  const cats2 = userSignals2.categories || {};
+  const places1 = userSignals1.places || {};
+  const places2 = userSignals2.places || {};
+
+  // Similaridade de categorias (cosseno)
+  const allCats = new Set([...Object.keys(cats1), ...Object.keys(cats2)]);
+  let dotProduct = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+
+  allCats.forEach(cat => {
+    const v1 = cats1[cat] || 0;
+    const v2 = cats2[cat] || 0;
+    dotProduct += v1 * v2;
+    norm1 += v1 * v1;
+    norm2 += v2 * v2;
+  });
+
+  const catSimilarity = norm1 > 0 && norm2 > 0 ? dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2)) : 0;
+
+  // Similaridade de locais (cosseno)
+  const allPlaces = new Set([...Object.keys(places1), ...Object.keys(places2)]);
+  dotProduct = 0;
+  norm1 = 0;
+  norm2 = 0;
+
+  allPlaces.forEach(place => {
+    const v1 = places1[place] || 0;
+    const v2 = places2[place] || 0;
+    dotProduct += v1 * v2;
+    norm1 += v1 * v1;
+    norm2 += v2 * v2;
+  });
+
+  const placeSimilarity = norm1 > 0 && norm2 > 0 ? dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2)) : 0;
+
+  // Média ponderada (categorias têm mais peso)
+  return (catSimilarity * 0.7 + placeSimilarity * 0.3);
+}
+
+/**
+ * Aplica collaborative filtering para ajustar o score de recomendação
+ * Usa preferências de usuários similares para boostar eventos
+ */
+export function applyCollaborativeFiltering(evento, userSignals, allUserSignals = []) {
+  if (!evento || !userSignals || !allUserSignals.length) return 0;
+
+  let collaborativeScore = 0;
+  let totalSimilarity = 0;
+
+  allUserSignals.forEach(otherSignals => {
+    // Ignora o próprio usuário
+    if (otherSignals.userId === userSignals.userId) return;
+
+    const similarity = calculateUserSimilarity(userSignals, otherSignals);
+    if (similarity < 0.3) return; // Ignora usuários muito diferentes
+
+    // Verifica se o usuário similar tem afinidade com este evento
+    const catAffinity = otherSignals.categories?.[evento.categoria] || 0;
+    const placeAffinity = otherSignals.places?.[evento.local] || 0;
+    const liked = otherSignals.likedSet?.has(evento.id) ? 1 : 0;
+
+    const affinityScore = (catAffinity * 5 + placeAffinity * 3 + liked * 8);
+
+    collaborativeScore += affinityScore * similarity;
+    totalSimilarity += similarity;
+  });
+
+  // Normaliza pelo total de similaridade
+  if (totalSimilarity > 0) {
+    collaborativeScore = collaborativeScore / totalSimilarity;
+  }
+
+  // Aplica um boost moderado (máximo de 10 pontos)
+  return Math.min(10, collaborativeScore * 0.5);
 }

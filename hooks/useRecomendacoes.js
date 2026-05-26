@@ -24,6 +24,7 @@ import {
 import { getSubscribedEvents } from "../services/subscribedEventsService";
 import { getAttendedEvents } from "../services/profileService";
 import { getLocaisFavoritos } from "../services/localVisitadoService";
+import { getSharedEventsWithDetails } from "../services/shareService";
 
 import {
   buildUserSignals,
@@ -111,12 +112,13 @@ export default function useRecomendacoes(eventos = [], usuarioId = null) {
         }
 
         // 2) Busca paralela de todos os sinais
-        const [likes, interactions, subscribed, attended, locaisFavoritos] = await Promise.all([
+        const [likes, interactions, subscribed, attended, locaisFavoritos, sharedEvents] = await Promise.all([
           getUserLikes(usuarioId),
           getUserEventInteractions(usuarioId),
           getSubscribedEvents(usuarioId),
           getAttendedEvents(usuarioId),
           getLocaisFavoritos(usuarioId, 5),
+          getSharedEventsWithDetails(usuarioId, eventos),
         ]);
 
         // 3) Eventos curtidos (join local — sem roundtrip extra)
@@ -134,7 +136,7 @@ export default function useRecomendacoes(eventos = [], usuarioId = null) {
           likedEvents,
           subscribedEvents: subscribed,
           attendedEvents: attended,
-          sharedEvents: [], // TODO: Implementar serviço de compartilhamentos
+          sharedEvents: sharedEvents,
         });
 
         locaisFavoritos.forEach((local) => {
