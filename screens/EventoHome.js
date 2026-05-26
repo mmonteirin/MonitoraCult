@@ -72,7 +72,7 @@ export default function EventoHome({ navigation }) {
 									<BlurView intensity={40} tint="dark" style={[styles.blurBtn, { borderColor: colors.borderLight }]}>
 										<MaterialCommunityIcons
 											name="arrow-left"
-											size={22}
+											size={24}
 											color={colors.textPrimary}
 										/>
 									</BlurView>
@@ -86,7 +86,7 @@ export default function EventoHome({ navigation }) {
 									<BlurView intensity={30} tint="dark" style={[styles.badge, { borderColor: colors.borderLight }]}>
 										<MaterialCommunityIcons
 											name="book-open-variant"
-											size={16}
+											size={18}
 											color={colors.primaryLight}
 										/>
 
@@ -120,7 +120,7 @@ export default function EventoHome({ navigation }) {
 									>
 										<MaterialCommunityIcons
 											name="ticket-confirmation"
-											size={34}
+											size={38}
 											color={colors.onPrimary}
 										/>
 									</LinearGradient>
@@ -146,15 +146,15 @@ export default function EventoHome({ navigation }) {
 								translateY: 0,
 							}}
 							transition={{
-								delay: 120,
-								duration: 700,
+								delay: 150,
+								duration: 800,
 							}}
 							style={styles.statsRow}
 						>
-							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 }]}>
 								<MaterialCommunityIcons
 									name="calendar-star"
-									size={22}
+									size={24}
 									color={colors.primaryLight}
 								/>
 
@@ -163,10 +163,10 @@ export default function EventoHome({ navigation }) {
 								<Text style={[styles.statLabel, { color: colors.textMuted }]}>Eventos</Text>
 							</View>
 
-							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.accentCyan, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 }]}>
 								<MaterialCommunityIcons
 									name="account-group"
-									size={22}
+									size={24}
 									color={colors.accentCyan}
 								/>
 
@@ -175,10 +175,10 @@ export default function EventoHome({ navigation }) {
 								<Text style={[styles.statLabel, { color: colors.textMuted }]}>Participantes</Text>
 							</View>
 
-							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.warning, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 }]}>
 								<MaterialCommunityIcons
 									name="map-marker-radius"
-									size={22}
+									size={24}
 									color={colors.warning}
 								/>
 
@@ -201,13 +201,13 @@ export default function EventoHome({ navigation }) {
 									translateY: 0,
 								}}
 								transition={{
-									delay: 180,
-									duration: 700,
+									delay: 220,
+									duration: 800,
 								}}
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 10 }]}
 									onPress={() => navigation.navigate("EventosApp")}
 								>
 									<LinearGradient
@@ -221,7 +221,7 @@ export default function EventoHome({ navigation }) {
 									>
 										<MaterialCommunityIcons
 											name="cellphone"
-											size={30}
+											size={32}
 											color={colors.onPrimary}
 										/>
 									</LinearGradient>
@@ -277,13 +277,13 @@ export default function EventoHome({ navigation }) {
 									translateY: 0,
 								}}
 								transition={{
-									delay: 320,
-									duration: 700,
+									delay: 380,
+									duration: 800,
 								}}
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.accentCyan, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 10 }]}
 									onPress={() => navigation.navigate("EventosPublicos")}
 								>
 									<LinearGradient
@@ -297,7 +297,7 @@ export default function EventoHome({ navigation }) {
 									>
 										<MaterialCommunityIcons
 											name="earth"
-											size={30}
+											size={32}
 											color={colors.onPrimary}
 										/>
 									</LinearGradient>
@@ -351,13 +351,13 @@ export default function EventoHome({ navigation }) {
 									translateY: 0,
 								}}
 								transition={{
-									delay: 450,
-									duration: 700,
+									delay: 540,
+									duration: 800,
 								}}
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.error, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 10 }]}
 									onPress={() => navigation.navigate("TelaMapaVivo")}
 								>
 									<LinearGradient
@@ -371,7 +371,7 @@ export default function EventoHome({ navigation }) {
 									>
 										<MaterialCommunityIcons
 											name="map-marker-radius"
-											size={30}
+											size={32}
 											color={colors.onPrimary}
 										/>
 									</LinearGradient>
@@ -432,20 +432,20 @@ export default function EventoHome({ navigation }) {
 									translateY: 0,
 								}}
 								transition={{
-									delay: 580,
-									duration: 700,
+									delay: 700,
+									duration: 800,
 								}}
 							>
 								<View style={styles.infoCard}>
 									<LinearGradient
 										colors={gradients.surface}
-										style={[styles.infoGradient, { borderColor: colors.borderLight }]}
+										style={[styles.infoGradient, { borderColor: colors.borderLight, shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 18, elevation: 10 }]}
 									>
 										<View style={styles.infoLeft}>
-											<View style={[styles.infoIcon, { backgroundColor: colors.glass }]}>
+											<View style={[styles.infoIcon, { backgroundColor: colors.glass, shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 6 }]}>
 												<MaterialCommunityIcons
 													name="compass-outline"
-													size={24}
+													size={26}
 													color={colors.textPrimary}
 												/>
 											</View>
@@ -463,7 +463,7 @@ export default function EventoHome({ navigation }) {
 
 										<TouchableOpacity
 											activeOpacity={0.8}
-											style={[styles.exploreBtn, { backgroundColor: colors.primary + "40" }]}
+											style={[styles.exploreBtn, { backgroundColor: colors.primary + "40", shadowColor: colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.20, shadowRadius: 12, elevation: 8 }]}
 											onPress={() =>
 												navigation.navigate(
 													"TelaExploreCidade"
@@ -472,7 +472,7 @@ export default function EventoHome({ navigation }) {
 										>
 											<MaterialCommunityIcons
 												name="arrow-right"
-												size={20}
+												size={22}
 												color={colors.textPrimary}
 											/>
 										</TouchableOpacity>
@@ -522,14 +522,14 @@ const styles = StyleSheet.create({
 
 	header: {
 		paddingHorizontal: 24,
-		paddingBottom: 24,
+		paddingBottom: 32,
 	},
 
 	headerTop: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		alignItems: "center",
-		marginBottom: 28,
+		marginBottom: 32,
 	},
 
 	backButton: {
@@ -537,25 +537,25 @@ const styles = StyleSheet.create({
 	},
 
 	blurBtn: {
-		width: 48,
-		height: 48,
-		borderRadius: 18,
+		width: 52,
+		height: 52,
+		borderRadius: 20,
 		justifyContent: "center",
 		alignItems: "center",
 		overflow: "hidden",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderWidth: 1.5,
+		borderColor: "rgba(255,255,255,0.12)",
 	},
 
 	badge: {
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: 20,
+		paddingHorizontal: 16,
+		paddingVertical: 12,
+		borderRadius: 22,
 		overflow: "hidden",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderWidth: 1.5,
+		borderColor: "rgba(255,255,255,0.12)",
 	},
 
 	badgeText: {
@@ -565,31 +565,31 @@ const styles = StyleSheet.create({
 	},
 
 	hero: {
-		marginTop: 10,
+		marginTop: 12,
 	},
 
 	heroIcon: {
-		marginBottom: 22,
+		marginBottom: 24,
 	},
 
 	heroGradient: {
-		width: 88,
-		height: 88,
-		borderRadius: 30,
+		width: 96,
+		height: 96,
+		borderRadius: 32,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 
 	title: {
-		fontSize: width < 380 ? 34 : 40,
+		fontSize: width < 380 ? 36 : 42,
 		fontFamily: "PoppinsBold",
 		letterSpacing: 0.5,
 	},
 
 	subtitle: {
-		marginTop: 12,
-		fontSize: 15,
-		lineHeight: 25,
+		marginTop: 14,
+		fontSize: 16,
+		lineHeight: 26,
 		fontFamily: "PoppinsRegular",
 		maxWidth: "95%",
 	},
@@ -597,32 +597,32 @@ const styles = StyleSheet.create({
 	statsRow: {
 		flexDirection: "row",
 		justifyContent: "space-between",
-		gap: 10,
+		gap: 12,
 		paddingHorizontal: 22,
-		marginTop: 4,
-		marginBottom: 24,
+		marginTop: 8,
+		marginBottom: 28,
 	},
 
 	statCard: {
 		flex: 1,
-		minHeight: 120,
+		minHeight: 130,
 		backgroundColor: "rgba(255,255,255,0.06)",
-		borderRadius: 24,
-		paddingVertical: 18,
+		borderRadius: 26,
+		paddingVertical: 20,
 		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderWidth: 1.2,
+		borderColor: "rgba(255,255,255,0.10)",
 	},
 
 	statNumber: {
-		fontSize: 22,
-		marginTop: 8,
+		fontSize: 24,
+		marginTop: 10,
 		fontFamily: "PoppinsBold",
 	},
 
 	statLabel: {
-		marginTop: 4,
-		fontSize: 12,
+		marginTop: 6,
+		fontSize: 13,
 		textAlign: "center",
 		fontFamily: "PoppinsRegular",
 	},
@@ -634,13 +634,13 @@ const styles = StyleSheet.create({
 	card: {
 		flexDirection: "row",
 		alignItems: "center",
-		minHeight: 125,
+		minHeight: 135,
 		backgroundColor: "rgba(255,255,255,0.06)",
-		borderRadius: 30,
-		padding: 18,
-		marginBottom: 20,
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderRadius: 32,
+		padding: 20,
+		marginBottom: 24,
+		borderWidth: 1.2,
+		borderColor: "rgba(255,255,255,0.10)",
 		overflow: "hidden",
 		position: "relative",
 	},
@@ -650,17 +650,17 @@ const styles = StyleSheet.create({
 	},
 
 	iconBox: {
-		width: 68,
-		height: 68,
-		borderRadius: 24,
+		width: 74,
+		height: 74,
+		borderRadius: 26,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 
 	textContainer: {
 		flex: 1,
-		marginLeft: 16,
-		marginRight: 10,
+		marginLeft: 18,
+		marginRight: 12,
 	},
 
 	cardTopRow: {
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
 	},
 
 	cardTitle: {
-		fontSize: 18,
+		fontSize: 19,
 		flexShrink: 1,
 		fontFamily: "PoppinsSemiBold",
 	},
@@ -680,79 +680,79 @@ const styles = StyleSheet.create({
 	liveBadge: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: "rgba(239,68,68,0.14)",
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 20,
+		backgroundColor: "rgba(239,68,68,0.18)",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 22,
 	},
 
 	liveDot: {
-		width: 6,
-		height: 6,
+		width: 7,
+		height: 7,
 		borderRadius: 10,
-		marginRight: 5,
+		marginRight: 6,
 	},
 
 	liveText: {
-		fontSize: 10,
+		fontSize: 11,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	cityBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 20,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 22,
 	},
 
 	cityText: {
-		fontSize: 10,
+		fontSize: 11,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	heatBadge: {
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 4,
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 20,
+		gap: 5,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 22,
 	},
 
 	heatText: {
-		fontSize: 10,
+		fontSize: 11,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	cardDesc: {
-		fontSize: 13,
-		marginTop: 6,
-		lineHeight: 21,
+		fontSize: 14,
+		marginTop: 8,
+		lineHeight: 22,
 		fontFamily: "PoppinsRegular",
 	},
 
 	cardFooter: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginTop: 12,
+		marginTop: 14,
 		flexWrap: "wrap",
 	},
 
 	footerText: {
-		marginLeft: 6,
-		fontSize: 12,
+		marginLeft: 7,
+		fontSize: 13,
 		flexShrink: 1,
 		fontFamily: "PoppinsRegular",
 	},
 
 	infoCard: {
-		marginTop: 4,
+		marginTop: 6,
 	},
 
 	infoGradient: {
-		borderRadius: 28,
-		padding: 20,
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderRadius: 30,
+		padding: 22,
+		borderWidth: 1.2,
+		borderColor: "rgba(255,255,255,0.10)",
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -765,33 +765,33 @@ const styles = StyleSheet.create({
 	},
 
 	infoIcon: {
-		width: 56,
-		height: 56,
-		borderRadius: 20,
-		backgroundColor: "rgba(255,255,255,0.10)",
+		width: 60,
+		height: 60,
+		borderRadius: 22,
+		backgroundColor: "rgba(255,255,255,0.12)",
 		justifyContent: "center",
 		alignItems: "center",
-		marginRight: 14,
+		marginRight: 16,
 	},
 
 	infoTitle: {
-		fontSize: 16,
+		fontSize: 17,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	infoDesc: {
-		fontSize: 13,
-		marginTop: 4,
-		lineHeight: 20,
+		fontSize: 14,
+		marginTop: 5,
+		lineHeight: 21,
 		fontFamily: "PoppinsRegular",
 	},
 
 	exploreBtn: {
-		width: 48,
-		height: 48,
-		borderRadius: 18,
+		width: 52,
+		height: 52,
+		borderRadius: 20,
 		justifyContent: "center",
 		alignItems: "center",
-		marginLeft: 12,
+		marginLeft: 14,
 	},
 });

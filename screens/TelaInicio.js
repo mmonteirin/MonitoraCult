@@ -146,6 +146,12 @@ export default function TelaInicio() {
         return "Boa noite";
     }, []);
 
+    const dataAtual = useMemo(() => {
+        const hoje = new Date();
+        const opcoes = { weekday: 'long', day: 'numeric', month: 'long' };
+        return hoje.toLocaleDateString('pt-BR', opcoes);
+    }, []);
+
     useEffect(() => {
         carregarHome();
     }, [usuarioId]);
@@ -439,15 +445,16 @@ export default function TelaInicio() {
             >
                 {/* HEADER */}
                 <Animated.View
-                    entering={FadeInDown.duration(700)}
+                    entering={FadeInDown.duration(800).delay(100)}
                     style={headerStyle}
                 >
                     <LinearGradient
                         colors={[
-                            colors.backgroundSecondary,
-                            colors.surface,
                             colors.background,
+                            colors.backgroundSecondary,
                         ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
                         style={[
                             styles.headerContainer,
                             {
@@ -457,24 +464,37 @@ export default function TelaInicio() {
                     >
                         <View style={styles.header}>
                             <View style={styles.headerCopy}>
-                                <Text style={styles.greeting}>
-                                    {saudacaoHorario}
-                                </Text>
+                                <Animated.View entering={FadeInDown.duration(600).delay(150)}>
+                                    <Text style={styles.greeting}>
+                                        {saudacaoHorario}
+                                    </Text>
 
-                                <Text
-                                    style={styles.name}
-                                    numberOfLines={1}
-                                >
-                                    {nomeUsuario}
-                                </Text>
+                                    <Text
+                                        style={styles.name}
+                                        numberOfLines={2}
+                                    >
+                                        {nomeUsuario}
+                                    </Text>
 
-                                <Text style={styles.city}>
-                                    Fortaleza, CE
-                                </Text>
+                                    <Text style={styles.date}>
+                                        {dataAtual}
+                                    </Text>
+
+                                    <View style={styles.eventCountContainer}>
+                                        <MaterialCommunityIcons
+                                            name="calendar-check"
+                                            size={14}
+                                            color={colors.primary}
+                                        />
+                                        <Text style={styles.eventCountText}>
+                                            {eventosFiltrados.length} eventos hoje
+                                        </Text>
+                                    </View>
+                                </Animated.View>
                             </View>
 
                             <Animated.View
-                                entering={FadeInRight.delay(250)}
+                                entering={FadeInRight.duration(600).delay(300)}
                                 style={styles.headerActions}
                             >
                                 <TouchableOpacity
@@ -857,15 +877,30 @@ function createThemedScreenStyles(c) {
 
     name: {
         color: c.textPrimary,
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: "800",
         marginTop: 4,
+        lineHeight: 34,
     },
 
-    city: {
-        color: c.textMuted,
-        fontSize: 14,
+    date: {
+        color: c.textSecondary,
+        fontSize: 13,
         marginTop: 6,
+        textTransform: 'capitalize',
+    },
+
+    eventCountContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        gap: 6,
+    },
+
+    eventCountText: {
+        color: c.textSecondary,
+        fontSize: 12,
+        fontWeight: '600',
     },
 
     /* CULTURAL AI NEW STYLES */

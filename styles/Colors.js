@@ -100,36 +100,36 @@ const darkTheme = {
 const lightTheme = {
   ...sharedTheme,
 
-  background: "#F8FAFC",
-  backgroundSecondary: "#EEF2F7",
+  background: "#F1F5F9",
+  backgroundSecondary: "#E2E8F0",
   backgroundElevated: "#FFFFFF",
-  backgroundDeep: "#D8E0EA",
+  backgroundDeep: "#CBD5E1",
 
   surface: "#FFFFFF",
-  surfaceLight: "#F1F5F9",
+  surfaceLight: "#F8FAFC",
   surfaceMuted: "#E2E8F0",
 
-  glass: "rgba(255,255,255,0.82)",
-  glassBorder: "rgba(15,23,42,0.18)",
-  glassStrong: "rgba(255,255,255,0.94)",
+  glass: "rgba(255,255,255,0.92)",
+  glassBorder: "rgba(15,23,42,0.25)",
+  glassStrong: "rgba(255,255,255,0.98)",
 
   card: "#FFFFFF",
-  cardHover: "#F8F9FA",
+  cardHover: "#F1F5F9",
 
-  border: "#CBD5E1",
-  borderLight: "rgba(15,23,42,0.16)",
-  divider: "#CBD5E1",
+  border: "#94A3B8",
+  borderLight: "rgba(15,23,42,0.22)",
+  divider: "#E2E8F0",
 
   textPrimary: "#0F172A",
-  textSecondary: "#334155",
-  textMuted: "#64748B",
+  textSecondary: "#1E293B",
+  textMuted: "#475569",
 
-  overlayDark: "rgba(0,0,0,0.45)",
-  overlayStronger: "rgba(0,0,0,0.65)",
-  overlayLight: "rgba(0,0,0,0.04)",
+  overlayDark: "rgba(0,0,0,0.55)",
+  overlayStronger: "rgba(0,0,0,0.75)",
+  overlayLight: "rgba(0,0,0,0.06)",
 
   shadow: "#000000",
-  mapOverlay: "rgba(255,255,255,0.92)",
+  mapOverlay: "rgba(255,255,255,0.95)",
 };
 
 export const darkThemeColors = darkTheme;

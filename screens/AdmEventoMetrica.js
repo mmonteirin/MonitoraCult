@@ -60,9 +60,11 @@ const screenWidth =
 export default function AdmEventoMetricas({
   navigation,
 }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
   const { user } = useAuth();
+  const blurTint = isDark ? "dark" : "light";
+  const chartConfig = getChartConfig(colors, isDark);
 
   const [loading, setLoading] =
     useState(true);
@@ -274,9 +276,9 @@ export default function AdmEventoMetricas({
       {/* HEADER */}
       <LinearGradient
         colors={[
-          "#0F172A",
-          "#111827",
-          "#1E1B4B",
+          colors.backgroundSecondary,
+          colors.backgroundElevated,
+          colors.primarySoft,
         ]}
         style={styles.header}
       >
@@ -289,7 +291,7 @@ export default function AdmEventoMetricas({
           <MaterialCommunityIcons
             name="arrow-left"
             size={24}
-            color="#FFF"
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
 
@@ -323,6 +325,9 @@ export default function AdmEventoMetricas({
             }
             icon="calendar"
             color="#8B5CF6"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
 
           <MetricCard
@@ -330,6 +335,9 @@ export default function AdmEventoMetricas({
             value={totalAvaliacoes}
             icon="star"
             color="#F59E0B"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
 
           <MetricCard
@@ -337,6 +345,9 @@ export default function AdmEventoMetricas({
             value={`${media} ★`}
             icon="chart-line"
             color="#06B6D4"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
 
           <MetricCard
@@ -346,6 +357,9 @@ export default function AdmEventoMetricas({
             }
             icon="heart"
             color="#EF4444"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
 
           <MetricCard
@@ -355,6 +369,9 @@ export default function AdmEventoMetricas({
             }
             icon="eye"
             color="#22C55E"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
 
           <MetricCard
@@ -364,6 +381,9 @@ export default function AdmEventoMetricas({
             }
             icon="account-group"
             color="#6366F1"
+            styles={styles}
+            isDark={isDark}
+            colors={colors}
           />
         </View>
 
@@ -419,6 +439,9 @@ function MetricCard({
   value,
   icon,
   color,
+  styles,
+  isDark,
+  colors,
 }) {
   return (
     <MotiView
@@ -438,8 +461,8 @@ function MetricCard({
     >
       <LinearGradient
         colors={[
-          "rgba(255,255,255,0.08)",
-          "rgba(255,255,255,0.03)",
+          isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.04)",
+          isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.01)",
         ]}
         style={styles.metricGradient}
       >
@@ -454,7 +477,7 @@ function MetricCard({
           <MaterialCommunityIcons
             name={icon}
             size={22}
-            color="#FFF"
+            color={colors.onPrimary}
           />
         </View>
 
@@ -471,28 +494,24 @@ function MetricCard({
 }
 
 /* CHART CONFIG */
-const chartConfig = {
-  backgroundGradientFrom:
-    "transparent",
-
-  backgroundGradientTo:
-    "transparent",
-
+const getChartConfig = (colors, isDark) => ({
+  backgroundGradientFrom: "transparent",
+  backgroundGradientTo: "transparent",
   decimalPlaces: 0,
-
-  color: (opacity = 1) =>
-    `rgba(139,92,246, ${opacity})`,
-
-  labelColor: () =>
-    "rgba(255,255,255,0.7)",
-
+  color: (opacity = 1) => `rgba(139,92,246, ${opacity})`,
+  labelColor: () => isDark ? "rgba(255,255,255,0.7)" : "rgba(15,23,42,0.7)",
   propsForBackgroundLines: {
-    stroke:
-      "rgba(255,255,255,0.08)",
+    stroke: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
   },
-
   barPercentage: 0.7,
-};
+  propsForLabels: {
+    fontFamily: "Poppins",
+    fontWeight: "600",
+  },
+  propsForDots: {
+    r: "0",
+  },
+});
 
 /* STYLES */
 function createThemedScreenStyles(c) {
@@ -539,15 +558,13 @@ function createThemedScreenStyles(c) {
   },
 
   headerTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: "bold",
   },
 
   headerSubtitle: {
-    color:
-      "rgba(255,255,255,0.6)",
-
+    color: c.textSecondary,
     marginTop: 4,
   },
 
@@ -574,8 +591,7 @@ function createThemedScreenStyles(c) {
 
     borderWidth: 1,
 
-    borderColor:
-      "rgba(255,255,255,0.05)",
+    borderColor: c.borderLight,
   },
 
   iconBox: {
@@ -591,27 +607,21 @@ function createThemedScreenStyles(c) {
   },
 
   metricTitle: {
-    color:
-      "rgba(255,255,255,0.65)",
-
+    color: c.textSecondary,
     fontSize: 13,
-
     marginBottom: 6,
   },
 
   metricValue: {
-    color: "#FFF",
-
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "bold",
   },
 
   section: {
-    color: "#FFF",
-
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "bold",
-
     marginTop: 20,
     marginBottom: 14,
   },

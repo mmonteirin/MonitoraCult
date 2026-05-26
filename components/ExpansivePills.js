@@ -43,22 +43,22 @@ function getPillTokens(isDark, primary, primaryLight, primaryDark) {
   if (isDark) {
     return {
       blurTint: "dark",
-      blurIntensity: 60,
-      bgColor: "rgba(12,16,28,0.80)",
-      borderColor: "rgba(255,255,255,0.09)",
+      blurIntensity: 70,
+      bgColor: "rgba(10,14,26,0.88)",
+      borderColor: "rgba(255,255,255,0.12)",
       shadowColor: "#000",
-      shadowOpacity: 0.50,
-      shadowRadius: 28,
-      elevation: 14,
-      pillBg: "rgba(108,92,231,0.20)",
-      pillBorder: "rgba(108,92,231,0.35)",
+      shadowOpacity: 0.65,
+      shadowRadius: 32,
+      elevation: 18,
+      pillBg: "rgba(108,92,231,0.25)",
+      pillBorder: "rgba(108,92,231,0.45)",
       dotColor: primary,
       iconActive: primary,
-      iconInactive: "rgba(255,255,255,0.35)",
+      iconInactive: "rgba(255,255,255,0.40)",
       labelActive: primary,
-      labelInactive: "rgba(255,255,255,0.35)",
-      centerRingColor: "rgba(108,92,231,0.40)",
-      centerRingWidth: 2,
+      labelInactive: "rgba(255,255,255,0.40)",
+      centerRingColor: "rgba(108,92,231,0.55)",
+      centerRingWidth: 2.5,
       gradientStart: primaryLight || primary,
       gradientEnd: primaryDark || primary,
       badgeBg: primary,
@@ -68,22 +68,22 @@ function getPillTokens(isDark, primary, primaryLight, primaryDark) {
 
   return {
     blurTint: "light",
-    blurIntensity: 85,
-    bgColor: "rgba(255,255,255,0.92)",
-    borderColor: "rgba(108,92,231,0.13)",
+    blurIntensity: 90,
+    bgColor: "rgba(255,255,255,0.95)",
+    borderColor: "rgba(108,92,231,0.18)",
     shadowColor: "#6C5CE7",
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    elevation: 14,
-    pillBg: "rgba(108,92,231,0.10)",
-    pillBorder: "rgba(108,92,231,0.22)",
+    shadowOpacity: 0.25,
+    shadowRadius: 32,
+    elevation: 18,
+    pillBg: "rgba(108,92,231,0.14)",
+    pillBorder: "rgba(108,92,231,0.30)",
     dotColor: primary,
     iconActive: primary,
-    iconInactive: "rgba(30,30,60,0.35)",
+    iconInactive: "rgba(30,30,60,0.40)",
     labelActive: primary,
-    labelInactive: "rgba(30,30,60,0.38)",
-    centerRingColor: "rgba(108,92,231,0.30)",
-    centerRingWidth: 2.5,
+    labelInactive: "rgba(30,30,60,0.45)",
+    centerRingColor: "rgba(108,92,231,0.40)",
+    centerRingWidth: 3,
     gradientStart: primaryLight || primary,
     gradientEnd: primaryDark || primary,
     badgeBg: primary,
@@ -164,7 +164,7 @@ function ExpandablePillTab({
       >
         <MaterialCommunityIcons
           name={isFocused ? tab.iconActive : tab.icon}
-          size={23}
+          size={25}
           color={isFocused ? tabColor : tokens.iconInactive}
         />
       </MotiView>
@@ -303,7 +303,7 @@ function CenterPillTab({
           >
             <MaterialCommunityIcons
               name={isFocused ? tab.iconActive : tab.icon}
-              size={26}
+              size={28}
               color="#FFF"
             />
           </LinearGradient>
@@ -413,7 +413,7 @@ const ExpansivePills = React.forwardRef(
         style={[
           styles.container,
           {
-            bottom: Platform.OS === "ios" ? insets.bottom + 10 : 16,
+            bottom: Platform.OS === "ios" ? insets.bottom + 12 : 18,
             shadowColor: tokens.shadowColor,
             shadowOpacity: tokens.shadowOpacity,
             shadowRadius: tokens.shadowRadius,
@@ -488,14 +488,14 @@ const styles = StyleSheet.create({
   },
 
   borderRing: {
-    borderRadius: 28,
-    borderWidth: 1,
+    borderRadius: 32,
+    borderWidth: 1.5,
     overflow: "hidden",
   },
 
   blurSurface: {
-    height: 70,
-    borderRadius: 28,
+    height: 78,
+    borderRadius: 32,
     overflow: "hidden",
   },
 
@@ -512,32 +512,33 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 2,
-    paddingVertical: 8,
-    minHeight: 70,
+    gap: 3,
+    paddingVertical: 10,
+    minHeight: 78,
   },
 
   activePill: {
     position: "absolute",
-    width: 50,
-    height: 46,
-    borderRadius: 16,
-    borderWidth: 1,
-    top: "8%",
+    width: 54,
+    height: 50,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    top: "10%",
   },
 
   activeDot: {
     position: "absolute",
-    top: 8,
-    width: 18,
-    height: 3,
-    borderRadius: 2,
+    top: 10,
+    width: 22,
+    height: 3.5,
+    borderRadius: 2.5,
   },
 
   tabLabel: {
-    fontSize: 10,
-    letterSpacing: 0.1,
-    marginTop: 1,
+    fontSize: 11,
+    letterSpacing: 0.2,
+    marginTop: 2,
+    fontWeight: "500",
   },
 
   badge: {
@@ -563,35 +564,35 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -16,
+    marginTop: -20,
   },
 
   centerTouchable: {
     alignItems: "center",
-    gap: 2,
+    gap: 3,
   },
 
   centerButtonWrapper: {
-    padding: 2,
+    padding: 3,
   },
 
   centerButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: "center",
     justifyContent: "center",
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 14,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 18,
   },
 
   centerGlowRing: {
     position: "absolute",
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    top: -4,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    top: -5,
   },
 
   centerBadge: {
