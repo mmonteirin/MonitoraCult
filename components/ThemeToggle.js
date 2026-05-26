@@ -9,14 +9,21 @@ const ThemeToggle = ({ size = 24, style }) => {
   return (
     <TouchableOpacity
       onPress={toggleTheme}
-      style={[styles.container, style]}
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+        },
+        style,
+      ]}
       activeOpacity={0.7}
     >
       <View style={styles.iconContainer}>
         <MaterialCommunityIcons
           name={isDark ? "weather-sunny" : "moon-waning-crescent"}
           size={size}
-          color={theme.textPrimary}
+          color={isDark ? theme.warning : theme.primary}
         />
       </View>
     </TouchableOpacity>
@@ -27,6 +34,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 8,
     borderRadius: 20,
+    borderWidth: 1,
   },
   iconContainer: {
     alignItems: "center",

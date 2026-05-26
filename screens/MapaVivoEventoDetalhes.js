@@ -33,6 +33,8 @@ const formatarDataEvento = (date) => {
 };
 
 export default function MapaVivoEventoDetalhes({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { eventId } = route.params;
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);

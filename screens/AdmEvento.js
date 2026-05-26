@@ -52,6 +52,8 @@ const formatarDataEventoLista = (item) => {
 };
 
 export default function AdmEvento({ navigation }) {
+		const { colors } = useTheme();
+		const styles = useThemedStyles(createThemedScreenStyles);
 	const { user, foto } = useAuth();
 
 	const [eventos, setEventos] = useState([]);

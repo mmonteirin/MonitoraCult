@@ -46,6 +46,8 @@ import { Gradients } from "../styles/Colors";
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const DEFAULT_EVENT_IMAGE = "https://placehold.co/600x400/png";
+let styles;
+let colors;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // ─── Utilitários ─────────────────────────────────────────────────────────────
@@ -895,6 +897,9 @@ const exportModalStyles = StyleSheet.create({
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function AdmEventoDashIndividual({ navigation, route }) {
+  const themeContext = useTheme();
+  colors = themeContext.colors;
+  styles = useThemedStyles(createThemedScreenStyles);
   const { nome, foto } = useAuth();
 
   const eventoId = route?.params?.eventoId || route?.params?.evento?.id;

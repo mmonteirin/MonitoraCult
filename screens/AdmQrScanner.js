@@ -44,6 +44,8 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const COOLDOWN_MS = 2200; // pausa entre scans
+let styles;
+let colors;
 
 // ─── Tipos de resultado visual ───────────────────────────────────────────────
 const ESTADO = {
@@ -189,6 +191,9 @@ function HistoricoItem({ item }) {
 
 // ─── Tela principal ───────────────────────────────────────────────────────────
 export default function AdmQRScanner({ navigation, route }) {
+  const themeContext = useTheme();
+  colors = themeContext.colors;
+  styles = useThemedStyles(createThemedScreenStyles);
   const { uid } = useAuth();
   const eventoId = route?.params?.eventoId;
   const eventoNome = route?.params?.eventoNome || "Evento";

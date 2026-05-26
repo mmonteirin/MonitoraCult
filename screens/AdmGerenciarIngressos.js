@@ -29,6 +29,9 @@ import {
   calcularResumoIngressosEvento,
 } from "../services/ingressoServiceV2";
 
+let styles;
+let colors;
+
 const FILTROS = [
   { id: "todos", label: "Todos" },
   { id: "confirmados", label: "Confirmados" },
@@ -43,12 +46,12 @@ const STATUS_LABEL = {
   [STATUS_INGRESSO.PENDENTE]: "Pendente",
 };
 
-const STATUS_COLOR = {
+const getStatusColor = (status) => ({
   [STATUS_INGRESSO.CONFIRMADO]: colors.success,
   [STATUS_INGRESSO.UTILIZADO]: colors.info,
   [STATUS_INGRESSO.CANCELADO]: colors.error,
   [STATUS_INGRESSO.PENDENTE]: colors.warning,
-};
+}[status]);
 
 function formatDate(value) {
   if (!value) return "—";
@@ -104,6 +107,9 @@ function StatMini({ icon, label, value, color = colors.primaryLight }) {
 }
 
 export default function AdmGerenciarIngressos({ navigation, route }) {
+  const themeContext = useTheme();
+  colors = themeContext.colors;
+  styles = useThemedStyles(createThemedScreenStyles);
   const eventoId =
     route?.params?.eventoId || route?.params?.evento?.id;
 
@@ -313,7 +319,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                     styles.statusPill,
                     {
                       borderColor:
-                        STATUS_COLOR[ing.status] || colors.textMuted,
+                        getStatusColor(ing.status) || colors.textMuted,
                     },
                   ]}
                 >
@@ -322,7 +328,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                       styles.statusPillText,
                       {
                         color:
-                          STATUS_COLOR[ing.status] || colors.textMuted,
+                          getStatusColor(ing.status) || colors.textMuted,
                       },
                     ]}
                   >

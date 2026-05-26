@@ -64,29 +64,29 @@ const sharedTheme = {
 const darkTheme = {
   ...sharedTheme,
 
-  background: "#070B14",
-  backgroundSecondary: "#10131F",
-  backgroundElevated: "#121826",
-  backgroundDeep: "#18122B",
+  background: "#030712",
+  backgroundSecondary: "#0B1020",
+  backgroundElevated: "#111827",
+  backgroundDeep: "#140F2D",
 
-  surface: "#171B26",
-  surfaceLight: "#202635",
-  surfaceMuted: "#111827",
+  surface: "#111827",
+  surfaceLight: "#1F2937",
+  surfaceMuted: "#0F172A",
 
-  glass: "rgba(255,255,255,0.06)",
-  glassBorder: "rgba(255,255,255,0.08)",
-  glassStrong: "rgba(255,255,255,0.11)",
+  glass: "rgba(255,255,255,0.10)",
+  glassBorder: "rgba(255,255,255,0.18)",
+  glassStrong: "rgba(255,255,255,0.16)",
 
-  card: "#1B2130",
-  cardHover: "#252D3D",
+  card: "#172033",
+  cardHover: "#243047",
 
-  border: "#2A3142",
-  borderLight: "rgba(255,255,255,0.08)",
-  divider: "#242B3A",
+  border: "#3A455C",
+  borderLight: "rgba(255,255,255,0.18)",
+  divider: "#334155",
 
   textPrimary: "#FFFFFF",
-  textSecondary: "#C4C8D4",
-  textMuted: "#8B91A6",
+  textSecondary: "#E2E8F0",
+  textMuted: "#B6C2D5",
 
   overlayDark: "rgba(0,0,0,0.55)",
   overlayStronger: "rgba(0,0,0,0.72)",
@@ -100,29 +100,29 @@ const darkTheme = {
 const lightTheme = {
   ...sharedTheme,
 
-  background: "#FFFFFF",
-  backgroundSecondary: "#F8F9FA",
+  background: "#F8FAFC",
+  backgroundSecondary: "#EEF2F7",
   backgroundElevated: "#FFFFFF",
-  backgroundDeep: "#E9ECEF",
+  backgroundDeep: "#D8E0EA",
 
-  surface: "#F1F3F5",
-  surfaceLight: "#E9ECEF",
-  surfaceMuted: "#DEE2E6",
+  surface: "#FFFFFF",
+  surfaceLight: "#F1F5F9",
+  surfaceMuted: "#E2E8F0",
 
-  glass: "rgba(0,0,0,0.03)",
-  glassBorder: "rgba(0,0,0,0.08)",
-  glassStrong: "rgba(0,0,0,0.11)",
+  glass: "rgba(255,255,255,0.82)",
+  glassBorder: "rgba(15,23,42,0.18)",
+  glassStrong: "rgba(255,255,255,0.94)",
 
   card: "#FFFFFF",
   cardHover: "#F8F9FA",
 
-  border: "#E9ECEF",
-  borderLight: "rgba(0,0,0,0.08)",
-  divider: "#DEE2E6",
+  border: "#CBD5E1",
+  borderLight: "rgba(15,23,42,0.16)",
+  divider: "#CBD5E1",
 
-  textPrimary: "#1A1A1A",
-  textSecondary: "#495057",
-  textMuted: "#868E96",
+  textPrimary: "#0F172A",
+  textSecondary: "#334155",
+  textMuted: "#64748B",
 
   overlayDark: "rgba(0,0,0,0.45)",
   overlayStronger: "rgba(0,0,0,0.65)",

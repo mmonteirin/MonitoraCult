@@ -86,6 +86,8 @@ const getImagemPorCategoria = (categoria, imagemOriginal) => {
 };
 
 export default function TelaCulturaViva({ navigation }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
 
   const insets = useSafeAreaInsets();
 

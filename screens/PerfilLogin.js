@@ -31,6 +31,7 @@ import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciador de sessão
 
 export default function PerfilLogin({ navigation }) {
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { googleLogin, facebookLogin, microsoftLogin, twitterLogin } = useAuth();
 
   const [email, setEmail] = useState("");

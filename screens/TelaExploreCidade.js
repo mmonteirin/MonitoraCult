@@ -33,6 +33,8 @@ import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const { width } = Dimensions.get("window");
+let styles;
+let colors;
 
 // COMPONENTE MEMOIZADO: Card de Categoria
 const CategoryCard = memo(({ item, count, onPress }) => (
@@ -90,6 +92,9 @@ const BairroCard = memo(({ bairro, count, onPress }) => (
 ));
 
 export default function TelaExploreCidade({ navigation, route }) {
+  const themeContext = useTheme();
+  colors = themeContext.colors;
+  styles = useThemedStyles(createThemedScreenStyles);
   const insets = useSafeAreaInsets();
   const routeEventos = route.params?.eventos;
 

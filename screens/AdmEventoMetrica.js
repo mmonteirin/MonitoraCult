@@ -60,6 +60,8 @@ const screenWidth =
 export default function AdmEventoMetricas({
   navigation,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { user } = useAuth();
 
   const [loading, setLoading] =

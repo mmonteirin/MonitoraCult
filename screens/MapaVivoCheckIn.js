@@ -18,6 +18,8 @@ import { useMapaVivo } from "../hooks/useMapaVivo";
 import CheckInCard from "../components/CheckInCard";
 
 export default function MapaVivoCheckIn({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { eventId, eventTitle } = route.params;
   const {
     localizacao,

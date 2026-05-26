@@ -70,6 +70,8 @@ const eventosMock = [
 ];
 
 export default function TelaGerenciarEventos() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const [eventos, setEventos] =
     useState(eventosMock);
 
