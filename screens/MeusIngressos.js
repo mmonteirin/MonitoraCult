@@ -47,7 +47,7 @@ import QRCode from "react-native-qrcode-svg";
 
 import { useAuth } from "../context/AuthContext";
 import { useIngressos } from "../hooks/useIngressos";
-import { Colors } from "../styles/Colors";
+import { useTheme, useGradients } from "../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
@@ -66,15 +66,15 @@ const parseDateBR = (value) => {
   return isNaN(iso.getTime()) ? new Date(0) : iso;
 };
 
-const statusConfig = {
+const statusConfig = (colors) => ({
   confirmado: { label: "Ativo", color: "#22C55E", icon: "check-circle" },
-  utilizado:  { label: "Usado",  color: Colors.textMuted, icon: "history"  },
-  cancelado:  { label: "Cancelado", color: Colors.error, icon: "close-circle" },
-};
+  utilizado:  { label: "Usado",  color: colors.textMuted, icon: "history"  },
+  cancelado:  { label: "Cancelado", color: colors.error, icon: "close-circle" },
+});
 
 // ── StatCard ──────────────────────────────────────────────────────────────────
 
-const StatCard = memo(({ value, label, icon, color, delay, active, onPress }) => (
+const StatCard = memo(({ value, label, icon, color, delay, active, onPress, colors, styles }) => (
   <Animated.View
     entering={FadeInUp.delay(delay).springify()}
     style={[styles.statCard, { borderColor: color + "30" }, active && { borderColor: color, backgroundColor: color + "12" }]}
@@ -91,10 +91,10 @@ const StatCard = memo(({ value, label, icon, color, delay, active, onPress }) =>
 
 // ── QR Modal ──────────────────────────────────────────────────────────────────
 
-const QRModal = memo(({ visible, ingresso, compra, onClose }) => {
+const QRModal = memo(({ visible, ingresso, compra, onClose, colors, styles }) => {
   if (!ingresso) return null;
 
-  const cfg = statusConfig[ingresso.status] ?? statusConfig.confirmado;
+  const cfg = statusConfig(colors)[ingresso.status] ?? statusConfig(colors).confirmado;
   const qrValue = ingresso.codigoIngresso || ingresso.id || "sem-codigo";
   const tipoLabel = ingresso.tipo
     ? ingresso.tipo.charAt(0).toUpperCase() + ingresso.tipo.slice(1).toLowerCase()
@@ -157,7 +157,7 @@ const QRModal = memo(({ visible, ingresso, compra, onClose }) => {
 
           {/* Código */}
           <View style={styles.codigoRow}>
-            <MaterialCommunityIcons name="barcode" size={16} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="barcode" size={16} color={colors.textMuted} />
             <Text style={styles.codigoText} numberOfLines={1} ellipsizeMode="middle">
               {qrValue}
             </Text>
@@ -166,13 +166,13 @@ const QRModal = memo(({ visible, ingresso, compra, onClose }) => {
           {/* Tipo */}
           <View style={styles.modalInfoRow}>
             <View style={styles.modalInfoChip}>
-              <MaterialCommunityIcons name="ticket-outline" size={14} color={Colors.primary} />
+              <MaterialCommunityIcons name="ticket-outline" size={14} color={colors.primary} />
               <Text style={styles.modalInfoChipText}>{tipoLabel}</Text>
             </View>
             {ingresso.precoUnitario != null && (
               <View style={styles.modalInfoChip}>
-                <MaterialCommunityIcons name="currency-brl" size={14} color={Colors.accentCyan} />
-                <Text style={[styles.modalInfoChipText, { color: Colors.accentCyan }]}>
+                <MaterialCommunityIcons name="currency-brl" size={14} color={colors.accentCyan} />
+                <Text style={[styles.modalInfoChipText, { color: colors.accentCyan }]}>
                   {ingresso.precoUnitario === 0
                     ? "Gratuito"
                     : `R$ ${Number(ingresso.precoUnitario).toFixed(2)}`}
@@ -185,7 +185,7 @@ const QRModal = memo(({ visible, ingresso, compra, onClose }) => {
           <View style={styles.modalActions}>
             <TouchableOpacity style={styles.modalBtnShare} onPress={handleShare} activeOpacity={0.8}>
               <LinearGradient
-                colors={[Colors.primary, Colors.primaryDark]}
+                colors={[colors.primary, colors.primaryDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.modalBtnGradient}
@@ -207,8 +207,8 @@ const QRModal = memo(({ visible, ingresso, compra, onClose }) => {
 
 // ── IngressoCard ──────────────────────────────────────────────────────────────
 
-const IngressoCard = memo(({ ingresso, compra, index, onPress }) => {
-  const cfg = statusConfig[ingresso.status] ?? statusConfig.confirmado;
+const IngressoCard = memo(({ ingresso, compra, index, onPress, colors, styles }) => {
+  const cfg = statusConfig(colors)[ingresso.status] ?? statusConfig(colors).confirmado;
   const tipoLabel = ingresso.tipo
     ? ingresso.tipo.charAt(0).toUpperCase() + ingresso.tipo.slice(1).toLowerCase()
     : "Ingresso";
@@ -233,12 +233,12 @@ const IngressoCard = memo(({ ingresso, compra, index, onPress }) => {
                 {compra?.eventoNome}
               </Text>
               <View style={styles.ingressoMetaRow}>
-                <MaterialCommunityIcons name="calendar" size={12} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="calendar" size={12} color={colors.textMuted} />
                 <Text style={styles.ingressoMetaText}>{compra?.eventoDataStr}</Text>
                 {compra?.eventoLocal ? (
                   <>
                     <Text style={styles.ingressoMetaDot}>·</Text>
-                    <MaterialCommunityIcons name="map-marker" size={12} color={Colors.textMuted} />
+                    <MaterialCommunityIcons name="map-marker" size={12} color={colors.textMuted} />
                     <Text style={styles.ingressoMetaText} numberOfLines={1}>{compra.eventoLocal}</Text>
                   </>
                 ) : null}
@@ -259,12 +259,12 @@ const IngressoCard = memo(({ ingresso, compra, index, onPress }) => {
           <View style={styles.ingressoBottom}>
             <View style={styles.ingressoChips}>
               <View style={styles.chip}>
-                <MaterialCommunityIcons name="ticket-outline" size={13} color={Colors.primary} />
+                <MaterialCommunityIcons name="ticket-outline" size={13} color={colors.primary} />
                 <Text style={styles.chipText}>{tipoLabel}</Text>
               </View>
               {ingresso.precoUnitario != null && (
-                <View style={[styles.chip, { backgroundColor: Colors.accentCyan + "14" }]}>
-                  <Text style={[styles.chipText, { color: Colors.accentCyan }]}>
+                <View style={[styles.chip, { backgroundColor: colors.accentCyan + "14" }]}>
+                  <Text style={[styles.chipText, { color: colors.accentCyan }]}>
                     {ingresso.precoUnitario === 0
                       ? "Gratuito"
                       : `R$ ${Number(ingresso.precoUnitario).toFixed(2)}`}
@@ -274,7 +274,7 @@ const IngressoCard = memo(({ ingresso, compra, index, onPress }) => {
             </View>
 
             <View style={styles.qrPreviewBtn}>
-              <MaterialCommunityIcons name="qrcode" size={20} color={Colors.primary} />
+              <MaterialCommunityIcons name="qrcode" size={20} color={colors.primary} />
               <Text style={styles.qrPreviewText}>Ver QR</Text>
             </View>
           </View>
@@ -286,21 +286,18 @@ const IngressoCard = memo(({ ingresso, compra, index, onPress }) => {
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 
-const FILTROS = [
-  { key: "todos",      label: "Todos",   icon: "ticket-confirmation", color: Colors.primary    },
-  { key: "ativos",     label: "Ativos",  icon: "check-circle",        color: Colors.success    },
-  { key: "utilizados", label: "Usados",  icon: "history",             color: Colors.textMuted  },
-  { key: "cancelados", label: "Cancelados", icon: "close-circle",     color: Colors.error      },
-];
-
 export default function MeusIngressos({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { ingressos, carregarIngressos, loading } = useIngressos();
+  const { colors } = useTheme();
+  const gradients = useGradients();
 
   const [filtro, setFiltro] = useState("todos");
   const [refreshing, setRefreshing] = useState(false);
   const [modalIngresso, setModalIngresso] = useState(null); // { ingresso, compra }
+
+  const styles = createStyles(colors);
 
   // parallax scroll
   const scrollY = useSharedValue(0);
@@ -362,14 +359,21 @@ export default function MeusIngressos({ navigation }) {
     return ing.status === filtro.replace("utilizados", "utilizado").replace("cancelados", "cancelado");
   };
 
+  const FILTROS = [
+    { key: "todos",      label: "Todos",   icon: "ticket-confirmation", color: colors.primary    },
+    { key: "ativos",     label: "Ativos",  icon: "check-circle",        color: colors.success    },
+    { key: "utilizados", label: "Usados",  icon: "history",             color: colors.textMuted  },
+    { key: "cancelados", label: "Cancelados", icon: "close-circle",     color: colors.error      },
+  ];
+
   return (
-    <View style={[styles.container]}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       {/* ── STICKY BAR ── */}
       <Animated.View style={[styles.stickyBar, { top: insets.top }, stickyStyle]} pointerEvents="none">
         <BlurView intensity={60} tint="dark" style={styles.stickyBlur}>
-          <MaterialCommunityIcons name="ticket-confirmation" size={16} color={Colors.primary} />
+          <MaterialCommunityIcons name="ticket-confirmation" size={16} color={colors.primary} />
           <Text style={styles.stickyText}>Meus Ingressos</Text>
         </BlurView>
       </Animated.View>
@@ -379,38 +383,38 @@ export default function MeusIngressos({ navigation }) {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {/* ── HEADER ── */}
         <Animated.View style={headerStyle}>
           <LinearGradient
-            colors={["#111827", "#0F172A", "#05060A"]}
+            colors={gradients.primary}
             style={[styles.header, { paddingTop: insets.top + 16 }]}
           >
             {/* Glows decorativos */}
-            <View style={styles.headerGlow} />
-            <View style={styles.headerGlow2} />
+            <View style={[styles.headerGlow, { backgroundColor: colors.primary + "18" }]} />
+            <View style={[styles.headerGlow2, { backgroundColor: colors.accentCyan + "10" }]} />
 
             {/* Top row */}
             <View style={styles.headerTop}>
-              <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-                <MaterialCommunityIcons name="arrow-left" size={22} color="#FFF" />
+              <TouchableOpacity style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }]} onPress={() => navigation.goBack()}>
+                <MaterialCommunityIcons name="arrow-left" size={22} color={colors.onPrimary} />
               </TouchableOpacity>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.headerGreeting}>Sua carteira</Text>
-                <Text style={styles.headerTitle}>Meus Ingressos</Text>
+                <Text style={[styles.headerGreeting, { color: colors.onPrimary + "CC" }]}>Sua carteira</Text>
+                <Text style={[styles.headerTitle, { color: colors.onPrimary }]}>Meus Ingressos</Text>
               </View>
-              <TouchableOpacity style={styles.headerBtn} onPress={onRefresh}>
-                <MaterialCommunityIcons name="refresh" size={22} color="#FFF" />
+              <TouchableOpacity style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }]} onPress={onRefresh}>
+                <MaterialCommunityIcons name="refresh" size={22} color={colors.onPrimary} />
               </TouchableOpacity>
             </View>
 
             {/* Stat cards */}
             <View style={styles.statsRow}>
-              <StatCard value={totalTodos}     label="Total"     icon="ticket-confirmation" color={Colors.primary}    delay={0}   active={filtro === "todos"}      onPress={() => setFiltro("todos")} />
-              <StatCard value={totalAtivos}    label="Ativos"    icon="check-circle"        color={Colors.success}    delay={80}  active={filtro === "ativos"}     onPress={() => setFiltro("ativos")} />
-              <StatCard value={totalUsados}    label="Usados"    icon="history"             color={Colors.textMuted}  delay={160} active={filtro === "utilizados"} onPress={() => setFiltro("utilizados")} />
-              <StatCard value={totalCancelados}label="Cancelados"icon="close-circle"        color={Colors.error}      delay={240} active={filtro === "cancelados"} onPress={() => setFiltro("cancelados")} />
+              <StatCard value={totalTodos}     label="Total"     icon="ticket-confirmation" color={colors.primary}    delay={0}   active={filtro === "todos"}      onPress={() => setFiltro("todos")} colors={colors} styles={styles} />
+              <StatCard value={totalAtivos}    label="Ativos"    icon="check-circle"        color={colors.success}    delay={80}  active={filtro === "ativos"}     onPress={() => setFiltro("ativos")} colors={colors} styles={styles} />
+              <StatCard value={totalUsados}    label="Usados"    icon="history"             color={colors.textMuted}  delay={160} active={filtro === "utilizados"} onPress={() => setFiltro("utilizados")} colors={colors} styles={styles} />
+              <StatCard value={totalCancelados}label="Cancelados"icon="close-circle"        color={colors.error}      delay={240} active={filtro === "cancelados"} onPress={() => setFiltro("cancelados")} colors={colors} styles={styles} />
             </View>
           </LinearGradient>
         </Animated.View>
@@ -426,7 +430,7 @@ export default function MeusIngressos({ navigation }) {
                 onPress={() => setFiltro(f.key)}
                 activeOpacity={0.75}
               >
-                <MaterialCommunityIcons name={f.icon} size={14} color={isActive ? f.color : Colors.textMuted} />
+                <MaterialCommunityIcons name={f.icon} size={14} color={isActive ? f.color : colors.textMuted} />
                 <Text style={[styles.filtroPillText, isActive && { color: f.color }]}>
                   {f.label}
                   {contadores[f.key] > 0 ? ` (${contadores[f.key]})` : ""}
@@ -440,16 +444,16 @@ export default function MeusIngressos({ navigation }) {
         <View style={styles.lista}>
           {loading && ingressos.length === 0 ? (
             <View style={styles.emptyBox}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
               <Text style={styles.emptyText}>Carregando ingressos...</Text>
             </View>
           ) : ingressosFiltrados.length === 0 ? (
             <Animated.View entering={FadeInDown.springify()} style={styles.emptyBox}>
               <LinearGradient
-                colors={[Colors.primary + "20", Colors.accentCyan + "10"]}
+                colors={[colors.primary + "20", colors.accentCyan + "10"]}
                 style={styles.emptyIconWrap}
               >
-                <MaterialCommunityIcons name="ticket-confirmation-outline" size={48} color={Colors.primary} />
+                <MaterialCommunityIcons name="ticket-confirmation-outline" size={48} color={colors.primary} />
               </LinearGradient>
               <Text style={styles.emptyTitle}>
                 {filtro === "ativos"
@@ -472,7 +476,7 @@ export default function MeusIngressos({ navigation }) {
                   activeOpacity={0.85}
                 >
                   <LinearGradient
-                    colors={[Colors.primary, Colors.primaryDark]}
+                    colors={[colors.primary, colors.primaryDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.btnExplorarGradient}
@@ -504,6 +508,8 @@ export default function MeusIngressos({ navigation }) {
                       ingresso={ingresso}
                       compra={compra}
                       index={idx}
+                      colors={colors}
+                      styles={styles}
                       onPress={(ing, cmp) => setModalIngresso({ ingresso: ing, compra: cmp })}
                     />
                   ))}
@@ -520,6 +526,8 @@ export default function MeusIngressos({ navigation }) {
         ingresso={modalIngresso?.ingresso}
         compra={modalIngresso?.compra}
         onClose={() => setModalIngresso(null)}
+        colors={colors}
+        styles={styles}
       />
     </View>
   );
@@ -527,10 +535,10 @@ export default function MeusIngressos({ navigation }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
 
   // ── Sticky bar ──
@@ -665,7 +673,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.08)",
   },
   filtroPillText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -688,22 +696,22 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   sectionTitle: {
     flex: 1,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "700",
   },
   sectionBadge: {
-    backgroundColor: Colors.primary + "20",
+    backgroundColor: colors.primary + "20",
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   sectionBadgeText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -736,7 +744,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ingressoEvento: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 14,
     fontWeight: "700",
     marginBottom: 4,
@@ -748,11 +756,11 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   ingressoMetaText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 11,
   },
   ingressoMetaDot: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 11,
   },
   statusBadge: {
@@ -791,13 +799,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: Colors.primary + "14",
+    backgroundColor: colors.primary + "14",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   chipText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "600",
   },
@@ -805,15 +813,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    backgroundColor: Colors.primary + "18",
+    backgroundColor: colors.primary + "18",
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: Colors.primary + "30",
+    borderColor: colors.primary + "30",
   },
   qrPreviewText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -833,13 +841,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
   },
   emptySub: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 13,
     textAlign: "center",
     marginTop: 8,
@@ -869,7 +877,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
@@ -887,14 +895,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalEventoNome: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 4,
   },
   modalEventoData: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
     textAlign: "center",
     marginBottom: 14,
@@ -947,7 +955,7 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   codigoText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 11,
     fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
     flex: 1,
@@ -961,13 +969,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: Colors.primary + "14",
+    backgroundColor: colors.primary + "14",
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   modalInfoChipText: {
-    color: Colors.primary,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -1000,7 +1008,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.08)",
   },
   modalBtnCloseText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: "600",
   },

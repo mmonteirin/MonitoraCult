@@ -26,6 +26,7 @@ import { MotiView, AnimatePresence } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
+import { useTheme, useGradients } from "../context/ThemeContext";
 import { getEventos } from "../services/mapaCulturalService";
 
 const { width } = Dimensions.get("window");
@@ -96,6 +97,9 @@ const getImagemPorCategoria = (categoria, imagemOriginal) => {
 };
 
 export default function EventosPublicos({ navigation }) {
+
+  const { colors, isDark } = useTheme();
+  const gradients = useGradients();
 
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -388,7 +392,7 @@ export default function EventosPublicos({ navigation }) {
 
             <TouchableOpacity
               activeOpacity={0.95}
-              style={styles.card}
+              style={[styles.card, { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.12)", shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 15 }]}
             >
 
               <ImageBackground
@@ -401,10 +405,7 @@ export default function EventosPublicos({ navigation }) {
               >
 
                 <LinearGradient
-                  colors={[
-                    "rgba(139,92,246,0.28)",
-                    "transparent",
-                  ]}
+                  colors={gradients.surface}
                   style={
                     styles.glow
                   }
@@ -413,8 +414,8 @@ export default function EventosPublicos({ navigation }) {
                 <LinearGradient
                   colors={[
                     "transparent",
-                    "rgba(0,0,0,0.35)",
-                    "rgba(0,0,0,0.96)",
+                    "rgba(0,0,0,0.5)",
+                    "rgba(0,0,0,0.98)",
                   ]}
                   style={
                     styles.overlayCard
@@ -432,19 +433,20 @@ export default function EventosPublicos({ navigation }) {
                       scale: 1,
                     }}
 
-                    style={styles.status}
+                    style={[styles.status, { backgroundColor: colors.primary, borderColor: colors.borderLight }]}
                   >
 
                     <MaterialCommunityIcons
                       name="tag-outline"
                       size={14}
-                      color="#FFF"
+                      color={colors.onPrimary}
                     />
 
                     <Text
-                      style={
-                        styles.statusText
-                    }
+                      style={[
+                        styles.statusText,
+                        { color: isDark ? "#FFF" : "#000" }
+                      ]}
                     >
                       {item.categoria || "Cultura"}
                     </Text>
@@ -455,13 +457,13 @@ export default function EventosPublicos({ navigation }) {
 </ImageBackground>
 
 <BlurView
-  intensity={55}
+  intensity={70}
   tint="dark"
-  style={styles.conteudo}
+  style={[styles.conteudo, { backgroundColor: "rgba(12,12,18,0.85)" }]}
 >
 
 <Text
-  style={styles.titulo}
+  style={[styles.titulo, { color: "#FFF" }]}
   numberOfLines={1}
 >
   {item.titulo}
@@ -469,34 +471,32 @@ export default function EventosPublicos({ navigation }) {
 
 <View style={styles.infoContainer}>
 
-<View style={styles.infoCard}>
-
-<View style={styles.iconBox}>
+<View style={[styles.infoCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
+<View style={[styles.iconBox, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
 <MaterialCommunityIcons
 name="calendar-month-outline"
 size={16}
-color="#A78BFA"
+color={colors.primaryLight}
 />
 </View>
 
-<Text style={styles.infoText}>
+<Text style={[styles.infoText, { color: "rgba(255,255,255,0.78)" }]}>
 {item.data}
 </Text>
 
 </View>
 
-<View style={styles.infoCard}>
-
-<View style={styles.iconBox}>
+<View style={[styles.infoCard, { backgroundColor: "rgba(255,255,255,0.06)" }]}>
+<View style={[styles.iconBox, { backgroundColor: "rgba(255,255,255,0.08)" }]}>
 <MaterialCommunityIcons
 name="map-marker-outline"
 size={16}
-color="#60A5FA"
+color={colors.accentCyan}
 />
 </View>
 
 <Text
-style={styles.infoText}
+style={[styles.infoText, { color: "rgba(255,255,255,0.78)" }]}
 numberOfLines={1}
 >
 {item.local}
@@ -506,13 +506,13 @@ numberOfLines={1}
 
 </View>
 
-<View style={styles.dateHighlight}>
+<View style={[styles.dateHighlight, { backgroundColor: "rgba(139,92,246,0.15)", borderColor: "rgba(139,92,246,0.3)" }]}>
   <MaterialCommunityIcons
     name="clock-outline"
     size={14}
-    color="#8B5CF6"
+    color={colors.primaryLight}
   />
-  <Text style={styles.dateHighlightText}>
+  <Text style={[styles.dateHighlightText, { color: colors.primary }]}>
     {item.data}
   </Text>
 </View>
@@ -526,20 +526,17 @@ onPress={() => navigation.navigate("EventoDetalhesPublico", { evento: item })}
 >
 
 <LinearGradient
-colors={[
-"#8B5CF6",
-"#6D28D9",
-]}
+colors={gradients.primary}
 style={styles.gradientBtn}
 >
 
 <MaterialCommunityIcons
 name="eye-outline"
 size={18}
-color="#FFF"
+color={colors.onPrimary}
 />
 
-<Text style={styles.textoBtn}>
+<Text style={[styles.textoBtn, { color: colors.onPrimary }]}>
 Ver Evento
 </Text>
 
@@ -556,21 +553,22 @@ onPress={() => salvarParaDepois(item)}
 <LinearGradient
 colors={
   eventosSalvos.has(item.id)
-    ? ["#8B5CF6", "#6D28D9"]
-    : ["rgba(139,92,246,0.3)", "rgba(109,40,217,0.3)"]
+    ? gradients.primary
+    : [colors.primary + "4D", colors.primary + "4D"]
 }
-style={styles.gradientBtnSalvar}
+style={[styles.gradientBtnSalvar, { borderColor: colors.primary + "80" }]}
 >
 
 <MaterialCommunityIcons
 name={eventosSalvos.has(item.id) ? "bookmark" : "bookmark-outline"}
 size={18}
-color={eventosSalvos.has(item.id) ? "#FFF" : "#8B5CF6"}
+color={eventosSalvos.has(item.id) ? colors.onPrimary : colors.primary}
 />
 
 <Text style={[
   styles.textoBtnSalvar,
-  eventosSalvos.has(item.id) && styles.textoBtnSalvarActive
+  eventosSalvos.has(item.id) && styles.textoBtnSalvarActive,
+  { color: eventosSalvos.has(item.id) ? colors.onPrimary : colors.primary }
 ]}>
   {eventosSalvos.has(item.id) ? "Salvo" : "Salvar"}
 </Text>
@@ -596,14 +594,14 @@ if (loading) {
 
 return (
 
-<View style={styles.loadingContainer}>
+<View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
 
 <ActivityIndicator
 size="large"
-color="#8B5CF6"
+color={colors.primary}
 />
 
-<Text style={styles.loadingText}>
+<Text style={[styles.loadingText, { color: colors.textPrimary }]}>
 Carregando eventos...
 </Text>
 
@@ -615,10 +613,10 @@ Carregando eventos...
 
 return (
 
-<View style={styles.container}>
+<View style={[styles.container, { backgroundColor: colors.background }]}>
 
 <StatusBar
-barStyle="light-content"
+barStyle={isDark ? "light-content" : "dark-content"}
 />
 
 <ImageBackground
@@ -628,16 +626,12 @@ resizeMode="cover"
 >
 
 <LinearGradient
-colors={[
-"rgba(5,8,18,0.97)",
-"rgba(10,12,24,0.96)",
-"rgba(22,14,50,0.96)",
-]}
+colors={gradients.header}
 style={styles.overlayScreen}
 >
 
-<View style={styles.glowTop}/>
-<View style={styles.glowBottom}/>
+<View style={[styles.glowTop, { backgroundColor: colors.primary + "2E" }]}/>
+<View style={[styles.glowBottom, { backgroundColor: colors.accentCyan + "1A" }]}/>
 
 <ScrollView
 showsVerticalScrollIndicator={false}
@@ -673,41 +667,38 @@ duration:700,
 >
 
 <LinearGradient
-colors={[
-"#8B5CF6",
-"#5B21B6",
-]}
+colors={gradients.primary}
 style={styles.heroGradient}
 >
 
 <MaterialCommunityIcons
 name="ticket-confirmation-outline"
 size={38}
-color="#FFF"
+color={colors.onPrimary}
 />
 
 </LinearGradient>
 
-<Text style={styles.headerTitle}>
+<Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
 Eventos Públicos
 </Text>
 
-<Text style={styles.headerSub}>
+<Text style={[styles.headerSub, { color: colors.textSecondary }]}>
 Eventos mais recentes dos
 próximos 60 dias.
 </Text>
 
 <View style={styles.filtroRow}>
   <TouchableOpacity
-    style={[styles.filtroBtn, mostrarPassados && styles.filtroBtnActive]}
+    style={[styles.filtroBtn, mostrarPassados && styles.filtroBtnActive, { backgroundColor: mostrarPassados ? colors.primary + "59" : colors.glass, borderColor: mostrarPassados ? colors.primary : colors.borderLight }]}
     onPress={() => setMostrarPassados(!mostrarPassados)}
   >
     <MaterialCommunityIcons
       name={mostrarPassados ? "history" : "clock-outline"}
       size={18}
-      color={mostrarPassados ? "#8B5CF6" : "#FFF"}
+      color={mostrarPassados ? colors.primary : colors.textPrimary}
     />
-    <Text style={[styles.filtroBtnText, mostrarPassados && styles.filtroBtnTextActive]}>
+    <Text style={[styles.filtroBtnText, mostrarPassados && styles.filtroBtnTextActive, { color: mostrarPassados ? colors.primary : colors.textPrimary }]}>
       {mostrarPassados ? "Passados" : "Futuros"}
     </Text>
   </TouchableOpacity>
@@ -742,26 +733,23 @@ style={styles.emptyContainer}
 >
 
 <LinearGradient
-colors={[
-"rgba(139,92,246,0.25)",
-"rgba(255,255,255,0.03)",
-]}
+colors={gradients.surface}
 style={styles.emptyIconBox}
 >
 
 <MaterialCommunityIcons
 name="calendar-remove-outline"
 size={68}
-color="rgba(255,255,255,0.4)"
+color={colors.textMuted}
 />
 
 </LinearGradient>
 
-<Text style={styles.empty}>
+<Text style={[styles.empty, { color: colors.textPrimary }]}>
 Nenhum evento encontrado
 </Text>
 
-<Text style={styles.emptySub}>
+<Text style={[styles.emptySub, { color: colors.textSecondary }]}>
 Sem eventos disponíveis
 nos próximos 60 dias.
 </Text>
@@ -785,18 +773,15 @@ const styles = StyleSheet.create({
 
 container:{
 flex:1,
-backgroundColor:"#070B14",
 },
 
 loadingContainer:{
 flex:1,
 justifyContent:"center",
 alignItems:"center",
-backgroundColor:"#070B14",
 },
 
 loadingText:{
-color:"#FFF",
 marginTop:16,
 fontSize:15,
 fontWeight:"700",
@@ -817,7 +802,6 @@ right:-80,
 width:300,
 height:300,
 borderRadius:200,
-backgroundColor:"rgba(124,58,237,0.18)",
 },
 
 glowBottom:{
@@ -827,7 +811,6 @@ left:-80,
 width:260,
 height:260,
 borderRadius:200,
-backgroundColor:"rgba(59,130,246,0.10)",
 },
 
 header:{
@@ -856,7 +839,6 @@ elevation:12,
 },
 
 headerTitle:{
-color:"#FFF",
 fontSize:
 width < 380
 ? 34
@@ -867,7 +849,6 @@ letterSpacing:-0.5,
 },
 
 headerSub:{
-color:"rgba(255,255,255,0.70)",
 marginTop:12,
 fontSize:15,
 lineHeight:24,
@@ -884,9 +865,7 @@ gap:12,
 filtroBtn:{
 flexDirection:"row",
 alignItems:"center",
-backgroundColor:"rgba(139,92,246,0.2)",
 borderWidth:1,
-borderColor:"rgba(139,92,246,0.4)",
 borderRadius:20,
 paddingHorizontal:16,
 paddingVertical:10,
@@ -894,18 +873,15 @@ gap:6,
 },
 
 filtroBtnText:{
-color:"#FFF",
 fontSize:14,
 fontWeight:"700",
 },
 
 filtroBtnActive:{
-backgroundColor:"rgba(139,92,246,0.35)",
-borderColor:"rgba(139,92,246,0.6)",
+borderWidth:1,
 },
 
 filtroBtnTextActive:{
-color:"#8B5CF6",
 },
 
 listContainer:{
@@ -917,13 +893,7 @@ card:{
 borderRadius:32,
 overflow:"hidden",
 marginBottom:24,
-
-backgroundColor:
-"rgba(255,255,255,0.06)",
-
 borderWidth:1,
-borderColor:
-"rgba(255,255,255,0.06)",
 
 shadowColor:"#000",
 shadowOpacity:0.25,
@@ -963,14 +933,10 @@ paddingVertical:8,
 
 borderRadius:20,
 
-backgroundColor:"rgba(139,92,246,0.95)",
-
 borderWidth:1,
-borderColor:"rgba(255,255,255,0.2)",
 },
 
 statusText:{
-color:"#FFF",
 fontSize:12,
 fontWeight:"800",
 marginLeft:6,
@@ -978,12 +944,9 @@ marginLeft:6,
 
 conteudo:{
 padding:20,
-backgroundColor:
-"rgba(12,12,18,0.72)",
 },
 
 titulo:{
-color:"#FFF",
 fontSize:24,
 fontWeight:"800",
 marginBottom:18,
@@ -996,12 +959,7 @@ gap:12,
 infoCard:{
 flexDirection:"row",
 alignItems:"center",
-
-backgroundColor:
-"rgba(255,255,255,0.05)",
-
 borderRadius:16,
-
 paddingHorizontal:14,
 paddingVertical:12,
 },
@@ -1010,43 +968,27 @@ iconBox:{
 width:30,
 height:30,
 borderRadius:10,
-
-backgroundColor:
-"rgba(255,255,255,0.06)",
-
 justifyContent:"center",
 alignItems:"center",
 },
 
 infoText:{
 flex:1,
-
-color:
-"rgba(255,255,255,0.78)",
-
 marginLeft:12,
-
 fontSize:13,
 },
 
 dateHighlight:{
 flexDirection:"row",
 alignItems:"center",
-
-backgroundColor:"rgba(139,92,246,0.15)",
-
 borderRadius:12,
 paddingHorizontal:12,
 paddingVertical:8,
-
 marginTop:8,
-
 borderWidth:1,
-borderColor:"rgba(139,92,246,0.3)",
 },
 
 dateHighlightText:{
-color:"#8B5CF6",
 fontSize:13,
 fontWeight:"700",
 marginLeft:6,
@@ -1076,11 +1018,8 @@ paddingHorizontal:20,
 },
 
 textoBtn:{
-color:"#FFF",
-
 fontWeight:"800",
 fontSize:13,
-
 marginLeft:8,
 },
 
@@ -1092,25 +1031,18 @@ overflow:"hidden",
 gradientBtnSalvar:{
 flexDirection:"row",
 alignItems:"center",
-
 paddingVertical:14,
 paddingHorizontal:16,
-
 borderWidth:1,
-borderColor:"rgba(139,92,246,0.5)",
 },
 
 textoBtnSalvar:{
-color:"#8B5CF6",
-
 fontWeight:"800",
 fontSize:13,
-
 marginLeft:6,
 },
 
 textoBtnSalvarActive:{
-color:"#FFF",
 },
 
 emptyContainer:{
@@ -1134,26 +1066,16 @@ marginBottom:26,
 },
 
 empty:{
-color:"#FFF",
-
 textAlign:"center",
-
 fontSize:18,
 fontWeight:"700",
-
 lineHeight:28,
 },
 
 emptySub:{
-color:
-"rgba(255,255,255,0.55)",
-
 marginTop:10,
-
 textAlign:"center",
-
 fontSize:14,
-
 lineHeight:22,
 },
 

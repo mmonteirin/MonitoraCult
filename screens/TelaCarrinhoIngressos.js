@@ -22,13 +22,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
 import { useIngressos } from "../hooks/useIngressos";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
 import CarrinhoIngressos from "../components/CarrinhoIngressos";
 import { TIPOS_INGRESSO } from "../services/ingressoServiceV2";
 
 export default function TelaCarrinhoIngressos({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
+  const { colors } = useTheme();
   const evento = route.params?.evento;
 
   const {
@@ -117,7 +118,7 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
   if (!evento) {
     return (
       <View style={[styles.container, styles.center]}>
-        <MaterialCommunityIcons name="alert-circle" size={48} color={Colors.error} />
+        <MaterialCommunityIcons name="alert-circle" size={48} color={colors.error} />
         <Text style={styles.errorText}>Evento não encontrado</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
           <Text style={styles.btnVoltarText}>← Voltar</Text>
@@ -128,12 +129,12 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       {/* HEADER */}
-      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.header}>
+      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Carrinho de Ingressos</Text>
         <View style={{ width: 40 }} />
@@ -149,13 +150,13 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
         <View style={styles.eventoBanner}>
           <Text style={styles.eventoTitulo}>{evento.tituloEvento}</Text>
           <View style={styles.eventoMeta}>
-            <MaterialCommunityIcons name="calendar" size={14} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="calendar" size={14} color={colors.textMuted} />
             <Text style={styles.eventoMetaText}>
               {evento.dataEvento}{evento.horaInicio ? ` · ${evento.horaInicio}` : ""}
             </Text>
           </View>
           <View style={styles.eventoMeta}>
-            <MaterialCommunityIcons name="map-marker" size={14} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="map-marker" size={14} color={colors.textMuted} />
             <Text style={styles.eventoMetaText}>{evento.localEvento}</Text>
           </View>
         </View>
@@ -166,7 +167,7 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
             <MaterialCommunityIcons
               name={capacidadeRestante > 0 ? "ticket-account" : "ticket-remove"}
               size={16}
-              color={capacidadeRestante > 0 ? Colors.success : Colors.error}
+              color={capacidadeRestante > 0 ? colors.success : colors.error}
             />
             <Text style={capacidadeRestante > 0 ? styles.disponivelText : styles.esgotadoText}>
               {capacidadeRestante > 0
@@ -187,12 +188,13 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
           nomeEvento={evento.tituloEvento}
           dataEvento={evento.dataEvento}
           gratuito={gratuito}
+          colors={colors}
         />
 
         {/* Resumo da economia */}
         {economiaTotal > 0 && (
           <View style={styles.economiaBox}>
-            <MaterialCommunityIcons name="tag-outline" size={18} color={Colors.success} />
+            <MaterialCommunityIcons name="tag-outline" size={18} color={colors.success} />
             <Text style={styles.economiaText}>
               Você economizou R$ {economiaTotal.toFixed(2)} com descontos!
             </Text>
@@ -201,7 +203,7 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
       </ScrollView>
 
       {/* FOOTER COM BOTÃO DE COMPRA */}
-      <View style={[styles.footer, { paddingBottom: 16 + insets.bottom }]}>
+      <View style={[styles.footer(colors), { paddingBottom: 16 + insets.bottom }]}>
         <View style={styles.footerInfo}>
           <Text style={styles.footerLabel}>Total</Text>
           <Text style={styles.footerTotal}>
@@ -234,8 +236,8 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+const styles = (colors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.background },
   center: { justifyContent: "center", alignItems: "center" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingBottom: 120 },
@@ -251,26 +253,26 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: Colors.glass,
+    backgroundColor: colors.glass,
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
 
   eventoBanner: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: colors.border,
   },
   eventoTitulo: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 8,
@@ -282,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   eventoMetaText: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
   },
 
@@ -290,38 +292,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.success + "18",
+    backgroundColor: colors.success + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
   },
-  disponivelText: { color: Colors.success, fontSize: 13, fontWeight: "600" },
+  disponivelText: { color: colors.success, fontSize: 13, fontWeight: "600" },
   esgotado: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.error + "18",
+    backgroundColor: colors.error + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
   },
-  esgotadoText: { color: Colors.error, fontSize: 13, fontWeight: "600" },
+  esgotadoText: { color: colors.error, fontSize: 13, fontWeight: "600" },
 
   economiaBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: Colors.success + "15",
+    backgroundColor: colors.success + "15",
     borderRadius: 12,
     padding: 14,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: Colors.success + "30",
+    borderColor: colors.success + "30",
   },
   economiaText: {
-    color: Colors.success,
+    color: colors.success,
     fontSize: 13,
     fontWeight: "600",
     flex: 1,
@@ -332,9 +334,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 16,
     paddingBottom: 16,
@@ -346,13 +348,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footerLabel: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 2,
   },
   footerTotal: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 20,
     fontWeight: "800",
   },
@@ -362,12 +364,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 14,
     paddingVertical: 14,
   },
   btnComprarDisabled: {
-    backgroundColor: Colors.textMuted,
+    backgroundColor: colors.textMuted,
     opacity: 0.6,
   },
   btnComprarText: {
@@ -376,12 +378,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  errorText: { color: Colors.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },
+  errorText: { color: colors.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },
   btnVoltar: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
   },
   btnVoltarText: { color: "#FFF", fontWeight: "700" },

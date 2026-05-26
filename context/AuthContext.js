@@ -31,20 +31,29 @@ import {
 	db,
 } from "../firebaseConfig";
 
+import logger from "../utils/logger";
+
 WebBrowser.maybeCompleteAuthSession();
 
 // ─── Credenciais OAuth ────────────────────────────────────────
 const GOOGLE_CLIENT_ID =
+	process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
 	"133936734015-pcbmnj1enlb6aocob9qck2mnoeg28i8j.apps.googleusercontent.com";
 
-const FACEBOOK_APP_ID = "Monitora Cult";
-const FACEBOOK_APP_SECRET = "MonitoraCult";
+const FACEBOOK_APP_ID =
+	process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || "Monitora Cult";
+const FACEBOOK_APP_SECRET =
+	process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET || "MonitoraCult";
 
-const MICROSOFT_CLIENT_ID = "Monitora Cult";
-const MICROSOFT_CLIENT_SECRET = "MonitoraCult";
+const MICROSOFT_CLIENT_ID =
+	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID || "Monitora Cult";
+const MICROSOFT_CLIENT_SECRET =
+	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_SECRET || "MonitoraCult";
 
-const TWITTER_CLIENT_ID = "Monitora Cult";
-const TWITTER_CLIENT_SECRET = "MonitoraCult";
+const TWITTER_CLIENT_ID =
+	process.env.EXPO_PUBLIC_TWITTER_CLIENT_ID || "Monitora Cult";
+const TWITTER_CLIENT_SECRET =
+	process.env.EXPO_PUBLIC_TWITTER_CLIENT_SECRET || "MonitoraCult";
 
 const AuthContext =
 	createContext({});
@@ -203,7 +212,7 @@ export function AuthProvider({
 			googleResponse.authentication?.idToken;
 
 		if (!idToken) {
-			console.log("Google: idToken ausente");
+			logger.warn("AuthContext", "Google: idToken ausente");
 			return;
 		}
 
@@ -211,7 +220,7 @@ export function AuthProvider({
 			GoogleAuthProvider.credential(idToken);
 
 		signInWithCredential(auth, credential).catch((e) =>
-			console.log("Google signIn error:", e)
+			logger.error("AuthContext", "Google signIn error", e)
 		);
 	}, [googleResponse]);
 
@@ -226,7 +235,7 @@ export function AuthProvider({
 			facebookResponse.params;
 
 		if (!accessToken) {
-			console.log("Facebook: access_token ausente");
+			logger.warn("AuthContext", "Facebook: access_token ausente");
 			return;
 		}
 
@@ -237,7 +246,7 @@ export function AuthProvider({
 		});
 
 		signInWithCredential(auth, credential).catch((e) =>
-			console.log("Facebook signIn error:", e)
+			logger.error("AuthContext", "Facebook signIn error", e)
 		);
 	}, [facebookResponse]);
 
@@ -251,7 +260,7 @@ export function AuthProvider({
 		const { code } = microsoftResponse.params;
 
 		if (!code) {
-			console.log("Microsoft: code ausente");
+			logger.warn("AuthContext", "Microsoft: code ausente");
 			return;
 		}
 
@@ -260,7 +269,7 @@ export function AuthProvider({
 		const credential = provider.credential({ idToken: code });
 
 		signInWithCredential(auth, credential).catch((e) =>
-			console.log("Microsoft signIn error:", e)
+			logger.error("AuthContext", "Microsoft signIn error", e)
 		);
 	}, [microsoftResponse]);
 
@@ -274,7 +283,7 @@ export function AuthProvider({
 		const { code } = twitterResponse.params;
 
 		if (!code) {
-			console.log("Twitter: code ausente");
+			logger.warn("AuthContext", "Twitter: code ausente");
 			return;
 		}
 
@@ -283,7 +292,7 @@ export function AuthProvider({
 		const credential = provider.credential({ idToken: code });
 
 		signInWithCredential(auth, credential).catch((e) =>
-			console.log("Twitter signIn error:", e)
+			logger.error("AuthContext", "Twitter signIn error", e)
 		);
 	}, [twitterResponse]);
 
@@ -308,10 +317,7 @@ export function AuthProvider({
 						);
 					}
 				} catch (error) {
-					console.log(
-						"Erro cache:",
-						error
-					);
+					logger.error("AuthContext", "Erro cache", error);
 				}
 			};
 
@@ -329,8 +335,9 @@ export function AuthProvider({
 				async (
 					userAuth
 				) => {
-					console.log(
-						"Firebase state changed:",
+					logger.debug(
+						"AuthContext",
+						"Firebase state changed",
 						userAuth?.email
 					);
 
@@ -423,10 +430,7 @@ export function AuthProvider({
 					} catch (
 						error
 					) {
-						console.log(
-							"ERRO FIRESTORE AUTH:",
-							error
-						);
+						logger.error("AuthContext", "ERRO FIRESTORE AUTH", error);
 
 						/* FALLBACK */
 						setProfile(
@@ -479,9 +483,7 @@ export function AuthProvider({
 
 				return true;
 			} catch (error) {
-				console.log(
-					error
-				);
+				logger.error("AuthContext", "Logout error", error);
 
 				throw error;
 			}
@@ -540,10 +542,7 @@ export function AuthProvider({
 					)
 				);
 			} catch (error) {
-				console.log(
-					"Erro refresh profile:",
-					error
-				);
+				logger.error("AuthContext", "Erro refresh profile", error);
 			}
 		};
 

@@ -20,10 +20,14 @@ import { MotiView } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
+import { useTheme, useGradients } from "../context/ThemeContext";
+
 const { width } = Dimensions.get("window");
 
 export default function EventoDetalhesPublico({ route, navigation }) {
   const { evento } = route.params;
+  const { colors, isDark } = useTheme();
+  const gradients = useGradients();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -52,8 +56,8 @@ export default function EventoDetalhesPublico({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -69,7 +73,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             resizeMode="cover"
           />
           <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.8)", "rgba(0,0,0,0.95)"]}
+            colors={gradients.surface}
             style={styles.imageOverlay}
           />
 
@@ -78,20 +82,20 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             style={[styles.backButton, { paddingTop: insets.top + 10 }]}
             onPress={() => navigation.goBack()}
           >
-            <BlurView intensity={40} tint="dark" style={styles.blurBtn}>
-              <MaterialCommunityIcons name="arrow-left" size={22} color="#FFF" />
+            <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={[styles.blurBtn, { backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.8)", borderColor: isDark ? colors.borderLight : "rgba(0,0,0,0.2)" }]}>
+              <MaterialCommunityIcons name="arrow-left" size={22} color={isDark ? colors.textPrimary : "#000"} />
             </BlurView>
           </TouchableOpacity>
 
           {/* STATUS */}
           <View style={styles.statusContainer}>
-            <BlurView intensity={40} tint="dark" style={styles.statusPill}>
+            <BlurView intensity={40} tint={isDark ? "dark" : "light"} style={[styles.statusPill, { backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.8)", borderColor: isDark ? colors.borderLight : "rgba(0,0,0,0.2)" }]}>
               <MaterialCommunityIcons
                 name={eventoNormalizado.status === "passado" ? "history" : eventoNormalizado.status === "confirmado" ? "check-circle" : "clock-outline"}
                 size={14}
-                color="#FFF"
+                color={isDark ? colors.textPrimary : "#000"}
               />
-              <Text style={styles.statusText}>
+              <Text style={[styles.statusText, { color: isDark ? colors.textPrimary : "#000" }]}>
                 {eventoNormalizado.status === "passado" ? "Passado" : eventoNormalizado.status === "confirmado" ? "Confirmado" : "Pendente"}
               </Text>
             </BlurView>
@@ -106,7 +110,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 600 }}
           >
-            <Text style={styles.title}>{eventoNormalizado.titulo}</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>{eventoNormalizado.titulo}</Text>
           </MotiView>
 
           {/* INFORMAÇÕES */}
@@ -115,34 +119,34 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 600, delay: 120 }}
           >
-            <View style={styles.infoCard}>
+            <View style={[styles.infoCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
               <View style={styles.infoRow}>
-                <View style={styles.iconBox}>
-                  <MaterialCommunityIcons name="calendar" size={20} color="#8B5CF6" />
+                <View style={[styles.iconBox, { backgroundColor: colors.glass }]}>
+                  <MaterialCommunityIcons name="calendar" size={20} color={colors.primaryLight} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Data</Text>
-                  <Text style={styles.infoValue}>{eventoNormalizado.data}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Data</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{eventoNormalizado.data}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
-                <View style={styles.iconBox}>
-                  <MaterialCommunityIcons name="map-marker" size={20} color="#06B6D4" />
+                <View style={[styles.iconBox, { backgroundColor: colors.glass }]}>
+                  <MaterialCommunityIcons name="map-marker" size={20} color={colors.accentCyan} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Local</Text>
-                  <Text style={styles.infoValue}>{eventoNormalizado.local}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Local</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{eventoNormalizado.local}</Text>
                 </View>
               </View>
 
               <View style={styles.infoRow}>
-                <View style={styles.iconBox}>
-                  <MaterialCommunityIcons name="tag" size={20} color="#F59E0B" />
+                <View style={[styles.iconBox, { backgroundColor: colors.glass }]}>
+                  <MaterialCommunityIcons name="tag" size={20} color={colors.accentAmber} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Categoria</Text>
-                  <Text style={styles.infoValue}>{eventoNormalizado.categoria}</Text>
+                  <Text style={[styles.infoLabel, { color: colors.textSecondary }]}>Categoria</Text>
+                  <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{eventoNormalizado.categoria}</Text>
                 </View>
               </View>
             </View>
@@ -154,9 +158,9 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 600, delay: 240 }}
           >
-            <View style={styles.descriptionCard}>
-              <Text style={styles.sectionTitle}>Descrição</Text>
-              <Text style={styles.description}>{eventoNormalizado.descricao}</Text>
+            <View style={[styles.descriptionCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Descrição</Text>
+              <Text style={[styles.description, { color: colors.textSecondary }]}>{eventoNormalizado.descricao}</Text>
             </View>
           </MotiView>
 
@@ -168,11 +172,11 @@ export default function EventoDetalhesPublico({ route, navigation }) {
           >
             <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
               <LinearGradient
-                colors={["#8B5CF6", "#6D28D9"]}
+                colors={gradients.primary}
                 style={styles.gradientButton}
               >
-                <MaterialCommunityIcons name="share-variant" size={20} color="#FFF" />
-                <Text style={styles.actionButtonText}>Compartilhar Evento</Text>
+                <MaterialCommunityIcons name="share-variant" size={20} color={colors.onPrimary} />
+                <Text style={[styles.actionButtonText, { color: colors.onPrimary }]}>Compartilhar Evento</Text>
               </LinearGradient>
             </TouchableOpacity>
           </MotiView>
@@ -185,7 +189,6 @@ export default function EventoDetalhesPublico({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070B14",
   },
 
   imageContainer: {
@@ -220,7 +223,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
 
   statusContainer: {
@@ -242,7 +244,6 @@ const styles = StyleSheet.create({
   },
 
   statusText: {
-    color: "#FFF",
     fontSize: 13,
     fontWeight: "700",
   },
@@ -252,7 +253,6 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#FFF",
     fontSize: 32,
     fontWeight: "800",
     marginBottom: 24,
@@ -260,12 +260,10 @@ const styles = StyleSheet.create({
   },
 
   infoCard: {
-    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
 
   infoRow: {
@@ -284,7 +282,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -295,36 +292,30 @@ const styles = StyleSheet.create({
   },
 
   infoLabel: {
-    color: "rgba(255,255,255,0.6)",
     fontSize: 12,
     fontWeight: "600",
     marginBottom: 4,
   },
 
   infoValue: {
-    color: "#FFF",
     fontSize: 15,
     fontWeight: "700",
   },
 
   descriptionCard: {
-    backgroundColor: "rgba(255,255,255,0.06)",
     borderRadius: 24,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
   },
 
   sectionTitle: {
-    color: "#FFF",
     fontSize: 18,
     fontWeight: "800",
     marginBottom: 12,
   },
 
   description: {
-    color: "rgba(255,255,255,0.8)",
     fontSize: 15,
     lineHeight: 24,
   },
@@ -344,7 +335,6 @@ const styles = StyleSheet.create({
   },
 
   actionButtonText: {
-    color: "#FFF",
     fontSize: 16,
     fontWeight: "800",
   },

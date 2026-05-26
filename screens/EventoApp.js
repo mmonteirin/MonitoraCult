@@ -667,59 +667,6 @@ function createThemedScreenStyles(c, isDark) {
 		fontFamily: "PoppinsBold",
 	},
 
-		paddingHorizontal: 12,
-		paddingVertical: 7,
-
-		borderRadius: 18,
-	},
-
-	statusText: {
-		color: "#FFF",
-
-		fontSize: 12,
-
-		fontFamily: "PoppinsBold",
-	},
-
-	/* ACTIONS */
-	actions: {
-		marginTop: 18,
-
-		flexDirection: "row",
-
-		justifyContent: "space-between",
-
-		alignItems: "center",
-	},
-
-	eventBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-
-		paddingVertical: 12,
-		paddingHorizontal: 18,
-
-		borderRadius: 18,
-
-		gap: 8,
-	},
-
-	eventBtnText: {
-		color: "#FFF",
-
-		fontSize: 13,
-
-		fontFamily: "PoppinsBold",
-	},
-
-	cancelar: {
-		color: "#EF4444",
-
-		fontSize: 14,
-
-		fontFamily: "PoppinsBold",
-	},
-
 	/* SWIPE */
 	swipeDelete: {
 		justifyContent: "center",

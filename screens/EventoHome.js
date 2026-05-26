@@ -23,18 +23,19 @@ import { MotiView } from "moti";
 
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-import { useColors } from "../context/ThemeContext";
+import { useTheme, useGradients } from "../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 export default function EventoHome({ navigation }) {
 	const insets = useSafeAreaInsets();
 	const tabBarHeight = useBottomTabBarHeight();
-	const Colors = useColors();
+	const { colors, isDark } = useTheme();
+	const gradients = useGradients();
 
 	return (
-		<View style={[styles.container, { backgroundColor: Colors.background }]}>
-			<StatusBar barStyle={Colors.background.includes("FFF") ? "dark-content" : "light-content"} />
+		<View style={[styles.container, { backgroundColor: colors.background }]}>
+			<StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
 			<ImageBackground
 				source={require("../assets/fundoTelaLogin.png")}
@@ -42,15 +43,11 @@ export default function EventoHome({ navigation }) {
 				resizeMode="cover"
 			>
 				<LinearGradient
-					colors={[
-						"rgba(5,8,18,0.96)",
-						"rgba(12,14,25,0.94)",
-						"rgba(26,14,58,0.95)",
-					]}
+					colors={gradients.header}
 					style={styles.overlay}
 				>
-					<View style={styles.glowTop} />
-					<View style={styles.glowBottom} />
+					<View style={[styles.glowTop, { backgroundColor: colors.primary + "38" }]} />
+					<View style={[styles.glowBottom, { backgroundColor: colors.accentCyan + "1E" }]} />
 
 					<ScrollView
 						showsVerticalScrollIndicator={false}
@@ -72,11 +69,11 @@ export default function EventoHome({ navigation }) {
 									activeOpacity={0.8}
 									style={styles.backButton}
 								>
-									<BlurView intensity={40} tint="dark" style={styles.blurBtn}>
+									<BlurView intensity={40} tint="dark" style={[styles.blurBtn, { borderColor: colors.borderLight }]}>
 										<MaterialCommunityIcons
 											name="arrow-left"
 											size={22}
-											color="#FFF"
+											color={colors.textPrimary}
 										/>
 									</BlurView>
 								</TouchableOpacity>
@@ -86,14 +83,14 @@ export default function EventoHome({ navigation }) {
 									activeOpacity={0.8}
 									onPress={() => navigation.navigate("TelaCulturaViva")}
 								>
-									<BlurView intensity={30} tint="dark" style={styles.badge}>
+									<BlurView intensity={30} tint="dark" style={[styles.badge, { borderColor: colors.borderLight }]}>
 										<MaterialCommunityIcons
 											name="book-open-variant"
 											size={16}
-											color="#A78BFA"
+											color={colors.primaryLight}
 										/>
 
-										<Text style={styles.badgeText}>
+										<Text style={[styles.badgeText, { color: colors.textPrimary }]}>
 											Cultura Viva
 										</Text>
 									</BlurView>
@@ -118,20 +115,20 @@ export default function EventoHome({ navigation }) {
 							>
 								<View style={styles.heroIcon}>
 									<LinearGradient
-										colors={["#8B5CF6", "#5B21B6"]}
+										colors={gradients.primary}
 										style={styles.heroGradient}
 									>
 										<MaterialCommunityIcons
 											name="ticket-confirmation"
 											size={34}
-											color="#FFF"
+											color={colors.onPrimary}
 										/>
 									</LinearGradient>
 								</View>
 
-								<Text style={styles.title}>Eventos</Text>
+								<Text style={[styles.title, { color: colors.textPrimary }]}>Eventos</Text>
 
-								<Text style={styles.subtitle}>
+								<Text style={[styles.subtitle, { color: colors.textSecondary }]}>
 									Descubra experiências, cultura, shows e eventos incríveis
 									próximos de você.
 								</Text>
@@ -154,40 +151,40 @@ export default function EventoHome({ navigation }) {
 							}}
 							style={styles.statsRow}
 						>
-							<View style={styles.statCard}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
 								<MaterialCommunityIcons
 									name="calendar-star"
 									size={22}
-									color="#8B5CF6"
+									color={colors.primaryLight}
 								/>
 
-								<Text style={styles.statNumber}>124</Text>
+								<Text style={[styles.statNumber, { color: colors.textPrimary }]}>124</Text>
 
-								<Text style={styles.statLabel}>Eventos</Text>
+								<Text style={[styles.statLabel, { color: colors.textMuted }]}>Eventos</Text>
 							</View>
 
-							<View style={styles.statCard}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
 								<MaterialCommunityIcons
 									name="account-group"
 									size={22}
-									color="#06B6D4"
+									color={colors.accentCyan}
 								/>
 
-								<Text style={styles.statNumber}>2.3k</Text>
+								<Text style={[styles.statNumber, { color: colors.textPrimary }]}>2.3k</Text>
 
-								<Text style={styles.statLabel}>Participantes</Text>
+								<Text style={[styles.statLabel, { color: colors.textMuted }]}>Participantes</Text>
 							</View>
 
-							<View style={styles.statCard}>
+							<View style={[styles.statCard, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}>
 								<MaterialCommunityIcons
 									name="map-marker-radius"
 									size={22}
-									color="#F59E0B"
+									color={colors.warning}
 								/>
 
-								<Text style={styles.statNumber}>18</Text>
+								<Text style={[styles.statNumber, { color: colors.textPrimary }]}>18</Text>
 
-								<Text style={styles.statLabel}>Próximos</Text>
+								<Text style={[styles.statLabel, { color: colors.textMuted }]}>Próximos</Text>
 							</View>
 						</MotiView>
 
@@ -210,44 +207,41 @@ export default function EventoHome({ navigation }) {
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={styles.card}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
 									onPress={() => navigation.navigate("EventosApp")}
 								>
 									<LinearGradient
-										colors={[
-											"rgba(124,58,237,0.20)",
-											"rgba(91,33,182,0.05)",
-										]}
+										colors={gradients.surface}
 										style={styles.cardGlow}
 									/>
 
 									<LinearGradient
-										colors={["#7C3AED", "#5B21B6"]}
+										colors={gradients.primary}
 										style={styles.iconBox}
 									>
 										<MaterialCommunityIcons
 											name="cellphone"
 											size={30}
-											color="#FFF"
+											color={colors.onPrimary}
 										/>
 									</LinearGradient>
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>
+											<Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
 												Eventos do App
 											</Text>
 
-											<View style={styles.liveBadge}>
-												<View style={styles.liveDot} />
+											<View style={[styles.liveBadge, { backgroundColor: colors.error + "22" }]}>
+												<View style={[styles.liveDot, { backgroundColor: colors.error }]} />
 
-												<Text style={styles.liveText}>
+												<Text style={[styles.liveText, { color: colors.error }]}>
 													AO VIVO
 												</Text>
 											</View>
 										</View>
 
-										<Text style={styles.cardDesc}>
+										<Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
 											Eventos exclusivos criados dentro da plataforma.
 										</Text>
 
@@ -255,10 +249,10 @@ export default function EventoHome({ navigation }) {
 											<MaterialCommunityIcons
 												name="calendar"
 												size={15}
-												color="#A78BFA"
+												color={colors.primaryLight}
 											/>
 
-											<Text style={styles.footerText}>
+											<Text style={[styles.footerText, { color: colors.textMuted }]}>
 												Novos eventos hoje
 											</Text>
 										</View>
@@ -267,7 +261,7 @@ export default function EventoHome({ navigation }) {
 									<MaterialCommunityIcons
 										name="chevron-right"
 										size={28}
-										color={Colors.primary}
+										color={colors.primary}
 									/>
 								</TouchableOpacity>
 							</MotiView>
@@ -289,42 +283,39 @@ export default function EventoHome({ navigation }) {
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={styles.card}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
 									onPress={() => navigation.navigate("EventosPublicos")}
 								>
 									<LinearGradient
-										colors={[
-											"rgba(6,182,212,0.18)",
-											"rgba(37,99,235,0.04)",
-										]}
+										colors={gradients.surface}
 										style={styles.cardGlow}
 									/>
 
 									<LinearGradient
-										colors={["#06B6D4", "#2563EB"]}
+										colors={[colors.accentCyan, colors.primary]}
 										style={styles.iconBox}
 									>
 										<MaterialCommunityIcons
 											name="earth"
 											size={30}
-											color="#FFF"
+											color={colors.onPrimary}
 										/>
 									</LinearGradient>
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>
+											<Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
 												Eventos Públicos
 											</Text>
 
-											<View style={styles.cityBadge}>
-												<Text style={styles.cityText}>
+											<View style={[styles.cityBadge, { backgroundColor: colors.accentCyan + "29" }]}>
+												<Text style={[styles.cityText, { color: colors.accentCyan }]}>
 													Fortaleza
 												</Text>
 											</View>
 										</View>
 
-										<Text style={styles.cardDesc}>
+										<Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
 											Eventos culturais, públicos e oficiais da cidade.
 										</Text>
 
@@ -332,10 +323,10 @@ export default function EventoHome({ navigation }) {
 											<MaterialCommunityIcons
 												name="map-marker"
 												size={15}
-												color="#67E8F9"
+												color={colors.accentCyan}
 											/>
 
-											<Text style={styles.footerText}>
+											<Text style={[styles.footerText, { color: colors.textMuted }]}>
 												Eventos próximos da sua região
 											</Text>
 										</View>
@@ -344,7 +335,7 @@ export default function EventoHome({ navigation }) {
 									<MaterialCommunityIcons
 										name="chevron-right"
 										size={28}
-										color={Colors.primary}
+										color={colors.primary}
 									/>
 								</TouchableOpacity>
 							</MotiView>
@@ -366,48 +357,45 @@ export default function EventoHome({ navigation }) {
 							>
 								<TouchableOpacity
 									activeOpacity={0.92}
-									style={styles.card}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight }]}
 									onPress={() => navigation.navigate("TelaMapaVivo")}
 								>
 									<LinearGradient
-										colors={[
-											"rgba(34,197,94,0.18)",
-											"rgba(239,68,68,0.06)",
-										]}
+										colors={gradients.surface}
 										style={styles.cardGlow}
 									/>
 
 									<LinearGradient
-										colors={["#22C55E", "#EF4444"]}
+										colors={[colors.success, colors.error]}
 										style={styles.iconBox}
 									>
 										<MaterialCommunityIcons
 											name="map-marker-radius"
 											size={30}
-											color="#FFF"
+											color={colors.onPrimary}
 										/>
 									</LinearGradient>
 
 									<View style={styles.textContainer}>
 										<View style={styles.cardTopRow}>
-											<Text style={styles.cardTitle}>
+											<Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
 												Mapa Vivo da Cultura
 											</Text>
 
-											<View style={styles.heatBadge}>
+											<View style={[styles.heatBadge, { backgroundColor: colors.error + "22" }]}>
 												<MaterialCommunityIcons
 													name="fire"
 													size={12}
-													color="#FCA5A5"
+													color={colors.error}
 												/>
 
-												<Text style={styles.heatText}>
+												<Text style={[styles.heatText, { color: colors.error }]}>
 													HEATMAP
 												</Text>
 											</View>
 										</View>
 
-										<Text style={styles.cardDesc}>
+										<Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
 											Veja eventos no mapa, calor cultural,
 											filtros ao vivo e check-in no local.
 										</Text>
@@ -416,10 +404,10 @@ export default function EventoHome({ navigation }) {
 											<MaterialCommunityIcons
 												name="crosshairs-gps"
 												size={15}
-												color="#86EFAC"
+												color={colors.success}
 											/>
 
-											<Text style={styles.footerText}>
+											<Text style={[styles.footerText, { color: colors.textMuted }]}>
 												Cultura acontecendo perto de você
 											</Text>
 										</View>
@@ -428,7 +416,7 @@ export default function EventoHome({ navigation }) {
 									<MaterialCommunityIcons
 										name="chevron-right"
 										size={28}
-										color={Colors.primary}
+										color={colors.primary}
 									/>
 								</TouchableOpacity>
 							</MotiView>
@@ -450,27 +438,24 @@ export default function EventoHome({ navigation }) {
 							>
 								<View style={styles.infoCard}>
 									<LinearGradient
-										colors={[
-											"rgba(124,58,237,0.12)",
-											"rgba(59,130,246,0.08)",
-										]}
-										style={styles.infoGradient}
+										colors={gradients.surface}
+										style={[styles.infoGradient, { borderColor: colors.borderLight }]}
 									>
 										<View style={styles.infoLeft}>
-											<View style={styles.infoIcon}>
+											<View style={[styles.infoIcon, { backgroundColor: colors.glass }]}>
 												<MaterialCommunityIcons
 													name="compass-outline"
 													size={24}
-													color="#FFF"
+													color={colors.textPrimary}
 												/>
 											</View>
 
 											<View style={{ flex: 1 }}>
-												<Text style={styles.infoTitle}>
+												<Text style={[styles.infoTitle, { color: colors.textPrimary }]}>
 													Explore a cidade
 												</Text>
 
-												<Text style={styles.infoDesc}>
+												<Text style={[styles.infoDesc, { color: colors.textSecondary }]}>
 													Descubra novos eventos perto de você
 												</Text>
 											</View>
@@ -478,7 +463,7 @@ export default function EventoHome({ navigation }) {
 
 										<TouchableOpacity
 											activeOpacity={0.8}
-											style={styles.exploreBtn}
+											style={[styles.exploreBtn, { backgroundColor: colors.primary + "40" }]}
 											onPress={() =>
 												navigation.navigate(
 													"TelaExploreCidade"
@@ -488,7 +473,7 @@ export default function EventoHome({ navigation }) {
 											<MaterialCommunityIcons
 												name="arrow-right"
 												size={20}
-												color="#FFF"
+												color={colors.textPrimary}
 											/>
 										</TouchableOpacity>
 									</LinearGradient>
@@ -505,7 +490,6 @@ export default function EventoHome({ navigation }) {
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#070B14",
 	},
 
 	bg: {
@@ -575,7 +559,6 @@ const styles = StyleSheet.create({
 	},
 
 	badgeText: {
-		color: "#FFF",
 		marginLeft: 8,
 		fontSize: 13,
 		fontFamily: "PoppinsMedium",
@@ -599,13 +582,11 @@ const styles = StyleSheet.create({
 
 	title: {
 		fontSize: width < 380 ? 34 : 40,
-		color: "#FFF",
 		fontFamily: "PoppinsBold",
 		letterSpacing: 0.5,
 	},
 
 	subtitle: {
-		color: "rgba(255,255,255,0.72)",
 		marginTop: 12,
 		fontSize: 15,
 		lineHeight: 25,
@@ -634,14 +615,12 @@ const styles = StyleSheet.create({
 	},
 
 	statNumber: {
-		color: "#FFF",
 		fontSize: 22,
 		marginTop: 8,
 		fontFamily: "PoppinsBold",
 	},
 
 	statLabel: {
-		color: "rgba(255,255,255,0.62)",
 		marginTop: 4,
 		fontSize: 12,
 		textAlign: "center",
@@ -693,7 +672,6 @@ const styles = StyleSheet.create({
 	},
 
 	cardTitle: {
-		color: "#FFF",
 		fontSize: 18,
 		flexShrink: 1,
 		fontFamily: "PoppinsSemiBold",
@@ -712,25 +690,21 @@ const styles = StyleSheet.create({
 		width: 6,
 		height: 6,
 		borderRadius: 10,
-		backgroundColor: "#EF4444",
 		marginRight: 5,
 	},
 
 	liveText: {
-		color: "#EF4444",
 		fontSize: 10,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	cityBadge: {
-		backgroundColor: "rgba(6,182,212,0.16)",
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 20,
 	},
 
 	cityText: {
-		color: "#67E8F9",
 		fontSize: 10,
 		fontFamily: "PoppinsSemiBold",
 	},
@@ -739,20 +713,17 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 4,
-		backgroundColor: "rgba(239,68,68,0.14)",
 		paddingHorizontal: 8,
 		paddingVertical: 4,
 		borderRadius: 20,
 	},
 
 	heatText: {
-		color: "#FCA5A5",
 		fontSize: 10,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	cardDesc: {
-		color: "rgba(255,255,255,0.65)",
 		fontSize: 13,
 		marginTop: 6,
 		lineHeight: 21,
@@ -767,7 +738,6 @@ const styles = StyleSheet.create({
 	},
 
 	footerText: {
-		color: "rgba(255,255,255,0.55)",
 		marginLeft: 6,
 		fontSize: 12,
 		flexShrink: 1,
@@ -805,13 +775,11 @@ const styles = StyleSheet.create({
 	},
 
 	infoTitle: {
-		color: "#FFF",
 		fontSize: 16,
 		fontFamily: "PoppinsSemiBold",
 	},
 
 	infoDesc: {
-		color: "rgba(255,255,255,0.65)",
 		fontSize: 13,
 		marginTop: 4,
 		lineHeight: 20,
@@ -822,7 +790,6 @@ const styles = StyleSheet.create({
 		width: 48,
 		height: 48,
 		borderRadius: 18,
-		backgroundColor: "rgba(124,58,237,0.25)",
 		justifyContent: "center",
 		alignItems: "center",
 		marginLeft: 12,

@@ -19,11 +19,20 @@ import MapaVivoCheckIn from "../screens/MapaVivoCheckIn";
 import PerfilPublico from "../screens/PerfilPublico";
 import TelaAgendaEventos from "../screens/TelaAgendaEventos";
 
+import { useTheme } from "../context/ThemeContext";
+
 const Stack = createStackNavigator();
 
 export default function EventoStack() {
+  const { navigationTheme } = useTheme();
+
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        ...navigationTheme
+      }}
+    >
       {/* HUB */}
       <Stack.Screen name="EventoHome" component={EventoHome} />
 

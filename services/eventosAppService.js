@@ -16,6 +16,7 @@ import {
 
 import { db } from "../firebaseConfig";
 import { registrarVisitaLocal } from "./localVisitadoService";
+import logger from "../utils/logger";
 
 export async function getEventosApp() {
   try {
@@ -45,7 +46,7 @@ export async function getEventosApp() {
       })
       .filter((item) => item.ativo !== false);
   } catch (error) {
-    console.log(error);
+    logger.error("eventosAppService", "Erro ao buscar eventos", error);
     return [];
   }
 }
@@ -62,7 +63,7 @@ export async function getUserLikes(usuarioId) {
     const snapshot = await getDocs(q);
     return snapshot.docs.map((document) => document.data().eventoId);
   } catch (error) {
-    console.log("Erro ao buscar likes do usuário:", error);
+    logger.error("eventosAppService", "Erro ao buscar likes do usuário", error);
     return [];
   }
 }
@@ -85,7 +86,7 @@ export async function getUserEventInteractions(usuarioId) {
       ...document.data(),
     }));
   } catch (error) {
-    console.log("Erro ao buscar interações do usuário:", error);
+    logger.error("eventosAppService", "Erro ao buscar interações do usuário", error);
     return [];
   }
 }
@@ -125,7 +126,7 @@ export async function trackUserEventInteraction({
       await registrarVisitaLocal(usuarioId, evento);
     }
   } catch (error) {
-    console.log("Erro ao registrar interação:", error);
+    logger.error("eventosAppService", "Erro ao registrar interação", error);
   }
 }
 
@@ -165,7 +166,7 @@ export async function toggleEventoLike(eventoId, usuarioId, like) {
       }
     });
   } catch (error) {
-    console.log("Erro ao atualizar like:", error);
+    logger.error("eventosAppService", "Erro ao atualizar like", error);
     throw error;
   }
 }
@@ -178,6 +179,6 @@ export async function incrementEventoViews(eventoId) {
       views: increment(1),
     });
   } catch (error) {
-    console.log("Erro ao incrementar views:", error);
+    logger.error("eventosAppService", "Erro ao incrementar views", error);
   }
 }
