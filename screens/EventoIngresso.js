@@ -34,7 +34,8 @@ import SeletorIngressos from "../components/SeletorIngressos";
 import CarrinhoIngressos from "../components/CarrinhoIngressos";
 import ConfirmModal from "../components/ConfirmModal";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import AppText from "../components/AppText";
 
 /* ──────────────────────────────────────────────
@@ -130,7 +131,7 @@ function ModalConfirmacao({ visible, resultado, nomeEvento, onFechar }) {
 								<MaterialCommunityIcons
 									name="ticket-confirmation-outline"
 									size={16}
-									color={Colors.primary}
+									color={colors.primary}
 								/>
 
 								<View style={conf.codigoInfo}>
@@ -214,7 +215,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 				<MaterialCommunityIcons
 					name="alert-circle-outline"
 					size={52}
-					color={Colors.error}
+					color={colors.error}
 				/>
 				<AppText style={styles.errorText}>Evento não encontrado</AppText>
 
@@ -335,21 +336,21 @@ function _EventoIngressoOriginal({ route, navigation }) {
 							}
 							style={styles.backBtn}
 						>
-							<BlurView intensity={60} tint="dark" style={styles.blurBtn}>
+							<BlurView intensity={60} tint={blurTint} style={styles.blurBtn}>
 								<MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
 							</BlurView>
 						</TouchableOpacity>
 
 						{/* Badge de vagas */}
 						{ingressosDisponiveis !== null && (
-							<BlurView intensity={50} tint="dark" style={styles.vagasBadge}>
+							<BlurView intensity={50} tint={blurTint} style={styles.vagasBadge}>
 								<MaterialCommunityIcons
 									name={semVagas ? "ticket-remove" : "ticket-account"}
 									size={14}
-									color={semVagas ? Colors.error : Colors.success}
+									color={semVagas ? colors.error : colors.success}
 								/>
 
-								<Text style={[styles.vagasText, semVagas && { color: Colors.error }]}>
+								<Text style={[styles.vagasText, semVagas && { color: colors.error }]}>
 									{semVagas
 										? "Esgotado"
 										: `${ingressosDisponiveis} vaga${ingressosDisponiveis !== 1 ? "s" : ""}`}
@@ -423,7 +424,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 							<MaterialCommunityIcons
 								name="ticket-remove"
 								size={44}
-								color={Colors.error}
+								color={colors.error}
 							/>
 							<Text style={styles.esgotadoTitulo}>Ingressos esgotados</Text>
 							<Text style={styles.esgotadoSub}>
@@ -461,7 +462,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 										style={styles.carrinhoCloseBtn}
 										onPress={() => setModalCarrinho(false)}
 									>
-										<BlurView intensity={60} tint="dark" style={styles.blurBtn}>
+										<BlurView intensity={60} tint={blurTint} style={styles.blurBtn}>
 											<MaterialCommunityIcons name="close" size={24} color="#FFF" />
 										</BlurView>
 									</TouchableOpacity>
@@ -486,7 +487,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 								style={[styles.floatingCartBtn, { bottom: insets.bottom + 16 }]}
 								onPress={() => setModalCarrinho(true)}
 							>
-								<BlurView intensity={60} tint="dark" style={styles.floatingBlur}>
+								<BlurView intensity={60} tint={blurTint} style={styles.floatingBlur}>
 									<MaterialCommunityIcons name="cart" size={20} color="#FFF" />
 									<View style={styles.cartBadge}>
 										<Text style={styles.cartBadgeText}>{quantidadeTotal}</Text>
@@ -504,7 +505,7 @@ function _EventoIngressoOriginal({ route, navigation }) {
 								<MaterialCommunityIcons
 									name="alert-circle-outline"
 									size={16}
-									color={Colors.error}
+									color={colors.error}
 								/>
 								<Text style={styles.erroText}>{error}</Text>
 							</View>
@@ -525,10 +526,11 @@ function _EventoIngressoOriginal({ route, navigation }) {
 /* ──────────────────────────────────────────────
    STYLES
    ──────────────────────────────────────────── */
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.background,
+		backgroundColor: c.background,
 	},
 
 	/* Hero */
@@ -560,7 +562,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	vagasBadge: {
@@ -572,11 +574,11 @@ const styles = StyleSheet.create({
 		borderRadius: 20,
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	vagasText: {
-		color: Colors.success,
+		color: c.success,
 		fontSize: 12,
 		fontWeight: "700",
 	},
@@ -633,16 +635,16 @@ const styles = StyleSheet.create({
 
 	/* Esgotado */
 	esgotadoCard: {
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderRadius: 20,
 		padding: 36,
 		alignItems: "center",
 		borderWidth: 1,
-		borderColor: Colors.error + "30",
+		borderColor: c.error + "30",
 	},
 
 	esgotadoTitulo: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 18,
 		fontWeight: "700",
 		marginTop: 16,
@@ -650,7 +652,7 @@ const styles = StyleSheet.create({
 	},
 
 	esgotadoSub: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 13,
 		textAlign: "center",
 		lineHeight: 20,
@@ -661,14 +663,14 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 8,
-		backgroundColor: Colors.error + "18",
+		backgroundColor: c.error + "18",
 		borderRadius: 10,
 		padding: 12,
 		marginTop: 8,
 	},
 
 	erroText: {
-		color: Colors.error,
+		color: c.error,
 		fontSize: 13,
 		flex: 1,
 	},
@@ -679,7 +681,7 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		fontSize: 11,
 		lineHeight: 18,
-		color: Colors.textMuted,
+		color: c.textMuted,
 	},
 
 	/* Fallback */
@@ -687,12 +689,12 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: Colors.background,
+		backgroundColor: c.background,
 		padding: 32,
 	},
 
 	errorText: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 16,
 		marginTop: 12,
 	},
@@ -701,7 +703,7 @@ const styles = StyleSheet.create({
 		marginTop: 20,
 		paddingHorizontal: 24,
 		paddingVertical: 12,
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		borderRadius: 12,
 	},
 
@@ -718,7 +720,7 @@ const styles = StyleSheet.create({
 	},
 
 	carrinhoModalContent: {
-		backgroundColor: Colors.background,
+		backgroundColor: c.background,
 		borderTopLeftRadius: 28,
 		borderTopRightRadius: 28,
 		maxHeight: "85%",
@@ -764,7 +766,7 @@ const styles = StyleSheet.create({
 	},
 
 	cartBadge: {
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		borderRadius: 12,
 		minWidth: 24,
 		height: 24,
@@ -800,12 +802,12 @@ const conf = StyleSheet.create({
 
 	card: {
 		width: "100%",
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderRadius: 28,
 		padding: 28,
 		alignItems: "center",
 		borderWidth: 1,
-		borderColor: Colors.glassBorder,
+		borderColor: c.glassBorder,
 	},
 
 	iconCircle: {
@@ -818,7 +820,7 @@ const conf = StyleSheet.create({
 	},
 
 	titulo: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 20,
 		fontWeight: "800",
 		marginBottom: 4,
@@ -826,7 +828,7 @@ const conf = StyleSheet.create({
 	},
 
 	subtitulo: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 13,
 		marginBottom: 20,
 		textAlign: "center",
@@ -841,7 +843,7 @@ const conf = StyleSheet.create({
 	codigoRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		backgroundColor: Colors.primarySoft,
+		backgroundColor: c.primarySoft,
 		borderRadius: 12,
 		padding: 12,
 		gap: 10,
@@ -852,13 +854,13 @@ const conf = StyleSheet.create({
 	},
 
 	codigoTipo: {
-		color: Colors.textSecondary,
+		color: c.textSecondary,
 		fontSize: 11,
 		marginBottom: 2,
 	},
 
 	codigoCodigo: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 14,
 		fontWeight: "700",
 		letterSpacing: 1.5,
@@ -866,7 +868,7 @@ const conf = StyleSheet.create({
 	},
 
 	aviso: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 12,
 		textAlign: "center",
 		lineHeight: 18,
@@ -879,7 +881,7 @@ const conf = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		gap: 8,
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		borderRadius: 14,
 		paddingVertical: 14,
 		marginBottom: 10,
@@ -898,8 +900,9 @@ const conf = StyleSheet.create({
 	},
 
 	btnFecharText: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 14,
 		fontWeight: "600",
 	},
 });
+}

@@ -72,7 +72,8 @@ import Animated, {
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 // ── Captura cross-platform ────────────────────
 // Na web usamos html2canvas; no nativo, react-native-view-shot.
@@ -160,7 +161,7 @@ function normalizeEvento(evento) {
 // CardPreview — o visual capturado como imagem
 // ─────────────────────────────────────────────
 const CardPreview = memo(
-  React.forwardRef(({ evento, tema }, ref) => {
+  React.forwardRef(({ evento, tema, styles }, ref) => {
     const ev = normalizeEvento(evento);
 
     return (
@@ -306,7 +307,7 @@ const CardPreview = memo(
 // ─────────────────────────────────────────────
 // TemaSelector
 // ─────────────────────────────────────────────
-const TemaSelector = memo(({ temaAtivo, onSelect }) => (
+const TemaSelector = memo(({ temaAtivo, onSelect, styles }) => (
   <View style={styles.temaRow}>
     {TEMAS.map((t) => {
       const ativo = temaAtivo.id === t.id;
@@ -332,7 +333,7 @@ const TemaSelector = memo(({ temaAtivo, onSelect }) => (
 // ─────────────────────────────────────────────
 // BotaoAcao
 // ─────────────────────────────────────────────
-const BotaoAcao = memo(({ icon, label, onPress, primary, accent, loading }) => {
+const BotaoAcao = memo(({ icon, label, onPress, primary, accent, loading, colors, styles }) => {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -356,7 +357,7 @@ const BotaoAcao = memo(({ icon, label, onPress, primary, accent, loading }) => {
         style={[
           styles.botaoAcao,
           primary
-            ? { backgroundColor: accent || Colors.primary }
+            ? { backgroundColor: accent || colors.primary }
             : styles.botaoAcaoSecundario,
         ]}
       >
@@ -388,6 +389,8 @@ const BotaoAcao = memo(({ icon, label, onPress, primary, accent, loading }) => {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 export default function EventoShareCard({ visible, onClose, evento }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const insets = useSafeAreaInsets();
   const cardRef = useRef(null);
 
@@ -500,7 +503,7 @@ export default function EventoShareCard({ visible, onClose, evento }) {
           <View style={styles.sheetHeader}>
             <Text style={styles.sheetTitle}>Compartilhar evento</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <MaterialCommunityIcons name="close" size={20} color="rgba(255,255,255,0.6)" />
+              <MaterialCommunityIcons name="close" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -518,13 +521,13 @@ export default function EventoShareCard({ visible, onClose, evento }) {
                 { backgroundColor: temaAtivo.accent + "20" },
               ]}
             />
-            <CardPreview ref={cardRef} evento={evento} tema={temaAtivo} />
+            <CardPreview ref={cardRef} evento={evento} tema={temaAtivo} styles={styles} />
           </View>
 
           {/* Seletor de tema */}
           <View style={styles.temaSection}>
             <Text style={styles.temaLabel}>Tema</Text>
-            <TemaSelector temaAtivo={temaAtivo} onSelect={setTemaAtivo} />
+            <TemaSelector temaAtivo={temaAtivo} onSelect={setTemaAtivo} styles={styles} />
           </View>
 
           {/* Botões de ação */}
@@ -535,6 +538,8 @@ export default function EventoShareCard({ visible, onClose, evento }) {
               onPress={handleSalvar}
               loading={saving}
               accent={temaAtivo.accent}
+              colors={colors}
+              styles={styles}
             />
             <BotaoAcao
               icon="share-variant"
@@ -543,6 +548,8 @@ export default function EventoShareCard({ visible, onClose, evento }) {
               primary
               loading={sharing}
               accent={temaAtivo.accent}
+              colors={colors}
+              styles={styles}
             />
           </View>
 
@@ -566,7 +573,8 @@ export default function EventoShareCard({ visible, onClose, evento }) {
 // ─────────────────────────────────────────────
 // STYLES
 // ─────────────────────────────────────────────
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   // ── Modal ──
   overlay: {
     flex: 1,
@@ -580,7 +588,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 24,
     borderTopWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: c.glassBorder,
   },
   handle: {
     width: 40,
@@ -604,7 +612,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -819,3 +827,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+}

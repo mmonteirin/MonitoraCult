@@ -39,7 +39,9 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebaseConfig";
 import { obterEstatisticasVendas } from "../services/ingressoServiceV2";
-import { Colors, Gradients } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Gradients } from "../styles/Colors";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
@@ -133,7 +135,7 @@ function PeriodFilter({ selected, onChange }) {
           >
             {isActive && (
               <LinearGradient
-                colors={[Colors.primary, Colors.primaryDark]}
+                colors={[colors.primary, colors.primaryDark]}
                 style={StyleSheet.absoluteFillObject}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -206,7 +208,7 @@ function SalesChart({ comprasPorDia, periodo }) {
 
   if (!entries.length) {
     return (
-      <BlurView intensity={22} tint="dark" style={chartStyles.emptyCard}>
+      <BlurView intensity={22} tint={blurTint} style={chartStyles.emptyCard}>
         <MaterialCommunityIcons name="chart-bar" size={28} color="rgba(255,255,255,0.2)" />
         <Text style={chartStyles.emptyText}>Sem dados no período</Text>
       </BlurView>
@@ -217,7 +219,7 @@ function SalesChart({ comprasPorDia, periodo }) {
   const BAR_WIDTH = Math.min(32, (SCREEN_WIDTH - 80) / entries.length - 6);
 
   return (
-    <BlurView intensity={22} tint="dark" style={chartStyles.card}>
+    <BlurView intensity={22} tint={blurTint} style={chartStyles.card}>
       <View style={chartStyles.header}>
         <MaterialCommunityIcons name="chart-bar" size={18} color="#38BDF8" />
         <Text style={chartStyles.title}>Vendas por Dia</Text>
@@ -574,7 +576,7 @@ function ReachDashboard({ alcance }) {
             <BlurView
               key={step.key}
               intensity={22}
-              tint="dark"
+              tint={blurTint}
               style={reachStyles.metricCard}
             >
               <View style={[reachStyles.iconWrap, { backgroundColor: step.bg }]}>
@@ -596,7 +598,7 @@ function ReachDashboard({ alcance }) {
         })}
       </View>
 
-      <BlurView intensity={20} tint="dark" style={reachStyles.funnelCard}>
+      <BlurView intensity={20} tint={blurTint} style={reachStyles.funnelCard}>
         <Text style={reachStyles.funnelTitle}>Funil de Conversão</Text>
         {REACH_STEPS.map((step, index) => {
           const valor = valores[index];
@@ -624,17 +626,17 @@ function ReachDashboard({ alcance }) {
       </BlurView>
 
       <View style={reachStyles.synthRow}>
-        <BlurView intensity={20} tint="dark" style={reachStyles.synthCard}>
+        <BlurView intensity={20} tint={blurTint} style={reachStyles.synthCard}>
           <MaterialCommunityIcons name="filter-outline" size={18} color="#34D399" />
           <Text style={reachStyles.synthValue}>{taxaConversao}%</Text>
           <Text style={reachStyles.synthLabel}>Conversão{"\n"}Geral</Text>
         </BlurView>
-        <BlurView intensity={20} tint="dark" style={reachStyles.synthCard}>
+        <BlurView intensity={20} tint={blurTint} style={reachStyles.synthCard}>
           <MaterialCommunityIcons name="walk" size={18} color="#FBBF24" />
           <Text style={reachStyles.synthValue}>{taxaComparecimento}%</Text>
           <Text style={reachStyles.synthLabel}>Taxa de{"\n"}Comparecimento</Text>
         </BlurView>
-        <BlurView intensity={20} tint="dark" style={reachStyles.synthCard}>
+        <BlurView intensity={20} tint={blurTint} style={reachStyles.synthCard}>
           <MaterialCommunityIcons name="account-multiple-outline" size={18} color="#38BDF8" />
           <Text style={reachStyles.synthValue}>
             {(valores[0] - valores[2]).toLocaleString("pt-BR")}
@@ -747,7 +749,7 @@ function ExportReportModal({
     >
       <View style={exportModalStyles.overlay}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <BlurView intensity={50} tint="dark" style={exportModalStyles.card}>
+        <BlurView intensity={50} tint={blurTint} style={exportModalStyles.card}>
           <LinearGradient
             colors={["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"]}
             style={exportModalStyles.gradient}
@@ -756,7 +758,7 @@ function ExportReportModal({
               <MaterialCommunityIcons
                 name="export-variant"
                 size={34}
-                color={Colors.primary}
+                color={colors.primary}
               />
             </View>
             <Text style={exportModalStyles.title}>Exportar relatório</Text>
@@ -817,7 +819,7 @@ function ExportReportModal({
 const exportModalStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.overlayStronger,
+    backgroundColor: colors.overlayStronger,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -827,7 +829,7 @@ const exportModalStyles = StyleSheet.create({
     borderRadius: 28,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
   },
   gradient: {
     padding: 28,
@@ -837,19 +839,19 @@ const exportModalStyles = StyleSheet.create({
     width: 78,
     height: 78,
     borderRadius: 24,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: colors.primarySoft,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 18,
   },
   title: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 22,
     fontWeight: "bold",
     textAlign: "center",
   },
   message: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 10,
     fontSize: 14,
@@ -876,15 +878,15 @@ const exportModalStyles = StyleSheet.create({
     width: "100%",
     height: 52,
     borderRadius: 16,
-    backgroundColor: Colors.glass,
+    backgroundColor: colors.glass,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
   },
   cancelText: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontWeight: "600",
     fontSize: 14,
   },
@@ -1121,7 +1123,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
           style={StyleSheet.absoluteFillObject}
         />
         <View style={styles.loadingState}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Carregando dashboard...</Text>
         </View>
       </SafeAreaView>
@@ -1151,14 +1153,14 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* HEADER */}
-        <BlurView intensity={28} tint="dark" style={styles.headerCard}>
+        <BlurView intensity={28} tint={blurTint} style={styles.headerCard}>
           <View style={styles.profileRow}>
             <TouchableOpacity
               activeOpacity={0.9}
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
+              <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
             </TouchableOpacity>
 
             <Image
@@ -1182,7 +1184,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 <Ionicons
                   name="notifications-outline"
                   size={20}
-                  color={Colors.textPrimary}
+                  color={colors.textPrimary}
                 />
               </TouchableOpacity>
             </View>
@@ -1206,7 +1208,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="calendar"
                   size={13}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.eventDate}>
                   {evento.dataEvento || "Data não informada"}
@@ -1221,7 +1223,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
 
         {/* FATURAMENTO */}
         <LinearGradient
-          colors={[Colors.primary, Colors.primaryDark]}
+          colors={[colors.primary, colors.primaryDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.salesCard}
@@ -1241,7 +1243,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={16}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                   style={styles.exportChevron}
                 />
               </TouchableOpacity>
@@ -1263,19 +1265,19 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
 
         {/* STATS */}
         <View style={styles.grid}>
-          <BlurView intensity={22} tint="dark" style={styles.statCard}>
+          <BlurView intensity={22} tint={blurTint} style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons
                 name="ticket-confirmation"
                 size={20}
-                color={Colors.primaryLight}
+                color={colors.primaryLight}
               />
             </View>
             <Text style={styles.statLabel}>Ingressos Aprovados</Text>
             <Text style={styles.statValue}>{metricas.ingressosAprovados}</Text>
           </BlurView>
 
-          <BlurView intensity={22} tint="dark" style={styles.statCard}>
+          <BlurView intensity={22} tint={blurTint} style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons name="currency-usd" size={20} color="#FBBF24" />
             </View>
@@ -1283,7 +1285,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
             <Text style={styles.statValue}>{formatCurrency(metricas.ticketMedio)}</Text>
           </BlurView>
 
-          <BlurView intensity={22} tint="dark" style={styles.statCard}>
+          <BlurView intensity={22} tint={blurTint} style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons name="clock-outline" size={20} color="#38BDF8" />
             </View>
@@ -1293,7 +1295,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
             </Text>
           </BlurView>
 
-          <BlurView intensity={22} tint="dark" style={styles.statCard}>
+          <BlurView intensity={22} tint={blurTint} style={styles.statCard}>
             <View style={styles.statIconWrap}>
               <MaterialCommunityIcons name="calendar-clock" size={20} color="#FB7185" />
             </View>
@@ -1316,7 +1318,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
             </TouchableOpacity>
           </View>
 
-          <BlurView intensity={24} tint="dark" style={styles.ratingCard}>
+          <BlurView intensity={24} tint={blurTint} style={styles.ratingCard}>
             <View style={styles.ratingHeader}>
               <Text style={styles.ratingLabel}>Nota Média</Text>
               <Text style={styles.ratingValue}>
@@ -1353,7 +1355,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
         {/* PROBLEMAS */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Problemas Frequentes</Text>
-          <BlurView intensity={22} tint="dark" style={styles.problemCard}>
+          <BlurView intensity={22} tint={blurTint} style={styles.problemCard}>
             {metricas.problemasFrequentes.length ? (
               metricas.problemasFrequentes.map(([problema, total]) => (
                 <View key={problema} style={styles.problemRow}>
@@ -1392,7 +1394,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={18}
-                color={Colors.textMuted}
+                color={colors.textMuted}
                 style={styles.actionChevron}
               />
             </TouchableOpacity>
@@ -1414,7 +1416,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={18}
-                color={Colors.textMuted}
+                color={colors.textMuted}
                 style={styles.actionChevron}
               />
             </TouchableOpacity>
@@ -1431,7 +1433,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={18}
-                color={Colors.textMuted}
+                color={colors.textMuted}
                 style={styles.actionChevron}
               />
             </TouchableOpacity>
@@ -1454,7 +1456,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={18}
-                color={Colors.textMuted}
+                color={colors.textMuted}
                 style={styles.actionChevron}
               />
             </TouchableOpacity>
@@ -1469,12 +1471,13 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
 
 // ─── Estilos principais ───────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scrollContent: { paddingHorizontal: 18, paddingTop: 18 },
   loadingState: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     fontWeight: "700",
     marginTop: 12,
@@ -1483,9 +1486,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 18,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   profileRow: { flexDirection: "row", alignItems: "center" },
   backButton: {
@@ -1494,7 +1497,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     marginRight: 12,
   },
   avatar: {
@@ -1512,16 +1515,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
   },
   eventCard: {
     marginTop: 22,
     borderRadius: 22,
     overflow: "hidden",
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: c.glass,
   },
-  eventImage: { width: 110, height: 110, backgroundColor: "#111827" },
+  eventImage: { width: 110, height: 110, backgroundColor: c.surfaceMuted },
   eventContent: { flex: 1, padding: 14, justifyContent: "center" },
   eventTitle: { color: "#FFF", fontSize: 22, fontWeight: "800" },
   eventLocation: { color: "rgba(255,255,255,0.72)", fontSize: 14, marginTop: 6 },
@@ -1549,7 +1552,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
   },
@@ -1582,7 +1585,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   statIconWrap: {
     width: 42,
@@ -1590,7 +1593,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     marginBottom: 14,
   },
   statLabel: { color: "rgba(255,255,255,0.55)", fontSize: 13 },
@@ -1614,7 +1617,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   viewButtonText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
   ratingCard: {
@@ -1623,7 +1626,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   ratingHeader: {
     flexDirection: "row",
@@ -1638,7 +1641,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 999,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
   },
   progressFill: { width: 0, height: "100%", borderRadius: 999 },
   progressText: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 8 },
@@ -1649,7 +1652,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.05)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   problemRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
   problemDot: {
@@ -1660,7 +1663,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   problemText: { color: "#FFF", fontSize: 15 },
-  emptyText: { color: Colors.textMuted, fontSize: 14, lineHeight: 20 },
+  emptyText: { color: c.textMuted, fontSize: 14, lineHeight: 20 },
   actionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1675,9 +1678,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     gap: 10,
   },
   actionIconCircle: {
@@ -1691,9 +1694,10 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   actionChevron: {
     opacity: 0.5,
   },
 });
+}

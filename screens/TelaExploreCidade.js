@@ -29,7 +29,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getEventosApp } from "../services/eventosAppService";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const { width } = Dimensions.get("window");
 
@@ -69,7 +70,7 @@ const BairroCard = memo(({ bairro, count, onPress }) => (
   >
     <View style={styles.bairroInfo}>
       <View style={styles.bairroIconWrapper}>
-        <MaterialCommunityIcons name="office-building" size={20} color={Colors.primary} />
+        <MaterialCommunityIcons name="office-building" size={20} color={colors.primary} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.bairroNome}>{bairro}</Text>
@@ -82,7 +83,7 @@ const BairroCard = memo(({ bairro, count, onPress }) => (
       <MaterialCommunityIcons
         name="chevron-right"
         size={20}
-        color={Colors.primary}
+        color={colors.primary}
       />
     </View>
   </TouchableOpacity>
@@ -246,7 +247,7 @@ export default function TelaExploreCidade({ navigation, route }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Mapeando pulso urbano...</Text>
       </View>
     );
@@ -267,9 +268,9 @@ export default function TelaExploreCidade({ navigation, route }) {
       >
         {/* Camada absoluta de Blur que aparece com scroll */}
         <Animated.View style={[StyleSheet.absoluteFill, blurStyle]}>
-          <BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={35} tint={blurTint} style={StyleSheet.absoluteFill} />
           <LinearGradient
-            colors={[Colors.backgroundSecondary, "rgba(7, 11, 20, 0.85)"]}
+            colors={[colors.backgroundSecondary, "rgba(7, 11, 20, 0.85)"]}
             style={StyleSheet.absoluteFill}
           />
         </Animated.View>
@@ -280,7 +281,7 @@ export default function TelaExploreCidade({ navigation, route }) {
             style={styles.backButton}
             onPress={handleBack}
           >
-            <BlurView intensity={35} tint="dark" style={styles.headerBlur}>
+            <BlurView intensity={35} tint={blurTint} style={styles.headerBlur}>
               <MaterialCommunityIcons
                 name="arrow-left"
                 size={22}
@@ -310,7 +311,7 @@ export default function TelaExploreCidade({ navigation, route }) {
           entering={FadeInUp.delay(100).springify().damping(15)}
           style={styles.overviewCardOuter}
         >
-          <BlurView intensity={25} tint="dark" style={styles.overviewCard}>
+          <BlurView intensity={25} tint={blurTint} style={styles.overviewCard}>
             <View style={styles.overviewTop}>
               <View>
                 <Text style={styles.overviewLabel}>SUA REGIÃO</Text>
@@ -403,10 +404,11 @@ export default function TelaExploreCidade({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   ambientGlow: {
     position: "absolute",
@@ -420,12 +422,12 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     justifyContent: "center",
     alignItems: "center",
   },
   loadingText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 14,
     fontSize: 14,
     fontWeight: "600",
@@ -438,7 +440,7 @@ const styles = StyleSheet.create({
     zIndex: 100,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   header: {
     paddingHorizontal: 20,
@@ -456,21 +458,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
   },
   headerCopy: {
     flex: 1,
   },
   kicker: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
     letterSpacing: 1,
   },
   title: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 28,
     fontWeight: "800",
     marginTop: 4,
@@ -480,7 +482,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.glassStrong,
     backgroundColor: "rgba(255,255,255,0.01)",
     marginHorizontal: 20,
     marginTop: 22,
@@ -548,7 +550,7 @@ const styles = StyleSheet.create({
   statItemDivider: {
     width: 1,
     height: 22,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
   },
   statNumber: {
     color: "#FFF",
@@ -572,16 +574,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glass,
   },
   vibeText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "600",
     marginLeft: 8,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: "800",
     marginTop: 24,
@@ -596,13 +598,13 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: "100%",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 24,
     paddingVertical: 20,
     alignItems: "center",
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   categoryIcon: {
     width: 54,
@@ -613,30 +615,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   categoryText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "700",
     fontSize: 15,
   },
   countBadge: {
     marginTop: 6,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
   },
   categoryCount: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 11,
     fontWeight: "600",
   },
   bairroCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -656,12 +658,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   bairroNome: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
   bairroDesc: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 3,
     fontSize: 12,
     fontWeight: "500",
@@ -675,3 +677,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
+}

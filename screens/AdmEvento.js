@@ -36,7 +36,9 @@ import { db } from "../firebaseConfig";
 
 import { useAuth } from "../context/AuthContext";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 import ConfirmModal from "../components/ConfirmModal";
 
 const formatarDataEventoLista = (item) => {
@@ -191,7 +193,7 @@ export default function AdmEvento({ navigation }) {
 					</LinearGradient>
 				</ImageBackground>
 
-				<BlurView intensity={40} tint="dark" style={styles.content}>
+				<BlurView intensity={40} tint={blurTint} style={styles.content}>
 					<Text style={styles.titulo} numberOfLines={1}>
 						{item.tituloEvento || "Sem título"}
 					</Text>
@@ -272,7 +274,7 @@ export default function AdmEvento({ navigation }) {
 							<MaterialCommunityIcons
 								name="chevron-right"
 								size={18}
-								color={Colors.textMuted}
+								color={colors.textMuted}
 								style={styles.dashboardChevron}
 							/>
 						</TouchableOpacity>
@@ -307,7 +309,7 @@ export default function AdmEvento({ navigation }) {
 				colors={["#240046", "#3C096C", "#5A189A"]}
 				style={styles.header}
 			>
-				<BlurView intensity={35} tint="dark" style={styles.headerBlur}>
+				<BlurView intensity={35} tint={blurTint} style={styles.headerBlur}>
 					<View style={styles.headerTop}>
 						<TouchableOpacity
 							style={styles.backBtn}
@@ -418,10 +420,11 @@ export default function AdmEvento({ navigation }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	header: {
@@ -453,7 +456,7 @@ const styles = StyleSheet.create({
 		width: 44,
 		height: 44,
 		borderRadius: 14,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -589,9 +592,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		paddingHorizontal: 14,
 		borderRadius: 16,
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderWidth: 1,
-		borderColor: Colors.glassBorder,
+		borderColor: c.glassBorder,
 		gap: 10,
 	},
 
@@ -607,7 +610,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		fontSize: 13,
 		fontWeight: "700",
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 	},
 
 	dashboardChevron: {
@@ -618,7 +621,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	loadingText: {
@@ -666,3 +669,4 @@ const styles = StyleSheet.create({
 		shadowRadius: 18,
 	},
 });
+}

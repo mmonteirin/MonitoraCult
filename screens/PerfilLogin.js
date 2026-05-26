@@ -24,7 +24,9 @@ import { BlurView } from "expo-blur";
 import { MotiView } from "moti";
 
 import AppText from "../components/AppText";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 import ConfirmModal from "../components/ConfirmModal";
 import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciador de sessão
 
@@ -165,7 +167,7 @@ export default function PerfilLogin({ navigation }) {
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: "timing", duration: 850 }}
             >
-              <BlurView intensity={65} tint="dark" style={styles.card}>
+              <BlurView intensity={65} tint={blurTint} style={styles.card}>
                 
                 {/* EMAIL */}
                 <AppText style={styles.label}>Email</AppText>
@@ -332,7 +334,8 @@ export default function PerfilLogin({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   background: { flex: 1 },
   overlay: { flex: 1 },
   container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 },
@@ -340,9 +343,9 @@ const styles = StyleSheet.create({
   logoCircle: { width: 72, height: 72, borderRadius: 40, justifyContent: "center", alignItems: "center" },
   appName: { fontSize: 24, fontWeight: "bold", color: "#FFF", marginTop: 12 },
   subtitle: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 13 },
-  card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: c.glassStrong },
   label: { color: "rgba(255,255,255,0.75)", marginBottom: 6, marginLeft: 4, fontSize: 13 },
-  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: c.glass, borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: c.glassStrong },
   inputFocused: { borderColor: Colors?.primary || "#7C3AED" },
   icon: { marginRight: 8 },
   input: { flex: 1, color: "#FFF", paddingVertical: 14, fontSize: 14 },
@@ -358,8 +361,9 @@ const styles = StyleSheet.create({
   line: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.10)" },
   divider: { marginHorizontal: 10, color: "rgba(255,255,255,0.45)", fontSize: 11 },
   socialContainer: { flexDirection: "row", justifyContent: "center", gap: 14, marginBottom: 18 },
-  socialButton: { width: 50, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.07)" },
-  organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
+  socialButton: { width: 50, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: c.glassBorder },
+  organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: c.glass },
   organizador: { color: Colors?.warning || "#FFD166", fontWeight: "bold", fontSize: 13 },
   footer: { marginTop: 18, textAlign: "center", fontSize: 11, lineHeight: 18, color: "rgba(255,255,255,0.45)" },
 });
+}

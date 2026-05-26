@@ -39,7 +39,8 @@ import { Image } from "expo-image";
 
 import { useAuth } from "../context/AuthContext";
 import { realizarCheckIn } from "../services/qrCheckinService";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const COOLDOWN_MS = 2200; // pausa entre scans
@@ -91,8 +92,8 @@ function ResultCard({ estado, dados }) {
 
   if (estado === ESTADO.PROCESSANDO) {
     return (
-      <BlurView intensity={28} tint="dark" style={resStyles.card}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <BlurView intensity={28} tint={blurTint} style={resStyles.card}>
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={resStyles.msg}>Verificando ingresso…</Text>
       </BlurView>
     );
@@ -101,7 +102,7 @@ function ResultCard({ estado, dados }) {
   const ok = estado === ESTADO.SUCESSO;
 
   return (
-    <BlurView intensity={28} tint="dark" style={resStyles.card}>
+    <BlurView intensity={28} tint={blurTint} style={resStyles.card}>
       {/* Ícone de status */}
       <View
         style={[
@@ -112,7 +113,7 @@ function ResultCard({ estado, dados }) {
         <MaterialCommunityIcons
           name={ok ? "check-circle" : "close-circle"}
           size={52}
-          color={ok ? Colors.success : Colors.error}
+          color={ok ? colors.success : colors.error}
         />
       </View>
 
@@ -148,7 +149,7 @@ function ResultCard({ estado, dados }) {
       <Text
         style={[
           resStyles.statusMsg,
-          { color: ok ? Colors.success : Colors.error },
+          { color: ok ? colors.success : colors.error },
         ]}
       >
         {dados?.mensagem}
@@ -165,7 +166,7 @@ function HistoricoItem({ item }) {
         style={[
           histStyles.dot,
           {
-            backgroundColor: item.valido ? Colors.success : Colors.error,
+            backgroundColor: item.valido ? colors.success : colors.error,
           },
         ]}
       />
@@ -180,7 +181,7 @@ function HistoricoItem({ item }) {
       <MaterialCommunityIcons
         name={item.valido ? "check" : "close"}
         size={16}
-        color={item.valido ? Colors.success : Colors.error}
+        color={item.valido ? colors.success : colors.error}
       />
     </View>
   );
@@ -275,7 +276,7 @@ export default function AdmQRScanner({ navigation, route }) {
         <ActivityIndicator
           style={{ flex: 1 }}
           size="large"
-          color={Colors.primary}
+          color={colors.primary}
         />
       </SafeAreaView>
     );
@@ -292,7 +293,7 @@ export default function AdmQRScanner({ navigation, route }) {
           <MaterialCommunityIcons
             name="camera-off"
             size={56}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.permissionTitle}>
             Câmera necessária
@@ -306,7 +307,7 @@ export default function AdmQRScanner({ navigation, route }) {
             onPress={requestPermission}
           >
             <LinearGradient
-              colors={[Colors.primary, Colors.primaryDark]}
+              colors={[colors.primary, colors.primaryDark]}
               style={styles.permissionBtnGrad}
             >
               <Text style={styles.permissionBtnText}>
@@ -341,7 +342,7 @@ export default function AdmQRScanner({ navigation, route }) {
             <Ionicons
               name="arrow-back"
               size={22}
-              color={Colors.textPrimary}
+              color={colors.textPrimary}
             />
           </TouchableOpacity>
 
@@ -357,7 +358,7 @@ export default function AdmQRScanner({ navigation, route }) {
             <MaterialCommunityIcons
               name="account-check"
               size={14}
-              color={Colors.success}
+              color={colors.success}
             />
             <Text style={styles.counterText}>{totalEntradas}</Text>
           </View>
@@ -365,31 +366,31 @@ export default function AdmQRScanner({ navigation, route }) {
 
         {/* STATS RÁPIDAS */}
         <View style={styles.statsRow}>
-          <BlurView intensity={20} tint="dark" style={styles.statPill}>
+          <BlurView intensity={20} tint={blurTint} style={styles.statPill}>
             <MaterialCommunityIcons
               name="check-circle-outline"
               size={16}
-              color={Colors.success}
+              color={colors.success}
             />
             <Text style={styles.statNum}>{totalEntradas}</Text>
             <Text style={styles.statLbl}>Entradas</Text>
           </BlurView>
 
-          <BlurView intensity={20} tint="dark" style={styles.statPill}>
+          <BlurView intensity={20} tint={blurTint} style={styles.statPill}>
             <MaterialCommunityIcons
               name="close-circle-outline"
               size={16}
-              color={Colors.error}
+              color={colors.error}
             />
             <Text style={styles.statNum}>{totalErros}</Text>
             <Text style={styles.statLbl}>Recusados</Text>
           </BlurView>
 
-          <BlurView intensity={20} tint="dark" style={styles.statPill}>
+          <BlurView intensity={20} tint={blurTint} style={styles.statPill}>
             <MaterialCommunityIcons
               name="percent"
               size={16}
-              color={Colors.info}
+              color={colors.info}
             />
             <Text style={styles.statNum}>
               {totalEntradas + totalErros > 0
@@ -438,10 +439,10 @@ export default function AdmQRScanner({ navigation, route }) {
                   {
                     backgroundColor:
                       estado === ESTADO.PROCESSANDO
-                        ? Colors.warning
+                        ? colors.warning
                         : estado === ESTADO.SUCESSO
-                        ? Colors.success
-                        : Colors.error,
+                        ? colors.success
+                        : colors.error,
                   },
                 ]}
               />
@@ -465,7 +466,7 @@ export default function AdmQRScanner({ navigation, route }) {
 
             <BlurView
               intensity={18}
-              tint="dark"
+              tint={blurTint}
               style={styles.histCard}
             >
               {historico.slice(0, 20).map((item) => (
@@ -492,8 +493,8 @@ const scanStyles = StyleSheet.create({
     right: 8,
     height: 2,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
-    shadowColor: Colors.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOpacity: 0.9,
     shadowRadius: 6,
     elevation: 4,
@@ -549,7 +550,7 @@ const resStyles = StyleSheet.create({
     backgroundColor: "rgba(108,92,231,0.2)",
   },
   tipoText: {
-    color: Colors.primaryLight,
+    color: colors.primaryLight,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -560,7 +561,7 @@ const resStyles = StyleSheet.create({
     textAlign: "center",
   },
   msg: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginTop: 14,
     fontSize: 15,
   },
@@ -589,8 +590,9 @@ const histStyles = StyleSheet.create({
   },
 });
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   scroll: { paddingHorizontal: 18, paddingTop: 18 },
 
   // Header
@@ -603,7 +605,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -629,7 +631,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   counterText: {
-    color: Colors.success,
+    color: c.success,
     fontSize: 15,
     fontWeight: "900",
     marginLeft: 4,
@@ -649,9 +651,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     alignItems: "center",
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: c.glassBorder,
     gap: 2,
   },
   statNum: {
@@ -691,7 +693,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: CORNER,
     height: CORNER,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderWidth: 3,
   },
   cornerTL: {
@@ -754,9 +756,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 6,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: c.glassBorder,
   },
 
   // Permissão
@@ -796,3 +798,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+}

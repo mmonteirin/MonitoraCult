@@ -14,11 +14,12 @@ import {
   Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { TIPOS_INGRESSO } from "../services/ingressoServiceV2";
 
 const TipoIngressoItem = memo(
-  ({ tipo, preco, onAdionar, onRemover, quantidadeNoCarrinho, gratuito }) => {
+  ({ tipo, preco, onAdionar, onRemover, quantidadeNoCarrinho, gratuito, colors, styles }) => {
     const tipoConfig = TIPOS_INGRESSO[tipo.toUpperCase()];
     const desconto = tipoConfig?.desconto || 0;
     const precoComDesconto = preco * (1 - desconto);
@@ -59,7 +60,7 @@ const TipoIngressoItem = memo(
             <MaterialCommunityIcons
               name="minus"
               size={20}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </TouchableOpacity>
 
@@ -88,6 +89,9 @@ const SeletorIngressos = ({
   onRemover,
   gratuito = false,
 }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const tipos = Object.keys(TIPOS_INGRESSO);
 
   const renderItem = ({ item: tipo }) => {
@@ -102,6 +106,8 @@ const SeletorIngressos = ({
         onRemover={() => onRemover(tipo)}
         quantidadeNoCarrinho={noCarrinho?.quantidade || 0}
         gratuito={gratuito}
+        colors={colors}
+        styles={styles}
       />
     );
   };
@@ -123,9 +129,10 @@ const SeletorIngressos = ({
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 14,
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 14,
   },
 
@@ -156,11 +163,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   desconto: {
-    backgroundColor: Colors.error + "20",
+    backgroundColor: c.error + "20",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -171,7 +178,7 @@ const styles = StyleSheet.create({
   descontoText: {
     fontSize: 12,
     fontWeight: "700",
-    color: Colors.error,
+    color: c.error,
   },
 
   preco: {
@@ -180,7 +187,7 @@ const styles = StyleSheet.create({
 
   precoOriginal: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textDecorationLine: "line-through",
     marginBottom: 2,
   },
@@ -188,12 +195,12 @@ const styles = StyleSheet.create({
   precoFinal: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   economiza: {
     fontSize: 11,
-    color: Colors.success,
+    color: c.success,
     marginTop: 2,
   },
 
@@ -212,11 +219,11 @@ const styles = StyleSheet.create({
   },
 
   btnPrimary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
 
   btnOutline: {
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
 
   quantity: {
@@ -224,21 +231,22 @@ const styles = StyleSheet.create({
     height: 36,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     borderRadius: 8,
   },
 
   quantityText: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   separator: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: 10,
   },
-});
+  });
+}
 
 export default SeletorIngressos;

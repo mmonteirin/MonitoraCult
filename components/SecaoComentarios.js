@@ -19,10 +19,11 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { useComments } from "../hooks/useComments";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 // ✅ Item individual de comentário
-const CommentItem = memo(({ comment, onDelete }) => (
+const CommentItem = memo(({ comment, onDelete, colors, styles }) => (
   <View style={styles.commentCard}>
     {/* Avatar */}
     <Image
@@ -47,7 +48,7 @@ const CommentItem = memo(({ comment, onDelete }) => (
           <MaterialCommunityIcons
             name="heart-outline"
             size={14}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.commentActionText}>Curtir</Text>
         </TouchableOpacity>
@@ -56,7 +57,7 @@ const CommentItem = memo(({ comment, onDelete }) => (
           <MaterialCommunityIcons
             name="reply"
             size={14}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.commentActionText}>Responder</Text>
         </TouchableOpacity>
@@ -69,7 +70,7 @@ const CommentItem = memo(({ comment, onDelete }) => (
         <MaterialCommunityIcons
           name="trash-can-outline"
           size={16}
-          color={Colors.error}
+          color={colors.error}
         />
       </TouchableOpacity>
     )}
@@ -78,6 +79,8 @@ const CommentItem = memo(({ comment, onDelete }) => (
 
 // ✅ Componente principal
 const SecaoComentarios = memo(({ postId, canComment = true }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { user, profile } = useAuth();
   const { comentarios, loading, adicionando, adicionarComentario } =
     useComments(postId);
@@ -115,7 +118,7 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
       {/* LISTA DE COMENTÁRIOS */}
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="small" color={Colors.primary} />
+          <ActivityIndicator size="small" color={colors.primary} />
           <Text style={styles.loaderText}>Carregando...</Text>
         </View>
       ) : comentarios.length === 0 ? (
@@ -123,7 +126,7 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
           <MaterialCommunityIcons
             name="comment-outline"
             size={40}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.emptyText}>Sem comentários ainda</Text>
           <Text style={styles.emptySubtext}>Seja o primeiro a comentar!</Text>
@@ -142,6 +145,8 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
                     }
                   : null
               }
+              colors={colors}
+              styles={styles}
             />
           )}
           keyExtractor={(item) => item.id}
@@ -163,7 +168,7 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
           <TextInput
             style={styles.input}
             placeholder="Adicione um comentário..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={novoComentario}
             onChangeText={setNovoComentario}
             maxLength={300}
@@ -176,13 +181,13 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
             style={styles.sendButton}
           >
             {adicionando ? (
-              <ActivityIndicator size="small" color={Colors.primary} />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <MaterialCommunityIcons
                 name="send"
                 size={20}
                 color={
-                  novoComentario.trim() ? Colors.primary : Colors.textMuted
+                  novoComentario.trim() ? colors.primary : colors.textMuted
                 }
               />
             )}
@@ -196,7 +201,7 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
           <MaterialCommunityIcons
             name="lock-outline"
             size={16}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.loginPromptText}>
             Faça login para comentar
@@ -207,7 +212,8 @@ const SecaoComentarios = memo(({ postId, canComment = true }) => {
   );
 });
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginVertical: 16,
     paddingHorizontal: 16,
@@ -220,7 +226,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   // LOADER
@@ -232,7 +238,7 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 8,
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // EMPTY STATE
@@ -245,13 +251,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   emptySubtext: {
     marginTop: 4,
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // COMENTÁRIOS
@@ -269,7 +275,7 @@ const styles = StyleSheet.create({
 
   commentContent: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 10,
   },
@@ -284,17 +290,17 @@ const styles = StyleSheet.create({
   commentUser: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   commentTime: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   commentText: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 18,
   },
 
@@ -312,7 +318,7 @@ const styles = StyleSheet.create({
 
   commentActionText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   deleteBtn: {
@@ -321,7 +327,7 @@ const styles = StyleSheet.create({
 
   separator: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: 8,
   },
 
@@ -333,7 +339,7 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   inputAvatar: {
@@ -344,14 +350,14 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     maxHeight: 80,
   },
 
@@ -370,13 +376,14 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   loginPromptText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
-});
+  });
+}
 
 export default SecaoComentarios;

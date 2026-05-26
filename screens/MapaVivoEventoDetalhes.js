@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import {
   getMapEventDetails,
   formatarDistancia,
@@ -79,11 +80,11 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color={Colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -99,7 +100,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color={Colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
         <View style={styles.errorContainer}>
@@ -120,7 +121,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color={Colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalhes</Text>
@@ -131,7 +132,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
           <MaterialCommunityIcons
             name="share-variant"
             size={24}
-            color={Colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
       </View>
@@ -148,7 +149,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="map-marker-multiple"
               size={60}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
         )}
@@ -160,7 +161,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="tag"
               size={14}
-              color={Colors.primary}
+              color={colors.primary}
             />
             <Text style={styles.genreText}>{event.genre}</Text>
           </View>
@@ -173,7 +174,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="map-marker"
               size={18}
-              color={Colors.primary}
+              color={colors.primary}
             />
             <View style={styles.locationInfo}>
               <Text style={styles.locationLabel}>Localização</Text>
@@ -191,7 +192,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="clock-outline"
               size={18}
-              color={Colors.primary}
+              color={colors.primary}
             />
             <View>
               <Text style={styles.timeLabel}>Horário</Text>
@@ -215,7 +216,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="heart"
                 size={20}
-                color={Colors.error}
+                color={colors.error}
               />
               <View>
                 <Text style={styles.statValue}>
@@ -229,7 +230,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="check-circle"
                 size={20}
-                color={Colors.success}
+                color={colors.success}
               />
               <View>
                 <Text style={styles.statValue}>
@@ -243,7 +244,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="people"
                 size={20}
-                color={Colors.primary}
+                color={colors.primary}
               />
               <View>
                 <Text style={styles.statValue}>
@@ -265,7 +266,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="phone"
                   size={18}
-                  color={Colors.primary}
+                  color={colors.primary}
                 />
                 <Text style={styles.contactText}>{event.contact}</Text>
               </TouchableOpacity>
@@ -281,7 +282,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="heart-outline"
                 size={20}
-                color={Colors.error}
+                color={colors.error}
               />
               <Text style={styles.actionButtonText}>Curtir</Text>
             </TouchableOpacity>
@@ -297,7 +298,7 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="check-circle"
                 size={20}
-                color={Colors.textPrimary}
+                color={colors.textPrimary}
               />
               <Text
                 style={[
@@ -315,10 +316,11 @@ export default function MapaVivoEventoDetalhes({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -327,7 +329,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backButton: {
     width: 40,
@@ -335,12 +337,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
     textAlign: "center",
   },
@@ -350,7 +352,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   loadingContainer: {
     flex: 1,
@@ -364,7 +366,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   content: {
     flex: 1,
@@ -372,12 +374,12 @@ const styles = StyleSheet.create({
   banner: {
     width: "100%",
     height: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   bannerPlaceholder: {
     width: "100%",
     height: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -399,12 +401,12 @@ const styles = StyleSheet.create({
   genreText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 16,
     lineHeight: 30,
   },
@@ -413,7 +415,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
     padding: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
   },
   locationInfo: {
@@ -422,37 +424,37 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 11,
     fontWeight: "600",
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
   },
   locationValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 4,
   },
   distance: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   timeSection: {
     flexDirection: "row",
     gap: 12,
     marginBottom: 16,
     padding: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
   },
   timeLabel: {
     fontSize: 11,
     fontWeight: "600",
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 2,
   },
   timeValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   descriptionSection: {
     marginBottom: 16,
@@ -460,12 +462,12 @@ const styles = StyleSheet.create({
   descriptionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   descriptionText: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   statsSection: {
@@ -474,7 +476,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   stat: {
     flex: 1,
@@ -483,17 +485,17 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
   },
   statValue: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   statLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   contactSection: {
@@ -502,7 +504,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   contactButton: {
@@ -510,13 +512,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
   },
   contactText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   actionButtons: {
     flexDirection: "row",
@@ -530,20 +532,21 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   checkInActionButton: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   actionButtonText: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   checkInActionButtonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });
+}

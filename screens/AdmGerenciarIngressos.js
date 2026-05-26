@@ -17,7 +17,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import ConfirmModal from "../components/ConfirmModal";
 import {
   TIPOS_INGRESSO,
@@ -43,10 +44,10 @@ const STATUS_LABEL = {
 };
 
 const STATUS_COLOR = {
-  [STATUS_INGRESSO.CONFIRMADO]: Colors.success,
-  [STATUS_INGRESSO.UTILIZADO]: Colors.info,
-  [STATUS_INGRESSO.CANCELADO]: Colors.error,
-  [STATUS_INGRESSO.PENDENTE]: Colors.warning,
+  [STATUS_INGRESSO.CONFIRMADO]: colors.success,
+  [STATUS_INGRESSO.UTILIZADO]: colors.info,
+  [STATUS_INGRESSO.CANCELADO]: colors.error,
+  [STATUS_INGRESSO.PENDENTE]: colors.warning,
 };
 
 function formatDate(value) {
@@ -92,7 +93,7 @@ function compraPassaFiltro(compra, filtro) {
   return true;
 }
 
-function StatMini({ icon, label, value, color = Colors.primaryLight }) {
+function StatMini({ icon, label, value, color = colors.primaryLight }) {
   return (
     <View style={styles.statMini}>
       <MaterialCommunityIcons name={icon} size={18} color={color} />
@@ -250,13 +251,13 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
         );
 
       return (
-        <BlurView intensity={28} tint="dark" style={styles.compraCard}>
+        <BlurView intensity={28} tint={blurTint} style={styles.compraCard}>
           <View style={styles.compraHeader}>
             <View style={styles.compraAvatar}>
               <MaterialCommunityIcons
                 name="account"
                 size={22}
-                color={Colors.primaryLight}
+                color={colors.primaryLight}
               />
             </View>
             <View style={styles.compraInfo}>
@@ -280,11 +281,11 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                 <View
                   style={[
                     styles.statusPill,
-                    { borderColor: Colors.error },
+                    { borderColor: colors.error },
                   ]}
                 >
                   <Text
-                    style={[styles.statusPillText, { color: Colors.error }]}
+                    style={[styles.statusPillText, { color: colors.error }]}
                   >
                     Cancelada
                   </Text>
@@ -312,7 +313,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                     styles.statusPill,
                     {
                       borderColor:
-                        STATUS_COLOR[ing.status] || Colors.textMuted,
+                        STATUS_COLOR[ing.status] || colors.textMuted,
                     },
                   ]}
                 >
@@ -321,7 +322,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                       styles.statusPillText,
                       {
                         color:
-                          STATUS_COLOR[ing.status] || Colors.textMuted,
+                          STATUS_COLOR[ing.status] || colors.textMuted,
                       },
                     ]}
                   >
@@ -343,7 +344,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
               <MaterialCommunityIcons
                 name="ticket-outline"
                 size={18}
-                color={Colors.error}
+                color={colors.error}
               />
               <Text style={styles.cancelBtnText}>Cancelar compra</Text>
             </TouchableOpacity>
@@ -421,7 +422,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
             icon="account-check"
             label="Check-in"
             value={resumo.utilizados}
-            color={Colors.info}
+            color={colors.info}
           />
           <StatMini
             icon="cash"
@@ -429,7 +430,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
             value={
               gratuito ? "—" : `R$ ${resumo.receita.toFixed(0)}`
             }
-            color={Colors.success}
+            color={colors.success}
           />
           <StatMini
             icon="seat"
@@ -437,7 +438,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
             value={
               resumo.restantes != null ? resumo.restantes : "∞"
             }
-            color={Colors.warning}
+            color={colors.warning}
           />
         </View>
       </LinearGradient>
@@ -446,7 +447,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
       >
-        <BlurView intensity={24} tint="dark" style={styles.configCard}>
+        <BlurView intensity={24} tint={blurTint} style={styles.configCard}>
           <Text style={styles.sectionTitle}>Configuração</Text>
           <Text style={styles.sectionHint}>
             {gratuito
@@ -463,7 +464,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                 onChangeText={setCapacidade}
                 keyboardType="number-pad"
                 placeholder="0 = ilimitado"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
               />
             </View>
             {!gratuito && (
@@ -475,7 +476,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                   onChangeText={setPrecoIngresso}
                   keyboardType="decimal-pad"
                   placeholder="0,00"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                 />
               </View>
             )}
@@ -502,7 +503,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
             <MaterialCommunityIcons
               name="chevron-right"
               size={18}
-              color={Colors.textMuted}
+              color={colors.textMuted}
               style={styles.saveChevron}
             />
           </TouchableOpacity>
@@ -544,7 +545,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
 
         {loading ? (
           <ActivityIndicator
-            color={Colors.primary}
+            color={colors.primary}
             style={{ marginTop: 40 }}
           />
         ) : (
@@ -558,7 +559,7 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="ticket-outline"
                   size={48}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.emptyTitle}>
                   Nenhuma compra neste filtro
@@ -609,8 +610,9 @@ export default function AdmGerenciarIngressos({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   center: { justifyContent: "center", alignItems: "center", padding: 24 },
   header: {
     paddingTop: Platform.OS === "ios" ? 58 : 46,
@@ -624,7 +626,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -633,7 +635,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -647,12 +649,12 @@ const styles = StyleSheet.create({
   },
   statMini: {
     flex: 1,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     borderRadius: 16,
     padding: 8,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
   },
   statMiniValue: {
     color: "#FFF",
@@ -673,15 +675,15 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   sectionTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "800",
   },
   sectionHint: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 12,
     marginTop: 4,
     marginBottom: 12,
@@ -690,7 +692,7 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: "row", gap: 10 },
   inputGroup: { flex: 1 },
   inputLabel: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 12,
     marginBottom: 6,
     fontWeight: "600",
@@ -698,10 +700,10 @@ const styles = StyleSheet.create({
   input: {
     height: 48,
     borderRadius: 14,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.textPrimary,
+    borderColor: c.border,
+    color: c.textPrimary,
     paddingHorizontal: 14,
     fontSize: 15,
   },
@@ -711,9 +713,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     gap: 10,
     marginTop: 14,
   },
@@ -730,7 +732,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   saveChevron: {
@@ -741,19 +743,19 @@ const styles = StyleSheet.create({
     height: 36,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     justifyContent: "center",
   },
   filterChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
-  filterText: { color: Colors.textSecondary, fontWeight: "700", fontSize: 12 },
+  filterText: { color: c.textSecondary, fontWeight: "700", fontSize: 12 },
   filterTextActive: { color: "#FFF" },
   listTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "800",
     marginBottom: 12,
@@ -764,37 +766,37 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
   compraHeader: { flexDirection: "row", alignItems: "flex-start" },
   compraAvatar: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: c.primarySoft,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
   },
   compraInfo: { flex: 1 },
-  compraNome: { color: Colors.textPrimary, fontWeight: "800", fontSize: 14 },
-  compraEmail: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
-  compraData: { color: Colors.textSecondary, fontSize: 11, marginTop: 4 },
+  compraNome: { color: c.textPrimary, fontWeight: "800", fontSize: 14 },
+  compraEmail: { color: c.textMuted, fontSize: 12, marginTop: 2 },
+  compraData: { color: c.textSecondary, fontSize: 11, marginTop: 4 },
   compraValorBox: { alignItems: "flex-end" },
-  compraValor: { color: Colors.success, fontWeight: "800", fontSize: 14 },
+  compraValor: { color: c.success, fontWeight: "800", fontSize: 14 },
   ingressosLista: { marginTop: 12, gap: 8 },
   ingressoRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderRadius: 12,
     padding: 8,
   },
   ingressoMeta: { flex: 1, paddingRight: 8 },
-  ingressoTipo: { color: Colors.textPrimary, fontSize: 13, fontWeight: "600" },
+  ingressoTipo: { color: c.textPrimary, fontSize: 13, fontWeight: "600" },
   ingressoCodigo: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 11,
     marginTop: 2,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
@@ -818,27 +820,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(239,68,68,0.25)",
   },
-  cancelBtnText: { color: Colors.error, fontWeight: "700", fontSize: 13 },
+  cancelBtnText: { color: c.error, fontWeight: "700", fontSize: 13 },
   emptyBox: {
     alignItems: "center",
     padding: 24,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 16,
     fontWeight: "800",
     marginTop: 12,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     textAlign: "center",
     marginTop: 6,
     lineHeight: 20,
   },
   backLink: { marginTop: 16 },
-  backLinkText: { color: Colors.primaryLight, fontWeight: "700" },
+  backLinkText: { color: c.primaryLight, fontWeight: "700" },
 });
+}

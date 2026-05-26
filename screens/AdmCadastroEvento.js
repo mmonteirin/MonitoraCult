@@ -35,7 +35,8 @@ import { db } from "../firebaseConfig";
 import { useAuth } from "../context/AuthContext";
 import { uploadImagem } from "../services/uploadService";
 import { geocodeAddress } from "../services/geocodingService";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import ConfirmModal from "../components/ConfirmModal";
 
 /* =========================
@@ -196,6 +197,9 @@ const SelectModal = ({
 	options,
 	onSelect,
 }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
 	const [visible, setVisible] = useState(false);
 
 	return (
@@ -238,7 +242,7 @@ const SelectModal = ({
 				<View style={styles.selectOverlay}>
 					<BlurView
 						intensity={35}
-						tint="dark"
+						tint={blurTint}
 						style={StyleSheet.absoluteFill}
 					/>
 
@@ -1503,7 +1507,8 @@ export default function AdmCadastroEvento({
    STYLES
 ========================= */
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor:
@@ -1553,7 +1558,7 @@ const styles = StyleSheet.create({
 			"rgba(255,255,255,0.05)",
 		borderWidth: 1,
 		borderColor:
-			"rgba(255,255,255,0.08)",
+			c.glassStrong,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -1582,7 +1587,7 @@ const styles = StyleSheet.create({
 			"rgba(255,255,255,0.05)",
 		borderWidth: 1,
 		borderColor:
-			"rgba(255,255,255,0.08)",
+			c.glassStrong,
 		borderRadius: 14,
 		paddingHorizontal: 16,
 		paddingVertical: 14,
@@ -1595,7 +1600,7 @@ const styles = StyleSheet.create({
 			"rgba(255,255,255,0.05)",
 		borderWidth: 1,
 		borderColor:
-			"rgba(255,255,255,0.08)",
+			c.glassStrong,
 		borderRadius: 14,
 		paddingHorizontal: 16,
 		paddingVertical: 14,
@@ -1626,7 +1631,7 @@ const styles = StyleSheet.create({
 			"rgba(255,255,255,0.05)",
 		borderWidth: 1,
 		borderColor:
-			"rgba(255,255,255,0.08)",
+			c.glassStrong,
 		borderRadius: 14,
 		paddingHorizontal: 16,
 		paddingVertical: 14,
@@ -1666,7 +1671,7 @@ const styles = StyleSheet.create({
 		borderRadius: 12,
 		marginBottom: 8,
 		backgroundColor:
-			"rgba(255,255,255,0.04)",
+			c.glass,
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -1751,3 +1756,4 @@ const styles = StyleSheet.create({
 	},
 
 });
+}

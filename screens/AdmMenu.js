@@ -27,9 +27,13 @@ import { MotiView } from "moti";
 
 import { useAuth } from "../context/AuthContext";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function AdmMenu() {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const navigation = useNavigation();
 
   const {
@@ -129,7 +133,7 @@ export default function AdmMenu() {
           >
             <BlurView
               intensity={60}
-              tint="dark"
+              tint={blurTint}
               style={styles.profileCard}
             >
               {/* TOPO */}
@@ -141,7 +145,7 @@ export default function AdmMenu() {
                 {/* FOTO */}
                 <LinearGradient
                   colors={[
-                    Colors.primary,
+                    colors.primary,
                     "#7B5CFF",
                   ]}
                   style={
@@ -352,7 +356,7 @@ export default function AdmMenu() {
           >
             <BlurView
               intensity={50}
-              tint="dark"
+              tint={blurTint}
               style={styles.modalCard}
             >
               <LinearGradient
@@ -521,7 +525,7 @@ function MenuCard({
         <MaterialCommunityIcons
           name="chevron-right"
           size={18}
-          color={Colors.textMuted}
+          color={colors.textMuted}
           style={styles.acaoChevron}
         />
       </TouchableOpacity>
@@ -530,7 +534,8 @@ function MenuCard({
 }
 
 /* STYLES */
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   background: {
     flex: 1,
   },
@@ -560,7 +565,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     backgroundColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
   },
 
   headerTitle: {
@@ -591,10 +596,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
 
     backgroundColor:
-      "rgba(255,255,255,0.04)",
+      c.glass,
   },
 
   profileRow: {
@@ -659,7 +664,7 @@ const styles = StyleSheet.create({
     gap: 6,
 
     backgroundColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
 
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -707,9 +712,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     gap: 10,
   },
 
@@ -728,13 +733,13 @@ const styles = StyleSheet.create({
   acaoLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   acaoSubtitle: {
     fontSize: 11,
     fontWeight: "500",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 2,
   },
 
@@ -787,7 +792,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
   },
 
   modalGradient: {
@@ -848,7 +853,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
 
     backgroundColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
 
     justifyContent: "center",
     alignItems: "center",
@@ -885,3 +890,4 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+}

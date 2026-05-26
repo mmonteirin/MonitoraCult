@@ -6,7 +6,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { formatarDistancia } from "../services/mapaVivoService";
 
 export default function MapEventMarker({
@@ -19,6 +20,8 @@ export default function MapEventMarker({
   onPress,
   isSelected = false,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   return (
     <TouchableOpacity
       style={[
@@ -33,7 +36,7 @@ export default function MapEventMarker({
         <MaterialCommunityIcons
           name="map-marker"
           size={32}
-          color={Colors.textPrimary}
+          color={colors.textPrimary}
         />
       </View>
 
@@ -54,7 +57,7 @@ export default function MapEventMarker({
               <MaterialCommunityIcons
                 name="map-distance"
                 size={12}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>
                 {formatarDistancia(distance)}
@@ -64,7 +67,7 @@ export default function MapEventMarker({
               <MaterialCommunityIcons
                 name="check-circle"
                 size={12}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>{checkInsCount}</Text>
             </View>
@@ -75,7 +78,8 @@ export default function MapEventMarker({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     alignItems: "center",
     justifyContent: "center",
@@ -87,10 +91,10 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -99,17 +103,17 @@ const styles = StyleSheet.create({
   callout: {
     position: "absolute",
     top: -120,
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     borderRadius: 12,
     padding: 10,
     width: 200,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   title: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
   genreTag: {
@@ -123,7 +127,7 @@ const styles = StyleSheet.create({
   genreText: {
     fontSize: 10,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   stats: {
     flexDirection: "row",
@@ -136,6 +140,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 10,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
 });
+}

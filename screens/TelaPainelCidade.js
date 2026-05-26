@@ -67,7 +67,8 @@ import { db } from "../firebaseConfig";
 
 import { useAuth } from "../context/AuthContext";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 import { getMapaSummary } from "../services/mapaVivoService";
 
@@ -241,7 +242,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 			<MaterialCommunityIcons
 				name="chevron-right"
 				size={18}
-				color={Colors.textMuted}
+				color={colors.textMuted}
 				style={styles.acaoChevron}
 			/>
 		</TouchableOpacity>
@@ -276,13 +277,13 @@ const FeedCard = memo(
 							</Text>
 							{item.local ? (
 								<View style={styles.feedLocalRow}>
-									<MaterialCommunityIcons name="map-marker" size={11} color={Colors.primary} />
+									<MaterialCommunityIcons name="map-marker" size={11} color={colors.primary} />
 									<Text numberOfLines={1} style={styles.feedLocalText}>{item.local}</Text>
 								</View>
 							) : null}
 						</View>
 						{item.createdAt ? (
-							<BlurView intensity={40} tint="dark" style={styles.feedDatePill}>
+							<BlurView intensity={40} tint={blurTint} style={styles.feedDatePill}>
 								<Text style={styles.feedDateText}>{formatarData(item.createdAt)}</Text>
 							</BlurView>
 						) : null}
@@ -321,14 +322,14 @@ const FeedCard = memo(
 								<MaterialCommunityIcons
 									name="comment-outline"
 									size={24}
-									color={Colors.textPrimary}
+									color={colors.textPrimary}
 								/>
 							</TouchableOpacity>
 							<TouchableOpacity style={styles.actionBtn} onPress={() => onShare?.(item)}>
 								<MaterialCommunityIcons
 									name="share-variant-outline"
 									size={23}
-									color={Colors.textPrimary}
+									color={colors.textPrimary}
 								/>
 							</TouchableOpacity>
 						</View>
@@ -340,7 +341,7 @@ const FeedCard = memo(
 								<MaterialCommunityIcons
 									name={isSubscribed ? "bell-ring" : "bell-plus-outline"}
 									size={16}
-									color={isSubscribed ? Colors.primary : "#FFF"}
+									color={isSubscribed ? colors.primary : "#FFF"}
 								/>
 								<Text style={[styles.notifBtnText, isSubscribed && styles.notifBtnTextActive]}>
 									{isSubscribed ? "Inscrito" : "Notificar"}
@@ -363,6 +364,9 @@ const FeedCard = memo(
 // MAIN SCREEN
 // ──────────────────────────────────────────────
 export default function TelaPainelCidade() {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
 	const navigation = useNavigation();
 	const insets = useSafeAreaInsets();
 	const { user, nome, foto } = useAuth();
@@ -712,7 +716,7 @@ export default function TelaPainelCidade() {
 	if (loading) {
 		return (
 			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color={Colors.primary} />
+				<ActivityIndicator size="large" color={colors.primary} />
 				<Text style={styles.loadingText}>
 					Carregando experiências...
 				</Text>
@@ -789,7 +793,7 @@ export default function TelaPainelCidade() {
 					stickyBarStyle,
 				]}
 			>
-				<BlurView intensity={60} tint="dark" style={styles.stickyBarBlur}>
+				<BlurView intensity={60} tint={blurTint} style={styles.stickyBarBlur}>
 					<MaterialCommunityIcons
 						name="map-marker-radius"
 						size={16}
@@ -1134,13 +1138,13 @@ export default function TelaPainelCidade() {
 								</Text>
 							</View>
 							<TouchableOpacity style={styles.sheetClose} onPress={fecharComentarios}>
-								<MaterialCommunityIcons name="close" size={20} color={Colors.textPrimary} />
+								<MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
 							</TouchableOpacity>
 						</View>
 
 						{commentsLoading ? (
 							<View style={styles.sheetLoading}>
-								<ActivityIndicator color={Colors.primary} />
+								<ActivityIndicator color={colors.primary} />
 							</View>
 						) : (
 							<FlatList
@@ -1150,7 +1154,7 @@ export default function TelaPainelCidade() {
 								showsVerticalScrollIndicator={false}
 								ListEmptyComponent={
 									<View style={styles.emptyComment}>
-										<MaterialCommunityIcons name="comment-text-outline" size={36} color={Colors.textMuted} />
+										<MaterialCommunityIcons name="comment-text-outline" size={36} color={colors.textMuted} />
 										<Text style={styles.emptyCommentText}>Seja o primeiro a comentar</Text>
 									</View>
 								}
@@ -1179,7 +1183,7 @@ export default function TelaPainelCidade() {
 									value={commentText}
 									onChangeText={setCommentText}
 									placeholder={`Comentar como ${nomeUsuario}…`}
-									placeholderTextColor={Colors.textMuted}
+									placeholderTextColor={colors.textMuted}
 									style={styles.composerText}
 									multiline
 									maxLength={500}
@@ -1205,10 +1209,11 @@ export default function TelaPainelCidade() {
 // ──────────────────────────────────────────────
 // STYLES
 // ──────────────────────────────────────────────
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: Colors.background,
+		backgroundColor: c.background,
 	},
 
 	// ── Loading ──
@@ -1216,7 +1221,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
-		backgroundColor: Colors.background,
+		backgroundColor: c.background,
 	},
 	loadingText: {
 		color: "rgba(255,255,255,0.6)",
@@ -1303,7 +1308,7 @@ const styles = StyleSheet.create({
 		width: 48,
 		height: 48,
 		borderRadius: 18,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -1311,7 +1316,7 @@ const styles = StyleSheet.create({
 	// ── City card ──
 	cityCard: {
 		marginTop: 28,
-		backgroundColor: "rgba(255,255,255,0.06)",
+		backgroundColor: c.glass,
 		borderRadius: 28,
 		padding: 20,
 		borderWidth: 1,
@@ -1430,9 +1435,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 14,
 		paddingHorizontal: 14,
 		borderRadius: 18,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 		gap: 10,
 	},
 	acaoIconCircle: {
@@ -1446,7 +1451,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		fontSize: 12,
 		fontWeight: "700",
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 	},
 	acaoChevron: {
 		opacity: 0.5,
@@ -1462,12 +1467,12 @@ const styles = StyleSheet.create({
 		height: 40,
 		paddingHorizontal: 18,
 		borderRadius: 20,
-		backgroundColor: "rgba(255,255,255,0.07)",
+		backgroundColor: c.glassBorder,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	categoryPillActive: {
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 	},
 	categoryText: {
 		color: "rgba(255,255,255,0.6)",
@@ -1498,7 +1503,7 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 	},
 	sectionLink: {
-		color: Colors.primaryLight,
+		color: c.primaryLight,
 		fontWeight: "600",
 		fontSize: 14,
 	},
@@ -1526,7 +1531,7 @@ const styles = StyleSheet.create({
 	},
 	heroBadge: {
 		alignSelf: "flex-start",
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 20,
@@ -1551,14 +1556,14 @@ const styles = StyleSheet.create({
 	// ── Divisor ──
 	divider: {
 		height: 1,
-		backgroundColor: "rgba(255,255,255,0.07)",
+		backgroundColor: c.glassBorder,
 		marginHorizontal: 18,
 		marginTop: 30,
 	},
 
 	// ── Feed card ──
 	feedCard: {
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		marginHorizontal: 18,
 		marginBottom: 20,
 		borderRadius: 28,
@@ -1574,10 +1579,10 @@ const styles = StyleSheet.create({
 		width: 46,
 		height: 46,
 		borderRadius: 23,
-		backgroundColor: Colors.card,
+		backgroundColor: c.card,
 	},
 	feedCardAutor: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontWeight: "700",
 		fontSize: 14,
 	},
@@ -1588,7 +1593,7 @@ const styles = StyleSheet.create({
 		marginTop: 3,
 	},
 	feedLocalText: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 11,
 	},
 	feedDatePill: {
@@ -1675,14 +1680,14 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 	},
 	notifBtnTextActive: {
-		color: Colors.primary,
+		color: c.primary,
 	},
 	feedMetrics: {
 		paddingHorizontal: 16,
 		paddingBottom: 14,
 	},
 	feedLikes: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontWeight: "700",
 		fontSize: 13,
 	},
@@ -1724,7 +1729,7 @@ const styles = StyleSheet.create({
 	modalWrap: { flex: 1, justifyContent: "flex-end" },
 	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
 	sheet: {
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderTopLeftRadius: 22,
 		borderTopRightRadius: 22,
 		maxHeight: "75%",
@@ -1745,64 +1750,65 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 18,
 		paddingVertical: 10,
 		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: "rgba(255,255,255,0.08)",
+		borderBottomColor: c.glassStrong,
 	},
-	sheetTitle: { color: Colors.textPrimary, fontWeight: "800", fontSize: 17 },
-	sheetSub: { color: Colors.textMuted, fontSize: 12, marginTop: 2 },
+	sheetTitle: { color: c.textPrimary, fontWeight: "800", fontSize: 17 },
+	sheetSub: { color: c.textMuted, fontSize: 12, marginTop: 2 },
 	sheetClose: {
 		width: 34,
 		height: 34,
 		borderRadius: 17,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
 	commentList: { paddingHorizontal: 16, paddingVertical: 12 },
 	commentRow: { flexDirection: "row", marginBottom: 14, gap: 10 },
-	commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.08)" },
+	commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.glassStrong },
 	commentBubble: {
 		flex: 1,
-		backgroundColor: "rgba(255,255,255,0.06)",
+		backgroundColor: c.glass,
 		borderRadius: 14,
 		paddingHorizontal: 12,
 		paddingVertical: 8,
 	},
 	commentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-	commentAuthor: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13, flex: 1, marginRight: 8 },
-	commentDate: { color: Colors.textMuted, fontSize: 11 },
-	commentBody: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18 },
+	commentAuthor: { color: c.textPrimary, fontWeight: "700", fontSize: 13, flex: 1, marginRight: 8 },
+	commentDate: { color: c.textMuted, fontSize: 11 },
+	commentBody: { color: c.textSecondary, fontSize: 13, lineHeight: 18 },
 	emptyComment: { alignItems: "center", paddingVertical: 40, gap: 10 },
-	emptyCommentText: { color: Colors.textMuted, fontSize: 14 },
+	emptyCommentText: { color: c.textMuted, fontSize: 14 },
 	composer: {
 		flexDirection: "row",
 		alignItems: "flex-end",
 		paddingHorizontal: 14,
 		paddingTop: 10,
 		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: "rgba(255,255,255,0.08)",
+		borderTopColor: c.glassStrong,
 		gap: 10,
 	},
-	composerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.08)" },
+	composerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.glassStrong },
 	composerInput: {
 		flex: 1,
 		flexDirection: "row",
 		alignItems: "flex-end",
-		backgroundColor: "rgba(255,255,255,0.06)",
+		backgroundColor: c.glass,
 		borderRadius: 20,
 		paddingLeft: 14,
 		paddingRight: 4,
 		paddingVertical: 6,
 		minHeight: 38,
 	},
-	composerText: { flex: 1, color: Colors.textPrimary, fontSize: 14, maxHeight: 80, paddingVertical: 0 },
+	composerText: { flex: 1, color: c.textPrimary, fontSize: 14, maxHeight: 80, paddingVertical: 0 },
 	sendBtn: {
 		width: 30,
 		height: 30,
 		borderRadius: 15,
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	sendBtnOff: { opacity: 0.35 },
 });
+}

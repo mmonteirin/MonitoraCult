@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function HeatmapLegend({ maxIntensity = 100 }) {
+  const styles = useThemedStyles(createThemedScreenStyles);
   const colors = [
     { label: "Baixa", color: "rgb(0, 255, 0)" },
     { label: "Média", color: "rgb(255, 255, 0)" },
@@ -30,18 +32,19 @@ export default function HeatmapLegend({ maxIntensity = 100 }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   title: {
     fontSize: 12,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   gradient: {
@@ -63,12 +66,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     flex: 1,
   },
   subtitle: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontStyle: "italic",
   },
 });
+}

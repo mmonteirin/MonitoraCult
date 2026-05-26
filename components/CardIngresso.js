@@ -17,7 +17,8 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 
@@ -36,12 +37,14 @@ const parseDateBR = (value) => {
 };
 
 const CardIngresso = memo(({ compra, ingresso, index, total }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
   const dataEvento = compra.eventoDataStr || "Data não informada";
   const horaEvento = compra.eventoHora || "Horário não informado";
-  const statusConfig = getStatusConfig(ingresso.status);
+  const statusConfig = getStatusConfig(ingresso.status, colors);
 
   // Verificar se é evento futuro
   const isFuturo = parseDateBR(compra.eventoDataStr ?? dataEvento) > new Date();
@@ -87,7 +90,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
         activeOpacity={0.8}
       >
         <LinearGradient
-          colors={isFuturo ? [Colors.primary + "20", Colors.primary + "08"] : [Colors.border, Colors.surface]}
+          colors={isFuturo ? [colors.primary + "20", colors.primary + "08"] : [colors.border, colors.surface]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.card}
@@ -100,7 +103,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
               </View>
             )}
 
-            <View style={[styles.badgeStatus, getStatusBadgeStyle(ingresso.status)]}>
+            <View style={[styles.badgeStatus, getStatusBadgeStyle(ingresso.status, colors)]}>
               <Text style={styles.badgeStatusText}>{statusConfig.label}</Text>
             </View>
           </View>
@@ -116,7 +119,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
                 <MaterialCommunityIcons
                   name="calendar"
                   size={12}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.meta}>{dataEvento}</Text>
               </View>
@@ -125,7 +128,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
                 <MaterialCommunityIcons
                   name="clock"
                   size={12}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.meta}>{horaEvento}</Text>
               </View>
@@ -134,7 +137,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
             <MaterialCommunityIcons
               name="chevron-right"
               size={24}
-              color={Colors.textMuted}
+              color={colors.textMuted}
             />
           </View>
 
@@ -159,7 +162,7 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
               <MaterialCommunityIcons
                 name="check-circle"
                 size={16}
-                color={Colors.success}
+                color={colors.success}
               />
               <Text style={styles.ingressoAtivoText}>Válido</Text>
             </View>
@@ -181,13 +184,13 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
               <MaterialCommunityIcons
                 name="close"
                 size={24}
-                color={Colors.textPrimary}
+                color={colors.textPrimary}
               />
             </TouchableOpacity>
 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{compra.eventoNome}</Text>
-              <View style={[styles.badgeStatus, getStatusBadgeStyle(ingresso.status)]}>
+              <View style={[styles.badgeStatus, getStatusBadgeStyle(ingresso.status, colors)]}>
                 <Text style={styles.badgeStatusText}>{statusConfig.label}</Text>
               </View>
             </View>
@@ -215,26 +218,36 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
                 icon="calendar"
                 label="Data"
                 valor={dataEvento}
+                colors={colors}
+                styles={styles}
               />
               <InfoRow
                 icon="clock"
                 label="Hora"
                 valor={horaEvento}
+                colors={colors}
+                styles={styles}
               />
               <InfoRow
                 icon="map-marker"
                 label="Local"
                 valor={compra.eventoLocal}
+                colors={colors}
+                styles={styles}
               />
               <InfoRow
                 icon="ticket"
                 label="Tipo"
                 valor={ingresso.tipo.toUpperCase()}
+                colors={colors}
+                styles={styles}
               />
               <InfoRow
                 icon="barcode"
                 label="Código"
                 valor={ingresso.codigoIngresso}
+                colors={colors}
+                styles={styles}
               />
             </View>
 
@@ -260,9 +273,9 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
                   <MaterialCommunityIcons
                     name={copiado ? "check" : "content-copy"}
                     size={20}
-                    color={Colors.primary}
+                    color={colors.primary}
                   />
-                  <Text style={[styles.btnAcaoText, { color: Colors.primary }]}>
+                  <Text style={[styles.btnAcaoText, { color: colors.primary }]}>
                     {copiado ? "Copiado!" : "Copiar Código"}
                   </Text>
                 </TouchableOpacity>
@@ -282,13 +295,13 @@ const CardIngresso = memo(({ compra, ingresso, index, total }) => {
   );
 });
 
-const InfoRow = ({ icon, label, valor }) => (
+const InfoRow = ({ icon, label, valor, colors, styles }) => (
   <View style={styles.infoRow}>
     <View style={styles.infoLabel}>
       <MaterialCommunityIcons
         name={icon}
         size={16}
-        color={Colors.primary}
+        color={colors.primary}
       />
       <Text style={styles.infoLabelText}>{label}</Text>
     </View>
@@ -296,29 +309,30 @@ const InfoRow = ({ icon, label, valor }) => (
   </View>
 );
 
-function getStatusConfig(status) {
+function getStatusConfig(status, colors) {
   const configs = {
-    confirmado: { label: "✓ Confirmado", color: Colors.success },
-    utilizado: { label: "✓ Utilizado", color: Colors.textMuted },
-    cancelado: { label: "✗ Cancelado", color: Colors.error },
-    pendente: { label: "⏳ Pendente", color: Colors.warning },
+    confirmado: { label: "✓ Confirmado", color: colors.success },
+    utilizado: { label: "✓ Utilizado", color: colors.textMuted },
+    cancelado: { label: "✗ Cancelado", color: colors.error },
+    pendente: { label: "⏳ Pendente", color: colors.warning },
   };
 
   return configs[status] || configs.confirmado;
 }
 
-function getStatusBadgeStyle(status) {
+function getStatusBadgeStyle(status, colors) {
   const styles = {
-    confirmado: { backgroundColor: Colors.success + "20" },
-    utilizado: { backgroundColor: Colors.border },
-    cancelado: { backgroundColor: Colors.error + "20" },
-    pendente: { backgroundColor: Colors.warning + "20" },
+    confirmado: { backgroundColor: colors.success + "20" },
+    utilizado: { backgroundColor: colors.border },
+    cancelado: { backgroundColor: colors.error + "20" },
+    pendente: { backgroundColor: colors.warning + "20" },
   };
 
   return styles[status] || styles.confirmado;
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginBottom: 10,
   },
@@ -326,9 +340,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     padding: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
 
   badges: {
@@ -339,7 +353,7 @@ const styles = StyleSheet.create({
   },
 
   badgeQtd: {
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
@@ -348,7 +362,7 @@ const styles = StyleSheet.create({
   badgeQtdText: {
     fontSize: 10,
     fontWeight: "600",
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   badgeStatus: {
@@ -377,7 +391,7 @@ const styles = StyleSheet.create({
   eventoNome: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
 
@@ -390,7 +404,7 @@ const styles = StyleSheet.create({
 
   meta: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   footer: {
@@ -402,19 +416,19 @@ const styles = StyleSheet.create({
   separador: {
     width: 1,
     height: 30,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
 
   tipoCodigo: {
     fontSize: 12,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
     marginTop: 2,
   },
 
   labelCodigo: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
     textTransform: "uppercase",
   },
@@ -422,7 +436,7 @@ const styles = StyleSheet.create({
   codigo: {
     fontSize: 11,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 2,
     fontFamily: Platform.OS === "web" ? "Courier New" : "monospace",
   },
@@ -439,12 +453,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   ingressoAtivoText: {
     fontSize: 10,
-    color: Colors.success,
+    color: c.success,
     fontWeight: "600",
   },
 
@@ -456,7 +470,7 @@ const styles = StyleSheet.create({
   },
 
   modalContent: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
@@ -478,18 +492,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
 
   qrContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: "center",
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   qrBox: {
@@ -501,21 +515,21 @@ const styles = StyleSheet.create({
 
   qrLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginBottom: 4,
     fontWeight: "600",
   },
 
   qrCode: {
     fontSize: 14,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "700",
     letterSpacing: 1.5,
     fontFamily: "monospace",
   },
 
   modalInfo: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
@@ -527,7 +541,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
 
   infoLabel: {
@@ -538,13 +552,13 @@ const styles = StyleSheet.create({
 
   infoLabelText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
 
   infoValor: {
     fontSize: 13,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "700",
   },
 
@@ -565,11 +579,11 @@ const styles = StyleSheet.create({
   },
 
   btnPrimary: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
 
   btnSecundary: {
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
 
   btnAcaoText: {
@@ -585,9 +599,10 @@ const styles = StyleSheet.create({
 
   btnFecharText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
-});
+  });
+}
 
 export default CardIngresso;
