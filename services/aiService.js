@@ -2,17 +2,34 @@ import { getEventos } from "./mapaCulturalService";
 
 /**
  * Constrói uma justificativa de recomendação inteligente e contextual em português.
- * @param {Object} evento 
- * @param {string} termoFoco 
- * @param {number} horaAtual 
+ * @param {Object} evento
+ * @param {string} termoFoco
+ * @param {number} horaAtual
+ * @param {Object} userSignals - Sinais do usuário para personalização
  */
-function obterMotivoIA(evento, termoFoco, horaAtual) {
+function obterMotivoIA(evento, termoFoco, horaAtual, userSignals = {}) {
   const titulo = (evento.tituloEvento || evento.titulo || "").toLowerCase();
   const categoria = (evento.categoria || "").toLowerCase();
   const local = (evento.localEvento || evento.nomeLocal || evento.local || "").toLowerCase();
   const desc = (evento.descricao || "").toLowerCase();
   const textoAnalise = `${titulo} ${categoria} ${local} ${desc}`;
 
+  // Prioridade: sinais do usuário > termo foco > contexto temporal
+  const catScore = userSignals.categories?.[categoria] || 0;
+  const placeScore = userSignals.places?.[local] || 0;
+
+  // Personalização baseada em sinais do usuário
+  if (catScore >= 10) {
+    return `✨ Perfeito para você! Você adora ${categoria} e este evento é uma ótima escolha.`;
+  }
+  if (placeScore >= 8) {
+    return `📍 Você frequenta ${local} frequentemente - este evento combina com seu estilo!`;
+  }
+  if (userSignals.likedSet?.has(evento.id)) {
+    return `❤️ Você já demonstrou interesse neste evento - não perca!`;
+  }
+
+  // Foco selecionado pelo usuário
   if (termoFoco) {
     const focoLower = termoFoco.toLowerCase();
     if (focoLower === "orla" || textoAnalise.includes("praia") || textoAnalise.includes("orla") || textoAnalise.includes("beira")) {
@@ -46,11 +63,50 @@ function obterMotivoIA(evento, termoFoco, horaAtual) {
 }
 
 /**
+ * Calcula score de match personalizado baseado em sinais do usuário
+ * @param {Object} evento
+ * @param {Object} userSignals
+ * @param {string} termoFoco
+ */
+function calcularMatchPersonalizado(evento, userSignals, termoFoco) {
+  const categoria = evento.categoria || "";
+  const local = evento.localEvento || evento.nomeLocal || evento.local || "";
+  const textoAnalise = `${evento.tituloEvento || evento.titulo || ""} ${evento.descricao || ""} ${local} ${categoria}`.toLowerCase();
+
+  let matchScore = 50; // Base score
+
+  // Boost por sinais do usuário
+  const catScore = userSignals.categories?.[categoria] || 0;
+  const placeScore = userSignals.places?.[local] || 0;
+
+  matchScore += catScore * 2; // Até 20 pontos por categoria
+  matchScore += placeScore * 1.5; // Até 15 pontos por local
+
+  // Boost por termo foco
+  if (termoFoco && textoAnalise.includes(termoFoco.toLowerCase())) {
+    matchScore += 25;
+  }
+
+  // Boost por evento já curtido
+  if (userSignals.likedSet?.has(evento.id)) {
+    matchScore += 15;
+  }
+
+  // Boost por trending/destaque
+  if (evento.trending) matchScore += 10;
+  if (evento.destaque) matchScore += 8;
+
+  // Normaliza para 0-100
+  return Math.min(99, Math.max(60, matchScore));
+}
+
+/**
  * Filtra e ranqueia eventos simulando uma recomendação inteligente de IA
  * @param {string} termoFoco - O termo vindo do chip selecionado (ex: 'orla', 'gratuito')
  * @param {Array} eventosAtuais - Lista de eventos que o componente já possui carregados
+ * @param {Object} userSignals - Sinais do usuário para personalização
  */
-export async function gerarInsightsCulturais(termoFoco, eventosAtuais = []) {
+export async function gerarInsightsCulturais(termoFoco, eventosAtuais = [], userSignals = {}) {
   try {
     let baseEventos = [...eventosAtuais];
 
@@ -58,20 +114,20 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = []) {
     if (baseEventos.length === 0) {
       const response = await getEventos();
       const lista = Array.isArray(response) ? response : response?.data || response?.results || [];
-      
+
       baseEventos = lista.map((item, index) => ({
         id: item.id || `ai-${index}`,
         titulo: item.name || "Evento Cultural",
         descricao: item.shortDescription || item.description || "",
         local: item.location?.name || "Local não informado",
         categoria: "Recomendado para Você",
-        gratuito: true, 
+        gratuito: true,
         score: 50,
         original: item
       }));
     }
 
-    // 2. Lógica de Filtragem e Atribuição de Score Inteligente baseado no Foco e Horário
+    // 2. Lógica de Filtragem e Atribuição de Score Inteligente baseado no Foco, Horário e Sinais do Usuário
     const horaAtual = new Date().getHours();
     const roteiroProcessado = baseEventos.map((evento, index) => {
       let scoreAdicional = 0;
@@ -98,12 +154,10 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = []) {
         }
       }
 
-      // Cálculo realista e dinâmico de matchPercent (entre 76% e 99%)
-      const baseMatch = 76 + (index % 12); // Padrão dinâmico pseudo-aleatório baseado no índice do card
-      const boostMatch = termoFoco && textoAnalise.includes(termoFoco.toLowerCase()) ? 10 : 0;
-      const matchPercent = Math.min(99, baseMatch + boostMatch + Math.floor(scoreAdicional * 0.15));
+      // Cálculo de matchPercent personalizado com sinais do usuário
+      const matchPercent = calcularMatchPersonalizado(evento, userSignals, termoFoco);
 
-      const aiReason = obterMotivoIA(evento, termoFoco, horaAtual);
+      const aiReason = obterMotivoIA(evento, termoFoco, horaAtual, userSignals);
 
       return {
         ...evento,
@@ -122,4 +176,51 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = []) {
     console.error("Erro no processamento do motor de IA:", error);
     throw error;
   }
+}
+
+/**
+ * Gera insights de tendências culturais baseados em dados agregados
+ * @param {Array} eventos - Lista de eventos para análise
+ */
+export function analisarTendenciasCulturais(eventos = []) {
+  if (!eventos.length) return [];
+
+  const categorias = {};
+  const locais = {};
+  const horarios = { manha: 0, tarde: 0, noite: 0 };
+
+  eventos.forEach(evento => {
+    const cat = evento.categoria || "Outros";
+    const local = evento.localEvento || evento.nomeLocal || evento.local || "Outros";
+
+    categorias[cat] = (categorias[cat] || 0) + 1;
+    locais[local] = (locais[local] || 0) + 1;
+
+    if (evento.dataInicio) {
+      const hora = new Date(evento.dataInicio).getHours();
+      if (hora >= 6 && hora < 12) horarios.manha++;
+      else if (hora >= 12 && hora < 18) horarios.tarde++;
+      else horarios.noite++;
+    }
+  });
+
+  const topCategorias = Object.entries(categorias)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([cat, count]) => ({ categoria: cat, count, percentual: Math.round((count / eventos.length) * 100) }));
+
+  const topLocais = Object.entries(locais)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([local, count]) => ({ local, count, percentual: Math.round((count / eventos.length) * 100) }));
+
+  const picoHorario = Object.entries(horarios)
+    .sort((a, b) => b[1] - a[1])[0][0];
+
+  return {
+    topCategorias,
+    topLocais,
+    picoHorario,
+    totalEventos: eventos.length
+  };
 }

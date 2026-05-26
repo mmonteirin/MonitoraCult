@@ -144,8 +144,8 @@ export function getTicketSignal(evento) {
  * Constrói o mapa de preferências do usuário a partir de todas as fontes de sinal.
  *
  * Hierarquia de pesos (do mais forte ao mais fraco):
- *   Frequentou (10) > Inscrito (8) > Curtiu (7) > Interação like (5)
- *   > Interação view/stay (3) > Interação click (2)
+ *   Frequentou (12) > Inscrito (10) > Curtiu (8) > Compartilhou (7)
+ *   > Interação like (5) > Interação view/stay (3) > Interação click (2)
  */
 export function buildUserSignals({
   likes = [],
@@ -153,48 +153,71 @@ export function buildUserSignals({
   likedEvents = [],
   subscribedEvents = [],
   attendedEvents = [],
+  sharedEvents = [],
 }) {
   const likedSet = new Set(likes);
   const categories = {};
   const places = {};
   const eventIds = {};
+  const timestamps = {}; // Para temporal decay
 
-  const boostCategory = (categoria, weight) => {
+  const boostCategory = (categoria, weight, timestamp = Date.now()) => {
     if (!categoria) return;
     categories[categoria] = (categories[categoria] || 0) + weight;
+    if (!timestamps[categoria] || timestamp > timestamps[categoria]) {
+      timestamps[categoria] = timestamp;
+    }
   };
 
-  const boostPlace = (local, weight) => {
+  const boostPlace = (local, weight, timestamp = Date.now()) => {
     if (!local) return;
     places[local] = (places[local] || 0) + weight;
+    if (!timestamps[local] || timestamp > timestamps[local]) {
+      timestamps[local] = timestamp;
+    }
   };
 
-  const boostEventId = (id, weight) => {
+  const boostEventId = (id, weight, timestamp = Date.now()) => {
     if (!id) return;
     eventIds[id] = (eventIds[id] || 0) + weight;
+    if (!timestamps[id] || timestamp > timestamps[id]) {
+      timestamps[id] = timestamp;
+    }
   };
 
   // Curtidas
   likedEvents.forEach((evento) => {
-    boostCategory(evento.categoria, 7);
-    boostPlace(evento.local, 3);
-    boostEventId(evento.id, 7);
+    const ts = evento.timestamp || Date.now();
+    boostCategory(evento.categoria, 8, ts);
+    boostPlace(evento.local, 4, ts);
+    boostEventId(evento.id, 8, ts);
   });
 
   // Inscrições (intenção declarada — sinal forte)
   subscribedEvents.forEach((evento) => {
-    boostCategory(evento.categoria || evento.tipoEvento, 8);
-    boostPlace(evento.localEvento || evento.nomeLocal || evento.local, 4);
-    boostEventId(evento.eventoId || evento.id, 8);
+    const ts = evento.timestamp || Date.now();
+    boostCategory(evento.categoria || evento.tipoEvento, 10, ts);
+    boostPlace(evento.localEvento || evento.nomeLocal || evento.local, 5, ts);
+    boostEventId(evento.eventoId || evento.id, 10, ts);
   });
 
   // Frequência presencial (sinal mais forte de todas — gosto confirmado)
   attendedEvents.forEach((evento) => {
-    boostCategory(evento.categoria || evento.tipoEvento, 10);
+    const ts = evento.timestamp || Date.now();
+    boostCategory(evento.categoria || evento.tipoEvento, 12, ts);
     boostPlace(
       evento.eventoLocal || evento.localEvento || evento.local,
-      6
+      7,
+      ts
     );
+  });
+
+  // Compartilhamentos (sinal muito forte de engajamento)
+  sharedEvents.forEach((evento) => {
+    const ts = evento.timestamp || Date.now();
+    boostCategory(evento.categoria || evento.tipoEvento, 7, ts);
+    boostPlace(evento.localEvento || evento.nomeLocal || evento.local, 3, ts);
+    boostEventId(evento.eventoId || evento.id, 7, ts);
   });
 
   // Interações implícitas (cliques, views, tempo de leitura)
@@ -206,17 +229,20 @@ export function buildUserSignals({
         ? 3
         : interaction.action === "stay"
         ? Math.min(6, 1 + Number(interaction.durationMs || 0) / 20000)
+        : interaction.action === "share"
+        ? 7
         : 2; // click
 
-    boostCategory(interaction.categoria, weight);
-    boostPlace(interaction.local, weight);
-    boostEventId(interaction.eventoId, weight);
+    const ts = interaction.timestamp || Date.now();
+    boostCategory(interaction.categoria, weight, ts);
+    boostPlace(interaction.local, weight, ts);
+    boostEventId(interaction.eventoId, weight, ts);
   });
 
   // Resumo descritivo para a UI ("Para você porque…")
   const historySummary = _buildHistorySummary(categories, places, likes.length);
 
-  return { likedSet, categories, places, eventIds, historySummary };
+  return { likedSet, categories, places, eventIds, historySummary, timestamps };
 }
 
 function _buildHistorySummary(categories, places, totalLikes) {
@@ -245,8 +271,8 @@ function _buildHistorySummary(categories, places, totalLikes) {
  *
  * Componentes do score:
  *  • score base       — popularidade do evento (likes, views, comentários)
- *  • categoryScore    — afinidade categoria × 5
- *  • placeScore       — afinidade local × 3
+ *  • categoryScore    — afinidade categoria × 5 (com temporal decay)
+ *  • placeScore       — afinidade local × 3 (com temporal decay)
  *  • likedBoost       — já curtiu o evento (promoção por familiaridade)
  *  • distanceScore    — proximidade física (0-8 pontos)
  *  • trendingBoost    — evento marcado como trending
@@ -254,6 +280,7 @@ function _buildHistorySummary(categories, places, totalLikes) {
  *  • ratingBoost      — avaliação média × 2
  *  • noveltyBoost     — evento recente que o usuário ainda não viu
  *  • repeatPenalty    — penalidade para eventos já interagidos (evita repetição)
+ *  • diversityBoost   — incentivo para categoridades diferentes (evita filter bubble)
  */
 export function scoreRecommendation(evento, signals) {
   if (!evento || !signals) return 0;
@@ -262,10 +289,25 @@ export function scoreRecommendation(evento, signals) {
   const placeAffinity = signals.places[evento.local] || 0;
   const interactionWeight = signals.eventIds[evento.id] || 0;
 
-  // Sinais positivos
-  const categoryScore = categoryAffinity * 5;
-  const placeScore = placeAffinity * 3;
-  const likedBoost = signals.likedSet?.has(evento.id) ? 8 : 0;
+  // Aplica temporal decay: sinais antigos perdem peso (half-life de 30 dias)
+  const now = Date.now();
+  const categoryTimestamp = signals.timestamps?.[evento.categoria] || now;
+  const placeTimestamp = signals.timestamps?.[evento.local] || now;
+  const eventTimestamp = signals.timestamps?.[evento.id] || now;
+
+  const decayFactor = (timestamp) => {
+    const daysSince = (now - timestamp) / (1000 * 60 * 60 * 24);
+    return Math.pow(0.5, daysSince / 30); // Half-life de 30 dias
+  };
+
+  const categoryDecay = decayFactor(categoryTimestamp);
+  const placeDecay = decayFactor(placeTimestamp);
+  const eventDecay = decayFactor(eventTimestamp);
+
+  // Sinais positivos com temporal decay
+  const categoryScore = categoryAffinity * 5 * categoryDecay;
+  const placeScore = placeAffinity * 3 * placeDecay;
+  const likedBoost = signals.likedSet?.has(evento.id) ? 8 * eventDecay : 0;
   const trendingBoost = evento.trending ? 12 : 0;
   const featuredBoost = evento.destaque ? 10 : 0;
   const ratingBoost = Number(evento.mediaAvaliacoes || 0) * 2;
@@ -286,6 +328,11 @@ export function scoreRecommendation(evento, signals) {
   // Mantém no feed se ainda for relevante, mas com desconto
   const repeatPenalty = interactionWeight > 0 ? Math.min(interactionWeight * 2, 15) : 0;
 
+  // Diversity boost: incentiva categorias diferentes para evitar filter bubble
+  const totalCategoryScore = Object.values(signals.categories || {}).reduce((sum, val) => sum + val, 0);
+  const categoryRatio = totalCategoryScore > 0 ? categoryAffinity / totalCategoryScore : 0;
+  const diversityBoost = categoryRatio > 0.6 ? -5 : categoryRatio < 0.2 ? 3 : 0;
+
   return (
     evento.score +
     categoryScore +
@@ -295,7 +342,8 @@ export function scoreRecommendation(evento, signals) {
     trendingBoost +
     featuredBoost +
     ratingBoost +
-    noveltyBoost -
+    noveltyBoost +
+    diversityBoost -
     repeatPenalty
   );
 }

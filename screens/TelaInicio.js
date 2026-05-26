@@ -344,10 +344,11 @@ export default function TelaInicio() {
                 );
             } catch (e) {}
 
-            // 1. Gera os roteiros contextuais pela IA
+            // 1. Gera os roteiros contextuais pela IA com sinais do usuário
             const roteiroSugerido = await gerarInsightsCulturais(
                 termoBusca,
-                eventosFiltrados
+                eventosFiltrados,
+                sinaisUsuario
             );
 
             setInsightsGerados(roteiroSugerido);

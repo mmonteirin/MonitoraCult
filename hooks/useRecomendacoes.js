@@ -134,6 +134,7 @@ export default function useRecomendacoes(eventos = [], usuarioId = null) {
           likedEvents,
           subscribedEvents: subscribed,
           attendedEvents: attended,
+          sharedEvents: [], // TODO: Implementar serviço de compartilhamentos
         });
 
         locaisFavoritos.forEach((local) => {
