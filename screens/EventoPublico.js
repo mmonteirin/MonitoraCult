@@ -17,6 +17,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -28,17 +30,121 @@ import { getEventos } from "../services/mapaCulturalService";
 
 const { width } = Dimensions.get("window");
 
-export default function EventosPublicos() {
+const extrairDataDaDescricao = (descricao) => {
+  if (!descricao) return null;
+
+  // Padrões de data brasileira: DD/MM/YYYY, DD/MM/YY, DD de MMMM de YYYY
+  const padroes = [
+    /(\d{2})\/(\d{2})\/(\d{4})/g, // DD/MM/YYYY
+    /(\d{2})\/(\d{2})\/(\d{2})/g, // DD/MM/YY
+    /(\d{1,2})\sde\s(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\sde\s(\d{4})/gi, // DD de MMMM de YYYY
+  ];
+
+  for (const padrao of padroes) {
+    const match = padrao.exec(descricao);
+    if (match) {
+      if (match.length === 4) {
+        const [, dia, mes, ano] = match;
+        // Converter mês por extenso para número
+        const meses = {
+          janeiro: '01', fevereiro: '02', março: '03', abril: '04',
+          maio: '05', junho: '06', julho: '07', agosto: '08',
+          setembro: '09', outubro: '10', novembro: '11', dezembro: '12'
+        };
+        const mesNum = meses[mes.toLowerCase()] || mes;
+        const anoCompleto = ano.length === 2 ? `20${ano}` : ano;
+        return new Date(`${anoCompleto}-${mesNum}-${dia}`);
+      }
+    }
+  }
+
+  return null;
+};
+
+const getImagemPorCategoria = (categoria, imagemOriginal) => {
+  // Se já tem imagem, usa ela
+  if (imagemOriginal && imagemOriginal !== "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200") {
+    return imagemOriginal;
+  }
+
+  // Mapeamento de categorias para imagens
+  const imagensPorCategoria = {
+    "Música": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1200",
+    "Shows": "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1200",
+    "Teatro": "https://images.unsplash.com/photo-1503095392237-43e8e5df8a7f?q=80&w=1200",
+    "Cinema": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200",
+    "Dança": "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?q=80&w=1200",
+    "Literatura": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=1200",
+    "Fotografia": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200",
+    "Gastronomia": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1200",
+    "Arte": "https://images.unsplash.com/photo-1578926288207-a90a5366759d?q=80&w=1200",
+    "Esporte": "https://images.unsplash.com/photo-1461896836934- voices-8b1f6a6?q=80&w=1200",
+    "Festival": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200",
+    "Exposição": "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?q=80&w=1200",
+    "Cultura": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+  };
+
+  // Tenta encontrar a categoria exata ou parcial
+  for (const [key, url] of Object.entries(imagensPorCategoria)) {
+    if (categoria && categoria.toLowerCase().includes(key.toLowerCase())) {
+      return url;
+    }
+  }
+
+  // Imagem padrão para cultura
+  return imagensPorCategoria["Cultura"];
+};
+
+export default function EventosPublicos({ navigation }) {
 
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mostrarPassados, setMostrarPassados] = useState(true); // mostrar passados como padrão
+  const [likedEvents, setLikedEvents] = useState({}); // estado para likes
+  const [eventosSalvos, setEventosSalvos] = useState(new Set()); // eventos salvos
 
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
   useEffect(() => {
     carregarEventos();
-  }, []);
+    carregarEventosSalvos();
+  }, [mostrarPassados]);
+
+  const carregarEventosSalvos = async () => {
+    try {
+      const salvos = await AsyncStorage.getItem("eventosSalvos");
+      if (salvos) {
+        setEventosSalvos(new Set(JSON.parse(salvos)));
+      }
+    } catch (error) {
+      console.log("Erro ao carregar eventos salvos:", error);
+    }
+  };
+
+  const salvarParaDepois = async (evento) => {
+    try {
+      const novosSalvos = new Set(eventosSalvos);
+      if (novosSalvos.has(evento.id)) {
+        novosSalvos.delete(evento.id);
+        Alert.alert("Removido", "Evento removido dos salvos.");
+      } else {
+        novosSalvos.add(evento.id);
+        Alert.alert("Salvo", "Evento salvo para depois.");
+      }
+      setEventosSalvos(novosSalvos);
+      await AsyncStorage.setItem("eventosSalvos", JSON.stringify([...novosSalvos]));
+    } catch (error) {
+      console.log("Erro ao salvar evento:", error);
+    }
+  };
+
+  const toggleLike = (eventId) => {
+    setLikedEvents(prev => ({
+      ...prev,
+      [eventId]: !prev[eventId]
+    }));
+  };
 
   const carregarEventos = async () => {
     try {
@@ -70,10 +176,46 @@ export default function EventosPublicos() {
             occurrence?.startsOn ||
             occurrence?.start;
 
-          const dataEvento =
+          let dataEvento =
             inicio
               ? new Date(inicio)
               : null;
+
+          // Se não encontrou data na occurrence, tentar extrair da descrição
+          if (!dataEvento || isNaN(dataEvento.getTime())) {
+            dataEvento = extrairDataDaDescricao(item?.shortDescription || item?.description);
+          }
+
+          // Identificar se o evento já ocorreu
+          const jaOcorreu = dataEvento && dataEvento < hoje;
+
+          // Extrair categoria/linguagem dos terms
+          const linguagens = item?.terms?.linguagem || [];
+          let categoria = linguagens.length > 0 ? linguagens[0] : "Cultura";
+
+          // Se não tiver categoria definida, tentar extrair da descrição
+          if (categoria === "Cultura" && item?.shortDescription) {
+            const desc = item.shortDescription.toLowerCase();
+            if (desc.includes("música") || desc.includes("show") || desc.includes("concerto")) {
+              categoria = "Música";
+            } else if (desc.includes("teatro") || desc.includes("peça") || desc.includes("drama")) {
+              categoria = "Teatro";
+            } else if (desc.includes("exposição") || desc.includes("arte") || desc.includes("galeria")) {
+              categoria = "Arte";
+            } else if (desc.includes("cinema") || desc.includes("filme") || desc.includes("sala")) {
+              categoria = "Cinema";
+            } else if (desc.includes("dança") || desc.includes("ballet") || desc.includes("coreografia")) {
+              categoria = "Dança";
+            } else if (desc.includes("literatura") || desc.includes("livro") || desc.includes("leitura")) {
+              categoria = "Literatura";
+            } else if (desc.includes("gastronomia") || desc.includes("comida") || desc.includes("culinária")) {
+              categoria = "Gastronomia";
+            } else if (desc.includes("esporte") || desc.includes("competição") || desc.includes("atletismo")) {
+              categoria = "Esporte";
+            } else if (desc.includes("festival") || desc.includes("feira")) {
+              categoria = "Festival";
+            }
+          }
 
           return {
 
@@ -95,10 +237,12 @@ export default function EventosPublicos() {
               "Evento cultural disponível.",
 
             imagem:
-              item?.files?.avatar?.url ||
-              item?.files?.header?.url ||
-              item?.files?.[0]?.url ||
-              "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+              getImagemPorCategoria(
+                categoria,
+                item?.files?.avatar?.url ||
+                item?.files?.header?.url ||
+                item?.files?.[0]?.url
+              ),
 
             dataObj:
               dataEvento,
@@ -111,46 +255,45 @@ export default function EventosPublicos() {
                     {
                       day: "2-digit",
                       month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      year: "numeric",
                     }
                   )
                 : "Em breve",
 
             status:
 
-              dataEvento &&
-              dataEvento > hoje
+              jaOcorreu ? "passado" : (dataEvento && dataEvento >= hoje ? "confirmado" : "pendente"),
 
-                ? "confirmado"
-                : "pendente",
+            jaOcorreu: jaOcorreu,
+
+            categoria: categoria,
 
           };
 
         })
 
         .filter((evento) => {
-
-          if (!evento.dataObj)
-            return false;
-
-          return (
-
-            evento.dataObj >= hoje &&
-
-            evento.dataObj <= limite60
-
-          );
-
+          // Se mostrarPassados está ativo, inclui todos os eventos com data
+          if (mostrarPassados) {
+            if (!evento.dataObj) return true; // Inclui eventos sem data
+            return evento.dataObj <= limite60; // Apenas eventos até 60 dias no futuro
+          }
+          // Se não mostrar passados, filtra apenas eventos futuros
+          if (!evento.dataObj) return true; // Inclui eventos sem data (podem ser futuros)
+          return evento.dataObj >= hoje && evento.dataObj <= limite60;
         })
 
-        .sort(
-
-          (a, b) =>
-
-            a.dataObj - b.dataObj
-
-        );
+        .sort((a, b) => {
+          // Eventos sem data vão para o final
+          if (!a.dataObj) return 1;
+          if (!b.dataObj) return -1;
+          // Se mostrar passados, ordena do mais recente para o mais antigo
+          if (mostrarPassados) {
+            return b.dataObj - a.dataObj;
+          }
+          // Se não mostrar passados, ordena do mais próximo para o mais distante
+          return a.dataObj - b.dataObj;
+        });
 
       setEventos(tratados);
 
@@ -204,6 +347,12 @@ export default function EventosPublicos() {
       const confirmado =
         item.status ===
         "confirmado";
+
+      const passado =
+        item.status ===
+        "passado";
+
+      const isLiked = likedEvents[item.id];
 
       return (
 
@@ -283,51 +432,26 @@ export default function EventosPublicos() {
                       scale: 1,
                     }}
 
-                    style={[
-                      styles.status,
-
-                      confirmado
-                        ? styles.confirmado
-                        : styles.pendente,
-                    ]}
+                    style={styles.status}
                   >
 
-                    <View
-                      style={
-                        styles.statusDot
-                      }
+                    <MaterialCommunityIcons
+                      name="tag-outline"
+                      size={14}
+                      color="#FFF"
                     />
 
                     <Text
                       style={
                         styles.statusText
-                      }
+                    }
                     >
-                      {confirmado
-                        ? "Confirmado"
-                        : "Pendente"}
+                      {item.categoria || "Cultura"}
                     </Text>
 
                   </MotiView>
 
-                  <TouchableOpacity
-  activeOpacity={0.9}
-  style={styles.floatingBtn}
->
-  <BlurView
-    intensity={70}
-    tint="dark"
-    style={styles.floatingBlur}
-  >
-    <MaterialCommunityIcons
-      name="heart-outline"
-      size={20}
-      color="#FFF"
-    />
-  </BlurView>
-</TouchableOpacity>
-
-</LinearGradient>
+                  </LinearGradient>
 </ImageBackground>
 
 <BlurView
@@ -382,11 +506,23 @@ numberOfLines={1}
 
 </View>
 
+<View style={styles.dateHighlight}>
+  <MaterialCommunityIcons
+    name="clock-outline"
+    size={14}
+    color="#8B5CF6"
+  />
+  <Text style={styles.dateHighlightText}>
+    {item.data}
+  </Text>
+</View>
+
 <View style={styles.actions}>
 
 <TouchableOpacity
 activeOpacity={0.9}
 style={styles.botaoEvento}
+onPress={() => navigation.navigate("EventoDetalhesPublico", { evento: item })}
 >
 
 <LinearGradient
@@ -412,24 +548,34 @@ Ver Evento
 </TouchableOpacity>
 
 <TouchableOpacity
-activeOpacity={0.7}
-onPress={() =>
-cancelarInscricao(
-item.id
-)
+activeOpacity={0.9}
+style={styles.botaoSalvar}
+onPress={() => salvarParaDepois(item)}
+>
+
+<LinearGradient
+colors={
+  eventosSalvos.has(item.id)
+    ? ["#8B5CF6", "#6D28D9"]
+    : ["rgba(139,92,246,0.3)", "rgba(109,40,217,0.3)"]
 }
-style={styles.cancelarBtn}
+style={styles.gradientBtnSalvar}
 >
 
 <MaterialCommunityIcons
-name="close-circle-outline"
+name={eventosSalvos.has(item.id) ? "bookmark" : "bookmark-outline"}
 size={18}
-color="#EF4444"
+color={eventosSalvos.has(item.id) ? "#FFF" : "#8B5CF6"}
 />
 
-<Text style={styles.cancelar}>
-Cancelar
+<Text style={[
+  styles.textoBtnSalvar,
+  eventosSalvos.has(item.id) && styles.textoBtnSalvarActive
+]}>
+  {eventosSalvos.has(item.id) ? "Salvo" : "Salvar"}
 </Text>
+
+</LinearGradient>
 
 </TouchableOpacity>
 
@@ -443,7 +589,7 @@ Cancelar
       );
 
     },
-    []
+    [likedEvents]
   );
 
 if (loading) {
@@ -550,6 +696,22 @@ Eventos Públicos
 Eventos mais recentes dos
 próximos 60 dias.
 </Text>
+
+<View style={styles.filtroRow}>
+  <TouchableOpacity
+    style={[styles.filtroBtn, mostrarPassados && styles.filtroBtnActive]}
+    onPress={() => setMostrarPassados(!mostrarPassados)}
+  >
+    <MaterialCommunityIcons
+      name={mostrarPassados ? "history" : "clock-outline"}
+      size={18}
+      color={mostrarPassados ? "#8B5CF6" : "#FFF"}
+    />
+    <Text style={[styles.filtroBtnText, mostrarPassados && styles.filtroBtnTextActive]}>
+      {mostrarPassados ? "Passados" : "Futuros"}
+    </Text>
+  </TouchableOpacity>
+</View>
 
 </MotiView>
 
@@ -712,6 +874,40 @@ lineHeight:24,
 maxWidth:"95%",
 },
 
+filtroRow:{
+flexDirection:"row",
+alignItems:"center",
+marginTop:16,
+gap:12,
+},
+
+filtroBtn:{
+flexDirection:"row",
+alignItems:"center",
+backgroundColor:"rgba(139,92,246,0.2)",
+borderWidth:1,
+borderColor:"rgba(139,92,246,0.4)",
+borderRadius:20,
+paddingHorizontal:16,
+paddingVertical:10,
+gap:6,
+},
+
+filtroBtnText:{
+color:"#FFF",
+fontSize:14,
+fontWeight:"700",
+},
+
+filtroBtnActive:{
+backgroundColor:"rgba(139,92,246,0.35)",
+borderColor:"rgba(139,92,246,0.6)",
+},
+
+filtroBtnTextActive:{
+color:"#8B5CF6",
+},
+
 listContainer:{
 paddingHorizontal:20,
 paddingTop:10,
@@ -766,52 +962,18 @@ paddingHorizontal:14,
 paddingVertical:8,
 
 borderRadius:20,
-},
 
-confirmado:{
-backgroundColor:
-"rgba(34,197,94,0.95)",
-},
+backgroundColor:"rgba(139,92,246,0.95)",
 
-pendente:{
-backgroundColor:
-"rgba(245,158,11,0.95)",
-},
-
-statusDot:{
-width:8,
-height:8,
-borderRadius:4,
-
-backgroundColor:"#FFF",
-
-marginRight:8,
+borderWidth:1,
+borderColor:"rgba(255,255,255,0.2)",
 },
 
 statusText:{
 color:"#FFF",
 fontSize:12,
 fontWeight:"800",
-},
-
-floatingBtn:{
-position:"absolute",
-top:18,
-right:18,
-
-borderRadius:22,
-overflow:"hidden",
-},
-
-floatingBlur:{
-width:46,
-height:46,
-
-justifyContent:"center",
-alignItems:"center",
-
-backgroundColor:
-"rgba(0,0,0,0.28)",
+marginLeft:6,
 },
 
 conteudo:{
@@ -867,6 +1029,29 @@ marginLeft:12,
 fontSize:13,
 },
 
+dateHighlight:{
+flexDirection:"row",
+alignItems:"center",
+
+backgroundColor:"rgba(139,92,246,0.15)",
+
+borderRadius:12,
+paddingHorizontal:12,
+paddingVertical:8,
+
+marginTop:8,
+
+borderWidth:1,
+borderColor:"rgba(139,92,246,0.3)",
+},
+
+dateHighlightText:{
+color:"#8B5CF6",
+fontSize:13,
+fontWeight:"700",
+marginLeft:6,
+},
+
 actions:{
 flexDirection:"row",
 justifyContent:"space-between",
@@ -878,6 +1063,8 @@ marginTop:24,
 botaoEvento:{
 borderRadius:18,
 overflow:"hidden",
+flex:1,
+marginRight:10,
 },
 
 gradientBtn:{
@@ -897,18 +1084,33 @@ fontSize:13,
 marginLeft:8,
 },
 
-cancelarBtn:{
-flexDirection:"row",
-alignItems:"center",
+botaoSalvar:{
+borderRadius:18,
+overflow:"hidden",
 },
 
-cancelar:{
-color:"#EF4444",
+gradientBtnSalvar:{
+flexDirection:"row",
+alignItems:"center",
+
+paddingVertical:14,
+paddingHorizontal:16,
+
+borderWidth:1,
+borderColor:"rgba(139,92,246,0.5)",
+},
+
+textoBtnSalvar:{
+color:"#8B5CF6",
 
 fontWeight:"800",
-fontSize:14,
+fontSize:13,
 
 marginLeft:6,
+},
+
+textoBtnSalvarActive:{
+color:"#FFF",
 },
 
 emptyContainer:{

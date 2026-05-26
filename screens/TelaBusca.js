@@ -41,6 +41,65 @@ import { useBuscaGlobal } from "../hooks/useBuscaGlobal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+const extrairDataDaDescricao = (descricao) => {
+  if (!descricao) return null;
+
+  const padroes = [
+    /(\d{2})\/(\d{2})\/(\d{4})/g,
+    /(\d{2})\/(\d{2})\/(\d{2})/g,
+    /(\d{1,2})\sde\s(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\sde\s(\d{4})/gi,
+  ];
+
+  for (const padrao of padroes) {
+    const match = padrao.exec(descricao);
+    if (match) {
+      if (match.length === 4) {
+        const [, dia, mes, ano] = match;
+        const meses = {
+          janeiro: '01', fevereiro: '02', março: '03', abril: '04',
+          maio: '05', junho: '06', julho: '07', agosto: '08',
+          setembro: '09', outubro: '10', novembro: '11', dezembro: '12'
+        };
+        const mesNum = meses[mes.toLowerCase()] || mes;
+        const anoCompleto = ano.length === 2 ? `20${ano}` : ano;
+        return new Date(`${anoCompleto}-${mesNum}-${dia}`);
+      }
+    }
+  }
+
+  return null;
+};
+
+const getImagemPorCategoria = (categoria, imagemOriginal) => {
+  if (imagemOriginal && imagemOriginal !== "https://placehold.co/600x400?text=Evento") {
+    return imagemOriginal;
+  }
+
+  const imagensPorCategoria = {
+    "Música": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1200",
+    "Shows": "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1200",
+    "Teatro": "https://images.unsplash.com/photo-1503095392237-43e8e5df8a7f?q=80&w=1200",
+    "Cinema": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200",
+    "Dança": "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?q=80&w=1200",
+    "Literatura": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=1200",
+    "Fotografia": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200",
+    "Gastronomia": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1200",
+    "Arte": "https://images.unsplash.com/photo-1578926288207-a90a5366759d?q=80&w=1200",
+    "Esporte": "https://images.unsplash.com/photo-1461896836934- voices-8b1f6a6?q=80&w=1200",
+    "Festival": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200",
+    "Exposição": "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?q=80&w=1200",
+    "Cultura": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+  };
+
+  for (const [key, url] of Object.entries(imagensPorCategoria)) {
+    if (categoria && categoria.toLowerCase().includes(key.toLowerCase())) {
+      return url;
+    }
+  }
+
+  return imagensPorCategoria["Cultura"];
+};
+
 // Dimensões calibradas para o efeito de destaque cinema/Netflix
 const CARD_WIDTH = SCREEN_WIDTH * 0.76;
 const CARD_HEIGHT = 440;
@@ -224,22 +283,64 @@ export default function TelaBusca({ route, navigation }) {
       const listaMapa = Array.isArray(response) ? response : response?.data || response?.results || [];
 
       const tratadosMapa = listaMapa.map((item, index) => {
-        const imagem = item?.image?.url || item?.files?.header?.url || null;
+        const occurrence = item?.occurrences?.[0];
+        const inicio = occurrence?.startDate || occurrence?.startsOn || occurrence?.start;
+        let dataEvento = inicio ? new Date(inicio) : null;
+
+        if (!dataEvento || isNaN(dataEvento.getTime())) {
+          dataEvento = extrairDataDaDescricao(item?.shortDescription || item?.description);
+        }
+
+        const linguagens = item?.terms?.linguagem || [];
+        let categoria = linguagens.length > 0 ? linguagens[0] : "Eventos Públicos";
+
+        if (categoria === "Eventos Públicos" && item?.shortDescription) {
+          const desc = item.shortDescription.toLowerCase();
+          if (desc.includes("música") || desc.includes("show") || desc.includes("concerto")) {
+            categoria = "Música";
+          } else if (desc.includes("teatro") || desc.includes("peça") || desc.includes("drama")) {
+            categoria = "Teatro";
+          } else if (desc.includes("exposição") || desc.includes("arte") || desc.includes("galeria")) {
+            categoria = "Arte";
+          } else if (desc.includes("cinema") || desc.includes("filme") || desc.includes("sala")) {
+            categoria = "Cinema";
+          } else if (desc.includes("dança") || desc.includes("ballet") || desc.includes("coreografia")) {
+            categoria = "Dança";
+          } else if (desc.includes("literatura") || desc.includes("livro") || desc.includes("leitura")) {
+            categoria = "Literatura";
+          } else if (desc.includes("gastronomia") || desc.includes("comida") || desc.includes("culinária")) {
+            categoria = "Gastronomia";
+          } else if (desc.includes("esporte") || desc.includes("competição") || desc.includes("atletismo")) {
+            categoria = "Esporte";
+          } else if (desc.includes("festival") || desc.includes("feira")) {
+            categoria = "Festival";
+          }
+        }
+
+        const imagemOriginal = item?.image?.url || item?.files?.header?.url || item?.files?.[0]?.url || null;
+
         return {
           id: item.id || `mapa-${index}`,
           titulo: item.name || "Evento Público",
           descricao: item?.shortDescription || item?.description || "Evento cultural público.",
-          imagem: imagem || DEFAULT_IMAGE,
+          imagem: getImagemPorCategoria(categoria, imagemOriginal || DEFAULT_IMAGE),
           local: item?.location?.name || "Local não informado",
-          categoria: "Eventos Públicos",
-          dataEvento: item?.startDate || item?.dataEvento || null,
+          categoria: categoria,
+          dataEvento: dataEvento,
+          data: dataEvento
+            ? dataEvento.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "Em breve",
           gratuito: true,
           preco: 0,
           likes: 0,
           views: 0,
           score: 70,
           origem: "mapaCultural",
-          possuiImagem: !!imagem,
+          possuiImagem: !!imagemOriginal,
           original: item,
         };
       });

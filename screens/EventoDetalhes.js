@@ -1201,8 +1201,9 @@ export default function EventoDetalhes({
 										>
 											<Image
 												source={{
-													uri:
-														item.foto,
+													uri: item.foto && item.foto.trim() !== ""
+														? item.foto
+														: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.nome || "User") + "&background=7C3AED&color=fff&size=100",
 												}}
 												style={
 													styles.avalAvatar

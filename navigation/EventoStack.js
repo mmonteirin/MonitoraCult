@@ -5,6 +5,7 @@ import EventoApp from "../screens/EventoApp";
 import EventoDetalhes from "../screens/EventoDetalhes";
 import EventoAvaliacao from "../screens/EventoAvaliacao";
 import EventosPublicos from "../screens/EventoPublico";
+import EventoDetalhesPublico from "../screens/EventoDetalhesPublico";
 import TelaCulturaViva from "../screens/TelaCulturaViva";
 import TelaExploreCidade from "../screens/TelaExploreCidade";
 import EventoIngresso from "../screens/EventoIngresso";
@@ -32,6 +33,7 @@ export default function EventoStack() {
 
       {/* DETALHES E AÇÕES */}
       <Stack.Screen name="Detalhes" component={EventoDetalhes} />
+      <Stack.Screen name="EventoDetalhesPublico" component={EventoDetalhesPublico} />
       <Stack.Screen name="PerfilPublico" component={PerfilPublico} />
       <Stack.Screen name="Avaliacao" component={EventoAvaliacao} />
       <Stack.Screen name="AgendaEventos" component={TelaAgendaEventos} />

@@ -87,7 +87,10 @@ service cloud.firestore {
 
       /* ⭐ HISTÓRICO DE AVALIAÇÕES */
       match /avaliacoes/{avaliacaoId} {
-        allow read, create, update, delete: if isOwnerOrAdmin(userId);
+        allow read: if isOwnerOrAdmin(userId);
+        allow create: if isOwner(userId)
+          && hasOnly(["avaliacaoId", "userId", "nome", "nota", "comentario", "foto", "eventoId", "tituloEvento"]);
+        allow update, delete: if isOwnerOrAdmin(userId);
       }
 
       /* 🚨 HISTÓRICO DE OCORRÊNCIAS */
@@ -165,10 +168,11 @@ service cloud.firestore {
           "ingressosVendidos", "createdAt", "comentarios", "likes"
         ]);
 
-      // Corrigido para aceitar incrementação de comentários e likes de qualquer pessoa autenticada
+      // Corrigido para aceitar incrementação de comentários, likes e atualizações de avaliações
       allow update: if isAuthenticated() && (
           (resource.data.uidEvento == request.auth.uid && request.resource.data.uidEvento == resource.data.uidEvento)
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["comentarios", "likes"])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["avaliacoesResumo", "mediaAvaliacoes", "somaAvaliacoes", "totalAvaliacoes"])
           || isAdmin()
         );
 
@@ -181,7 +185,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && hasOnly(["userId", "nota", "comentario", "createdAt"]);
+          && hasOnly(["userId", "nome", "nota", "comentario", "foto"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -192,7 +196,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && hasOnly(["userId", "motivo", "descricao", "createdAt"]);
+          && hasOnly(["userId", "nome", "local", "descricao", "tipo"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -211,7 +215,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "createdAt", "likes"]);
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -246,7 +250,7 @@ service cloud.firestore {
 
       allow create: if isAuthenticated()
         && request.resource.data.userId == request.auth.uid
-        && hasOnly(["eventId", "userId", "location", "createdAt", "photo", "caption"]);
+        && hasOnly(["eventId", "userId", "location", "photo", "caption"]);
 
       allow update: if isAuthenticated()
         && resource.data.userId == request.auth.uid;
@@ -292,8 +296,7 @@ service cloud.firestore {
           "mensagem", "status", "prioridade", "respostaAdmin",
           "assignedAdminId", "assignedAdminName",
           "lastMessage", "lastMessageAt", "lastMessageBy",
-          "unreadAdmin", "unreadUser",
-          "createdAt", "updatedAt"
+          "unreadAdmin", "unreadUser"
         ]);
       allow update: if isAdmin()
         || (
@@ -302,7 +305,7 @@ service cloud.firestore {
           && request.resource.data.uid == resource.data.uid
           && changedOnly([
             "status", "lastMessage", "lastMessageAt", "lastMessageBy",
-            "unreadAdmin", "unreadUser", "updatedAt"
+            "unreadAdmin", "unreadUser"
           ])
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status"])
@@ -375,7 +378,7 @@ service cloud.firestore {
         // Expandido com hasOnly contendo todos os parâmetros textuais e fotos do payload do feed
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "createdAt", "likes"]);
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
 
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
@@ -397,7 +400,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && hasOnly(["userId", "createdAt"]);
+          && hasOnly(["userId"]);
         allow delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -416,7 +419,7 @@ service cloud.firestore {
         && hasOnly([
           "usuarioId", "userId",
           "referenciaId", "itemId", "itemType",
-          "tipo", "createdAt"
+          "tipo"
         ]);
 
       allow delete: if (isAuthenticated()
@@ -441,7 +444,7 @@ service cloud.firestore {
         && hasOnly([
           "userId", "userName", "userPhoto",
           "imagemUri", "textoStory", "musica",
-          "createdAt", "expiresAt",
+          "expiresAt",
           "visualizacoes", "vistos", "reacoes"
         ]);
 
@@ -559,7 +562,7 @@ service cloud.firestore {
       match /followers/{followerId} {
         allow read: if isAuthenticated();
         allow create: if isOwner(followerId)
-          && hasOnly(["followerId", "followerName", "followerPhoto", "createdAt"]);
+          && hasOnly(["followerId", "followerName", "followerPhoto"]);
         allow delete: if isOwner(followerId);
         allow update: if false;
       }
@@ -568,7 +571,7 @@ service cloud.firestore {
       match /following/{targetId} {
         allow read: if isAuthenticated();
         allow create: if isOwner(userId)
-          && hasOnly(["targetUserId", "targetName", "targetPhoto", "createdAt"]);
+          && hasOnly(["targetUserId", "targetName", "targetPhoto"]);
         allow delete: if isOwner(userId);
         allow update: if false;
       }
@@ -593,7 +596,7 @@ service cloud.firestore {
         || isAdmin()
         // Join/Leave: só altera members e contadores
         || (request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(["members", "membersCount", "updatedAt"])
+              .hasOnly(["members", "membersCount"])
             && request.resource.data.members.hasAll([request.auth.uid]))
       );
 
