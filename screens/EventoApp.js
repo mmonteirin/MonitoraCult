@@ -254,7 +254,7 @@ export default function EventosApp() {
 		<LinearGradient
 			colors={isDark 
 				? ["#0F172A", "#111827", "#1E1B4B"] 
-				: [colors.backgroundSecondary, colors.surfaceMuted, colors.backgroundElevated]}
+				: ["#F5F3FF", "#F3EFFF", "#EBE5FF"]}
 			style={[
 				styles.header,
 				{
@@ -263,16 +263,25 @@ export default function EventosApp() {
 			]}
 		>
 			<TouchableOpacity
-				style={styles.backBtn}
+				style={[
+					styles.backBtn,
+					!isDark && { backgroundColor: colors.glass }
+				]}
 				onPress={() => navigation.goBack()}
 			>
-				<MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFF" : colors.textPrimary} />
+				<MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFF" : colors.primary} />
 			</TouchableOpacity>
 
-			<Text style={styles.headerTitle}>Meus Eventos</Text>
+			<Text style={[
+				styles.headerTitle,
+				!isDark && { color: colors.textPrimary }
+			]}>Meus Eventos</Text>
 
 			<TouchableOpacity
-				style={styles.calendarBtn}
+				style={[
+					styles.calendarBtn,
+					!isDark && { backgroundColor: colors.glass }
+				]}
 				onPress={() =>
 					navigation.navigate("AgendaEventos")
 				}
@@ -280,7 +289,7 @@ export default function EventosApp() {
 				<MaterialCommunityIcons
 					name="calendar-month"
 					size={22}
-					color={isDark ? "#FFF" : colors.textPrimary}
+					color={isDark ? "#FFF" : colors.primary}
 				/>
 			</TouchableOpacity>
 			</LinearGradient>
@@ -441,15 +450,15 @@ function createThemedScreenStyles(c, isDark) {
 
 		borderWidth: 1,
 
-		borderColor: c.glassStrong,
+		borderColor: isDark ? c.glass : "#D8CCFF",
 
-		backgroundColor: isDark ? c.glass : c.surface,
+		backgroundColor: isDark ? c.glass : "#FAFAF9",
 		
 		shadowColor: c.shadow,
-		shadowOpacity: isDark ? 0.15 : 0.06,
+		shadowOpacity: isDark ? 0.15 : 0.08,
 		shadowRadius: 12,
 		shadowOffset: { width: 0, height: 4 },
-		elevation: isDark ? 4 : 2,
+		elevation: isDark ? 4 : 3,
 	},
 
 	profileLeft: {
@@ -469,14 +478,14 @@ function createThemedScreenStyles(c, isDark) {
 
 		borderRadius: 18,
 
-		backgroundColor: isDark ? "rgba(124,58,237,0.16)" : "rgba(108,92,231,0.10)",
+		backgroundColor: isDark ? "rgba(124,58,237,0.16)" : "rgba(108,92,231,0.12)",
 
 		justifyContent: "center",
 		alignItems: "center",
 
 		borderWidth: 1,
 
-		borderColor: c.glass,
+		borderColor: isDark ? c.glass : "#E0D4FF",
 	},
 
 	profileBadgeText: {
@@ -509,7 +518,7 @@ function createThemedScreenStyles(c, isDark) {
 	},
 
 	subtitle: {
-		color: isDark ? "rgba(255,255,255,0.65)" : c.textMuted,
+		color: isDark ? "rgba(255,255,255,0.65)" : "#7C7C7C",
 
 		marginTop: 4,
 
@@ -524,17 +533,17 @@ function createThemedScreenStyles(c, isDark) {
 
 		overflow: "hidden",
 
-		backgroundColor: isDark ? c.glass : c.card,
+		backgroundColor: isDark ? c.glass : "#FFFFFF",
 
 		borderWidth: 1,
 
-		borderColor: c.glass,
+		borderColor: isDark ? c.glass : "#E5DEFF",
 		
 		shadowColor: c.shadow,
-		shadowOpacity: isDark ? 0.2 : 0.08,
+		shadowOpacity: isDark ? 0.2 : 0.1,
 		shadowRadius: 12,
 		shadowOffset: { width: 0, height: 4 },
-		elevation: isDark ? 5 : 3,
+		elevation: isDark ? 5 : 4,
 	},
 
 	image: {
@@ -550,6 +559,7 @@ function createThemedScreenStyles(c, isDark) {
 
 	content: {
 		padding: 18,
+		backgroundColor: isDark ? "transparent" : "#F8F5FF",
 	},
 
 	titulo: {
@@ -570,7 +580,7 @@ function createThemedScreenStyles(c, isDark) {
 	},
 
 	infoText: {
-		color: isDark ? "rgba(255,255,255,0.72)" : c.textSecondary,
+		color: isDark ? "rgba(255,255,255,0.72)" : "#5A5A5A",
 
 		marginLeft: 8,
 
@@ -597,6 +607,65 @@ function createThemedScreenStyles(c, isDark) {
 		alignSelf: "flex-start",
 
 		backgroundColor: "rgba(245,158,11,0.95)",
+
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+
+		borderRadius: 18,
+	},
+
+	statusText: {
+		color: "#FFF",
+
+		fontSize: 12,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	/* ACTIONS */
+	actions: {
+		marginTop: 18,
+
+		flexDirection: "row",
+
+		justifyContent: "space-between",
+
+		alignItems: "center",
+	},
+
+	eventBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+
+		paddingVertical: 12,
+		paddingHorizontal: 18,
+
+		borderRadius: 18,
+
+		gap: 8,
+
+		shadowColor: "#6C5CE7",
+		shadowOpacity: isDark ? 0.4 : 0.15,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 5 : 3,
+	},
+
+	eventBtnText: {
+		color: "#FFF",
+
+		fontSize: 13,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	cancelar: {
+		color: isDark ? "#FF6B6B" : "#DC2626",
+
+		fontSize: 14,
+
+		fontFamily: "PoppinsBold",
+	},
 
 		paddingHorizontal: 12,
 		paddingVertical: 7,
@@ -677,7 +746,7 @@ function createThemedScreenStyles(c, isDark) {
 	},
 
 	empty: {
-		color: isDark ? "rgba(255,255,255,0.55)" : c.textSecondary,
+		color: isDark ? "rgba(255,255,255,0.55)" : "#888888",
 
 		marginTop: 16,
 
@@ -699,11 +768,13 @@ function createThemedScreenStyles(c, isDark) {
 	},
 
 	loadingText: {
-		color: isDark ? "rgba(255,255,255,0.65)" : c.textMuted,
+		color: isDark ? "rgba(255,255,255,0.7)" : c.textSecondary,
 
-		marginTop: 14,
+		marginTop: 16,
+
+		fontSize: 15,
 
 		fontFamily: "PoppinsRegular",
 	},
-});
+  });
 }

@@ -11,6 +11,7 @@ import PerfilStack from "./PerfilStack";
 
 import ExpansivePills from "../components/ExpansivePills";
 import { useTheme } from "../context/ThemeContext";
+import { useTabBadges } from "../hooks/useTabBadges";
 
 const Tab = createBottomTabNavigator();
 
@@ -65,29 +66,17 @@ const TAB_CONFIG = [
 
 export default function TabNavigator() {
   const { colors, isDark } = useTheme();
-  const [badges, setBadges] = React.useState({});
-
-  // Simular badges de notificação (em produção, vir de Context)
-  const mockBadges = useMemo(() => {
-    return {
-      // Ingressos: 3 tickets novos
-      Ingressos: 3,
-      // Feed: 2 comentários novos (exemplo)
-      Feed: 0,
-    };
-  }, []);
-
-  const handleTabPress = useCallback((index, tab) => {
-    // Navegar para a aba
-    // Isso será tratado automaticamente pelo NavigationContainer
-  }, []);
+  const { badges } = useTabBadges({
+    // Inicializar com badges vazios
+    // Em produção, isso viria de um Context de notificações
+  });
 
   return (
     <Tab.Navigator
       tabBar={(props) => (
         <CustomTabBar
           {...props}
-          badges={mockBadges}
+          badges={badges}
           colors={colors}
           isDark={isDark}
         />
