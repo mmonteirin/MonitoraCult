@@ -250,6 +250,8 @@ export default function AdmMenu() {
               icon="plus-circle"
               label="Criar Evento"
               subtitle="Novo evento"
+              styles={styles}
+              colors={colors}
               gradient={[
                 "#7C3AED",
                 "#5B21B6",
@@ -266,6 +268,8 @@ export default function AdmMenu() {
               icon="calendar"
               label="Meus Eventos"
               subtitle="Gerencie"
+              styles={styles}
+              colors={colors}
               gradient={[
                 "#2563EB",
                 "#1D4ED8",
@@ -282,6 +286,8 @@ export default function AdmMenu() {
               icon="chart-bar"
               label="Métricas"
               subtitle="Analytics"
+              styles={styles}
+              colors={colors}
               gradient={[
                 "#059669",
                 "#047857",
@@ -298,6 +304,8 @@ export default function AdmMenu() {
               icon="headset"
               label="Atendimento"
               subtitle="Fila de suporte"
+              styles={styles}
+              colors={colors}
               gradient={[
                 "#EA580C",
                 "#C2410C",
@@ -484,6 +492,8 @@ function MenuCard({
   onPress,
   gradient,
   index,
+  styles,
+  colors,
 }) {
   return (
     <MotiView

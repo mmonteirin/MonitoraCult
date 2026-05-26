@@ -1,9 +1,9 @@
 import React from "react";
 import { Text } from "react-native";
 import {
-  Colors,
   Typography,
 } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 
 export default function AppText({
   children,
@@ -13,6 +13,7 @@ export default function AppText({
   secondary = false,
   ...rest
 }) {
+  const colors = useColors();
   let fontFamily = Typography.regular;
 
   if (weight === "medium") fontFamily = Typography.medium;
@@ -25,10 +26,10 @@ export default function AppText({
         {
           fontFamily,
           color: muted
-            ? Colors.textMuted
+            ? colors.textMuted
             : secondary
-            ? Colors.textSecondary
-            : Colors.textPrimary,
+            ? colors.textSecondary
+            : colors.textPrimary,
         },
         style,
       ]}

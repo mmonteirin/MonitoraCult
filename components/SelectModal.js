@@ -14,10 +14,10 @@ import {
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
-  Colors,
   Radius,
   Typography,
 } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 
 export default function SelectModal({
   label,
@@ -25,6 +25,8 @@ export default function SelectModal({
   options = [],
   onSelect,
 }) {
+  const colors = useColors();
+  const styles = createStyles(colors);
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -91,7 +93,7 @@ export default function SelectModal({
         <MaterialCommunityIcons
           name="chevron-down"
           size={22}
-          color={Colors.primaryLight}
+          color={colors.primaryLight}
         />
       </TouchableOpacity>
 
@@ -117,12 +119,12 @@ export default function SelectModal({
               <MaterialCommunityIcons
                 name="magnify"
                 size={20}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
 
               <TextInput
                 placeholder="Buscar..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={search}
                 onChangeText={setSearch}
                 style={styles.searchInput}
@@ -171,57 +173,57 @@ export default function SelectModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   label: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     marginBottom: 8,
     fontFamily: Typography.medium,
     fontSize: 13,
   },
   trigger: {
-    backgroundColor: Colors.surface,
+    backgroundColor: colors.surface,
     padding: 16,
     borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: colors.borderLight,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   triggerText: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontFamily: Typography.medium,
   },
   placeholder: {
-    color: Colors.textMuted,
+    color: colors.textMuted,
   },
   overlay: {
     flex: 1,
-    backgroundColor: Colors.overlayStronger,
+    backgroundColor: colors.overlayStronger,
     justifyContent: "center",
     padding: 20,
   },
   modal: {
-    backgroundColor: Colors.backgroundElevated,
+    backgroundColor: colors.backgroundElevated,
     borderRadius: Radius.xl,
     padding: 15,
     maxHeight: "70%",
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
   },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surfaceMuted,
+    backgroundColor: colors.surfaceMuted,
     borderRadius: Radius.md,
     paddingHorizontal: 10,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: colors.borderLight,
   },
   searchInput: {
     flex: 1,
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     padding: 10,
     marginLeft: 6,
     fontFamily: Typography.regular,
@@ -232,10 +234,10 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   optionActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
   },
   optionText: {
-    color: Colors.textPrimary,
+    color: colors.onPrimary,
     fontFamily: Typography.regular,
   },
   optionTextActive: {
@@ -247,7 +249,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cancelText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontFamily: Typography.medium,
   },
 });

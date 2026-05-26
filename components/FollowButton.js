@@ -1,13 +1,14 @@
 import React from "react";
 import { TouchableOpacity, Text, ActivityIndicator, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 import { useFollow } from "../hooks/useFollow";
 
 /**
  * Botão para seguir/deixar de seguir usuário
  */
 export const FollowButton = ({ targetUserId, targetUserData, onFollowChange }) => {
+  const colors = useColors();
   const { isFollowing, loading, toggleFollow } = useFollow(
     targetUserId,
     targetUserData
@@ -25,26 +26,26 @@ export const FollowButton = ({ targetUserId, targetUserData, onFollowChange }) =
       style={[
         styles.button,
         {
-          backgroundColor: isFollowing ? Colors.surface : Colors.primary,
-          borderColor: isFollowing ? Colors.primary : "transparent",
+          backgroundColor: isFollowing ? colors.surface : colors.primary,
+          borderColor: isFollowing ? colors.primary : "transparent",
         },
       ]}
       onPress={handlePress}
       disabled={loading}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={Colors.textPrimary} />
+        <ActivityIndicator size="small" color={colors.textPrimary} />
       ) : (
         <>
           <MaterialCommunityIcons
             name={isFollowing ? "check" : "plus"}
             size={16}
-            color={isFollowing ? Colors.primary : "#fff"}
+            color={isFollowing ? colors.primary : colors.onPrimary}
           />
           <Text
             style={[
               styles.text,
-              { color: isFollowing ? Colors.primary : "#fff" },
+              { color: isFollowing ? colors.primary : colors.onPrimary },
             ]}
           >
             {isFollowing ? "Seguindo" : "Seguir"}

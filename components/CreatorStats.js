@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 import { getCreatorMetrics } from "../services/profileService";
 
 /**
  * Componente para exibir estatísticas do criador
  */
 export const CreatorStats = ({ userId, followers, following }) => {
+  const colors = useColors();
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,35 +35,35 @@ export const CreatorStats = ({ userId, followers, following }) => {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="small" color={Colors.primary} />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {/* Seguidores */}
       <View style={styles.stat}>
-        <Text style={styles.statValue}>{formatNumber(followers || 0)}</Text>
-        <Text style={styles.statLabel}>Seguidores</Text>
+        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(followers || 0)}</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Seguidores</Text>
       </View>
 
       {/* Eventos */}
       <View style={styles.stat}>
-        <Text style={styles.statValue}>{formatNumber(metrics?.totalEventos || 0)}</Text>
-        <Text style={styles.statLabel}>Eventos</Text>
+        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(metrics?.totalEventos || 0)}</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Eventos</Text>
       </View>
 
       {/* Likes */}
       <View style={styles.stat}>
-        <Text style={styles.statValue}>{formatNumber(metrics?.totalLikes || 0)}</Text>
-        <Text style={styles.statLabel}>Likes</Text>
+        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{formatNumber(metrics?.totalLikes || 0)}</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Likes</Text>
       </View>
 
       {/* Engagement Rate */}
       <View style={styles.stat}>
-        <Text style={styles.statValue}>{(metrics?.engagementRate * 100 || 0).toFixed(1)}%</Text>
-        <Text style={styles.statLabel}>Engagement</Text>
+        <Text style={[styles.statValue, { color: colors.textPrimary }]}>{(metrics?.engagementRate * 100 || 0).toFixed(1)}%</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Engagement</Text>
       </View>
     </View>
   );
@@ -76,22 +76,18 @@ const styles = {
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 12,
-    backgroundColor: Colors.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
   },
   stat: {
     alignItems: "center",
     flex: 1,
   },
   statValue: {
-    color: Colors.textPrimary,
     fontSize: 16,
     fontWeight: "bold",
   },
   statLabel: {
-    color: Colors.textSecondary,
     fontSize: 12,
     marginTop: 4,
   },

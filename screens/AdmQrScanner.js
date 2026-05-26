@@ -46,6 +46,7 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 const COOLDOWN_MS = 2200; // pausa entre scans
 let styles;
 let colors;
+let blurTint;
 
 // ─── Tipos de resultado visual ───────────────────────────────────────────────
 const ESTADO = {
@@ -57,6 +58,7 @@ const ESTADO = {
 
 // ─── Linha de varredura animada ───────────────────────────────────────────────
 function ScanLine() {
+  const scanStyles = useThemedStyles(createScanStyles);
   const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -90,6 +92,10 @@ function ScanLine() {
 
 // ─── Card de resultado ────────────────────────────────────────────────────────
 function ResultCard({ estado, dados }) {
+  const { colors, isDark } = useTheme();
+  const resStyles = useThemedStyles(createResultStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   if (estado === ESTADO.AGUARDANDO) return null;
 
   if (estado === ESTADO.PROCESSANDO) {
@@ -193,6 +199,7 @@ function HistoricoItem({ item }) {
 export default function AdmQRScanner({ navigation, route }) {
   const themeContext = useTheme();
   colors = themeContext.colors;
+  blurTint = themeContext.isDark ? "dark" : "light";
   styles = useThemedStyles(createThemedScreenStyles);
   const { uid } = useAuth();
   const eventoId = route?.params?.eventoId;
@@ -491,7 +498,8 @@ export default function AdmQRScanner({ navigation, route }) {
 const FRAME_SIZE = 240;
 const CORNER = 24;
 
-const scanStyles = StyleSheet.create({
+function createScanStyles(colors) {
+  return StyleSheet.create({
   line: {
     position: "absolute",
     left: 8,
@@ -504,9 +512,11 @@ const scanStyles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-});
+  });
+}
 
-const resStyles = StyleSheet.create({
+function createResultStyles(colors) {
+  return StyleSheet.create({
   card: {
     borderRadius: 28,
     padding: 24,
@@ -570,7 +580,8 @@ const resStyles = StyleSheet.create({
     marginTop: 14,
     fontSize: 15,
   },
-});
+  });
+}
 
 const histStyles = StyleSheet.create({
   row: {

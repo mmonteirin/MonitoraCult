@@ -41,13 +41,13 @@ import { db } from "../firebaseConfig";
 import { obterEstatisticasVendas } from "../services/ingressoServiceV2";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
-import { Gradients } from "../styles/Colors";
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
 const DEFAULT_EVENT_IMAGE = "https://placehold.co/600x400/png";
 let styles;
 let colors;
+let blurTint;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // ─── Utilitários ─────────────────────────────────────────────────────────────
@@ -741,6 +741,10 @@ function ExportReportModal({
   onExportCsv,
   onShare,
 }) {
+  const { colors, gradients, isDark } = useTheme();
+  const exportModalStyles = useThemedStyles(createExportModalStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   return (
     <Modal
       visible={visible}
@@ -774,7 +778,7 @@ function ExportReportModal({
               onPress={onExportCsv}
             >
               <LinearGradient
-                colors={Gradients.primaryButton}
+                colors={gradients.primaryButton}
                 style={exportModalStyles.actionGradient}
               >
                 <MaterialCommunityIcons
@@ -792,7 +796,7 @@ function ExportReportModal({
               onPress={onShare}
             >
               <LinearGradient
-                colors={Gradients.primaryButton}
+                colors={gradients.primaryButton}
                 style={exportModalStyles.actionGradient}
               >
                 <MaterialCommunityIcons
@@ -818,7 +822,8 @@ function ExportReportModal({
   );
 }
 
-const exportModalStyles = StyleSheet.create({
+function createExportModalStyles(colors) {
+  return StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: colors.overlayStronger,
@@ -892,13 +897,15 @@ const exportModalStyles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-});
+  });
+}
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
 export default function AdmEventoDashIndividual({ navigation, route }) {
   const themeContext = useTheme();
   colors = themeContext.colors;
+  blurTint = themeContext.isDark ? "dark" : "light";
   styles = useThemedStyles(createThemedScreenStyles);
   const { nome, foto } = useAuth();
 

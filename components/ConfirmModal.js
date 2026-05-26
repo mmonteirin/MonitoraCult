@@ -14,10 +14,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AppText from "./AppText";
 import {
-  Colors,
-  Gradients,
   Radius,
+  getGradients,
 } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
 
 export default function ConfirmModal({
   visible,
@@ -32,6 +32,9 @@ export default function ConfirmModal({
   onCancel,
   loading = false,
 }) {
+  const { colors, isDark } = useTheme();
+  const gradients = getGradients(colors, isDark);
+  const styles = createStyles(colors);
   // Ajuste de retrocompatibilidade para prop `danger`
   const activeType = danger ? "danger" : type;
 
@@ -42,35 +45,35 @@ export default function ConfirmModal({
       case "error":
         return {
           icon: "alert-circle",
-          iconColor: Colors.error,
+          iconColor: colors.error,
           iconBg: "rgba(239,68,68,0.12)",
           cardGradient: ["rgba(239,68,68,0.15)", "rgba(127,29,29,0.05)"],
-          btnGradient: Gradients.danger,
+          btnGradient: gradients.danger,
         };
       case "success":
         return {
           icon: "check-circle",
-          iconColor: Colors.success,
+          iconColor: colors.success,
           iconBg: "rgba(34,197,94,0.12)",
           cardGradient: ["rgba(34,197,94,0.15)", "rgba(20,83,45,0.05)"],
-          btnGradient: Gradients.success,
+          btnGradient: gradients.success,
         };
       case "warning":
         return {
           icon: "alert",
-          iconColor: Colors.warning,
+          iconColor: colors.warning,
           iconBg: "rgba(245,158,11,0.12)",
           cardGradient: ["rgba(245,158,11,0.15)", "rgba(120,53,4,0.05)"],
-          btnGradient: Gradients.warning,
+          btnGradient: gradients.warning,
         };
       case "info":
       default:
         return {
           icon: "information",
-          iconColor: Colors.primary,
-          iconBg: Colors.primarySoft,
+          iconColor: colors.primary,
+          iconBg: colors.primarySoft,
           cardGradient: ["rgba(108,92,231,0.15)", "rgba(49,46,129,0.05)"],
-          btnGradient: Gradients.primaryButton,
+          btnGradient: gradients.primaryButton,
         };
     }
   };
@@ -86,7 +89,7 @@ export default function ConfirmModal({
       statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
-        <BlurView intensity={50} tint="dark" style={styles.modalCard}>
+        <BlurView intensity={50} tint={isDark ? "dark" : "light"} style={styles.modalCard}>
           <LinearGradient colors={config.cardGradient} style={styles.modalGradient}>
             {/* Ícone */}
             <View style={[styles.modalIcon, { backgroundColor: config.iconBg }]}>
@@ -127,13 +130,13 @@ export default function ConfirmModal({
               >
                 <LinearGradient colors={config.btnGradient} style={styles.confirmGradient}>
                   {loading ? (
-                    <ActivityIndicator size="small" color="#FFF" />
+                    <ActivityIndicator size="small" color={colors.onPrimary} />
                   ) : (
                     <>
                       <MaterialCommunityIcons
                         name={modalIconName}
                         size={18}
-                        color="#FFF"
+                        color={colors.onPrimary}
                       />
                       <AppText style={styles.confirmText} weight="bold">
                         {confirmText}
@@ -150,10 +153,10 @@ export default function ConfirmModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: Colors.overlayStronger,
+    backgroundColor: colors.overlayStronger,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xxl,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: colors.glassBorder,
   },
 
   modalGradient: {
@@ -182,13 +185,13 @@ const styles = StyleSheet.create({
   },
 
   modalTitle: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
     fontSize: 22,
     textAlign: "center",
   },
 
   modalText: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     textAlign: "center",
     marginTop: 10,
     fontSize: 14,
@@ -206,13 +209,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 52,
     borderRadius: Radius.md,
-    backgroundColor: Colors.glass,
+    backgroundColor: colors.glass,
     justifyContent: "center",
     alignItems: "center",
   },
 
   cancelText: {
-    color: Colors.textPrimary,
+    color: colors.textPrimary,
   },
 
   confirmBtn: {
@@ -229,6 +232,6 @@ const styles = StyleSheet.create({
   },
 
   confirmText: {
-    color: Colors.textPrimary,
+    color: colors.onPrimary,
   },
 });

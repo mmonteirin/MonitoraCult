@@ -217,7 +217,7 @@ const SelectModal = ({
 					style={{
 						color: value
 							? "#FFF"
-							: Colors?.textMuted ||
+							: colors.textMuted ||
 							  "#64748B",
 						fontSize: 15,
 					}}
@@ -229,7 +229,7 @@ const SelectModal = ({
 					name="chevron-down"
 					size={22}
 					color={
-						Colors?.primary || "#7C3AED"
+						colors.primary || "#7C3AED"
 					}
 				/>
 			</TouchableOpacity>
@@ -322,6 +322,9 @@ export default function AdmCadastroEvento({
 	navigation,
 	route,
 }) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
 	const insets = useSafeAreaInsets();
 
 	const { user, profile } = useAuth();
@@ -858,9 +861,9 @@ export default function AdmCadastroEvento({
 
 			<LinearGradient
 				colors={[
-					Colors?.backgroundSecondary ||
+					colors.backgroundSecondary ||
 						"#18122B",
-					Colors?.surface ||
+					colors.surface ||
 						"#10131F",
 				]}
 				style={[
@@ -952,7 +955,7 @@ export default function AdmCadastroEvento({
 									name="image-plus"
 									size={40}
 									color={
-										Colors?.primary ||
+										colors.primary ||
 										"#7C3AED"
 									}
 								/>
@@ -988,7 +991,7 @@ export default function AdmCadastroEvento({
 						]}
 						placeholder="Festival de Música"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						value={
@@ -1030,7 +1033,7 @@ export default function AdmCadastroEvento({
 						]}
 						placeholder="Descreva seu evento..."
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						multiline
@@ -1095,7 +1098,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="DD/MM/YYYY"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						keyboardType="numeric"
@@ -1125,7 +1128,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="HH:MM"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						keyboardType="numeric"
@@ -1155,7 +1158,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="DD/MM/YYYY"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						keyboardType="numeric"
@@ -1185,7 +1188,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="HH:MM"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						keyboardType="numeric"
@@ -1220,7 +1223,7 @@ export default function AdmCadastroEvento({
 							]}
 							placeholder="00000-000"
 							placeholderTextColor={
-								Colors?.textMuted ||
+								colors.textMuted ||
 								"#64748B"
 							}
 							keyboardType="numeric"
@@ -1263,7 +1266,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="Rua, avenida..."
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						value={
@@ -1291,7 +1294,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="Cidade"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						value={form.cidade}
@@ -1317,7 +1320,7 @@ export default function AdmCadastroEvento({
 						}
 						placeholder="CE"
 						placeholderTextColor={
-							Colors?.textMuted ||
+							colors.textMuted ||
 							"#64748B"
 						}
 						maxLength={2}
@@ -1366,7 +1369,7 @@ export default function AdmCadastroEvento({
 								}
 								placeholder="R$ 0,00"
 								placeholderTextColor={
-									Colors?.textMuted ||
+									colors.textMuted ||
 									"#64748B"
 								}
 								keyboardType="decimal-pad"
@@ -1397,7 +1400,7 @@ export default function AdmCadastroEvento({
 								}
 								placeholder="https://"
 								placeholderTextColor={
-									Colors?.textMuted ||
+									colors.textMuted ||
 									"#64748B"
 								}
 								value={
@@ -1512,7 +1515,7 @@ function createThemedScreenStyles(c) {
 	container: {
 		flex: 1,
 		backgroundColor:
-			Colors?.background ||
+			c.background ||
 			"#10131F",
 	},
 
@@ -1565,7 +1568,7 @@ function createThemedScreenStyles(c) {
 
 	imagePickerText: {
 		color:
-			Colors?.textMuted ||
+			c.textMuted ||
 			"#64748B",
 		marginTop: 8,
 		fontWeight: "600",
@@ -1573,7 +1576,7 @@ function createThemedScreenStyles(c) {
 
 	inputLabel: {
 		color:
-			Colors?.textPrimary ||
+			c.textPrimary ||
 			"#FFF",
 		fontSize: 13,
 		fontWeight: "700",
@@ -1612,7 +1615,7 @@ function createThemedScreenStyles(c) {
 
 	inputFocused: {
 		borderColor:
-			Colors?.primary ||
+			c.primary ||
 			"#7C3AED",
 	},
 
@@ -1652,7 +1655,7 @@ function createThemedScreenStyles(c) {
 	selectBox: {
 		width: "100%",
 		backgroundColor:
-			Colors?.surface ||
+			c.surface ||
 			"#161B2E",
 		borderRadius: 24,
 		padding: 20,
@@ -1682,7 +1685,7 @@ function createThemedScreenStyles(c) {
 			"rgba(124,58,237,0.22)",
 		borderWidth: 1,
 		borderColor:
-			Colors?.primary ||
+			c.primary ||
 			"#7C3AED",
 	},
 
@@ -1694,7 +1697,7 @@ function createThemedScreenStyles(c) {
 
 	selectCancelText: {
 		color:
-			Colors?.textMuted ||
+			c.textMuted ||
 			"#94A3B8",
 		fontWeight: "700",
 	},
@@ -1710,7 +1713,7 @@ function createThemedScreenStyles(c) {
 		height: 56,
 		borderRadius: 14,
 		backgroundColor:
-			Colors?.primary ||
+			c.primary ||
 			"#6C5CE7",
 		justifyContent: "center",
 		alignItems: "center",
@@ -1742,13 +1745,13 @@ function createThemedScreenStyles(c) {
 		height: 8,
 		borderRadius: 999,
 		backgroundColor:
-			Colors?.primary ||
+			c.primary ||
 			"#7C3AED",
 	},
 
 	progressText: {
 		color:
-			Colors?.textMuted ||
+			c.textMuted ||
 			"#64748B",
 		marginTop: 8,
 		textAlign: "center",

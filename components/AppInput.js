@@ -2,10 +2,10 @@ import React from "react";
 import { StyleSheet, View, Text, TextInput } from "react-native";
 import { Controller } from "react-hook-form";
 import {
-  Colors,
   Radius,
   Typography,
 } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 
 export default function AppInput({
   control,
@@ -14,6 +14,8 @@ export default function AppInput({
   rules,
   ...props
 }) {
+  const colors = useColors();
+  const styles = createStyles(colors);
   return (
     <Controller
       control={control}
@@ -27,7 +29,7 @@ export default function AppInput({
             value={value}
             onChangeText={onChange}
             {...props}
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             style={[
               styles.input,
               error && styles.inputError,
@@ -46,33 +48,33 @@ export default function AppInput({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     marginBottom: 14,
   },
   label: {
-    color: Colors.textSecondary,
+    color: colors.textSecondary,
     fontSize: 12,
     fontFamily: Typography.medium,
     marginBottom: 7,
   },
   input: {
     minHeight: 52,
-    backgroundColor: Colors.surface,
-    color: Colors.textPrimary,
+    backgroundColor: colors.surface,
+    color: colors.textPrimary,
     borderRadius: Radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: Colors.borderLight,
+    borderColor: colors.borderLight,
     fontFamily: Typography.regular,
     fontSize: 14,
   },
   inputError: {
-    borderColor: Colors.error,
+    borderColor: colors.error,
   },
   error: {
-    color: Colors.error,
+    color: colors.error,
     fontSize: 11,
     marginTop: 6,
     fontFamily: Typography.medium,
