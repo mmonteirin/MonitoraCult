@@ -15,7 +15,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { useAuth } from "../context/AuthContext";
 import AppText from "../components/AppText";
@@ -30,7 +29,6 @@ export default function TelaPerfil({ navigation }) {
     const [loadingLogout, setLoadingLogout] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const insets = useSafeAreaInsets();
-    const tabBarHeight = useBottomTabBarHeight();
     const { colors, isDark } = useTheme();
     const isSmallScreen = width < 380;
     const blurTint = isDark ? "dark" : "light";

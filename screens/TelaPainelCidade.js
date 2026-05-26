@@ -169,7 +169,7 @@ function formatarNum(n) {
 // ──────────────────────────────────────────────
 // LikeButton
 // ──────────────────────────────────────────────
-const LikeButton = memo(({ isLiked, onPress }) => {
+const LikeButton = memo(({ isLiked, onPress, styles }) => {
 	const scale = useSharedValue(1);
 
 	const animatedStyle = useAnimatedStyle(() => ({
@@ -203,7 +203,7 @@ const LikeButton = memo(({ isLiked, onPress }) => {
 // ──────────────────────────────────────────────
 // StatCard
 // ──────────────────────────────────────────────
-const StatCard = memo(({ value, label, icon, color, delay }) => (
+const StatCard = memo(({ value, label, icon, color, delay, styles }) => (
 	<Animated.View
 		entering={FadeInUp.delay(delay).springify()}
 		style={[styles.statCard, { borderColor: color + "30" }]}
@@ -219,7 +219,7 @@ const StatCard = memo(({ value, label, icon, color, delay }) => (
 // ──────────────────────────────────────────────
 // AcaoRapidaCard
 // ──────────────────────────────────────────────
-const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
+const AcaoRapidaCard = memo(({ acao, onPress, index, styles, colors }) => (
 	<Animated.View
 		entering={FadeInDown.delay(index * 60).springify()}
 		style={styles.acaoCardWrapper}
@@ -253,7 +253,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index }) => (
 // FeedCard (padronizado com TelaFeed)
 // ──────────────────────────────────────────────
 const FeedCard = memo(
-	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onComment, onPress }) => {
+	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onComment, onPress, styles, colors, blurTint }) => {
 		const scale = useSharedValue(1);
 		const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -317,6 +317,7 @@ const FeedCard = memo(
 							<LikeButton
 								isLiked={isLiked}
 								onPress={() => onLike(item.id, item.type)}
+								styles={styles}
 							/>
 							<TouchableOpacity style={styles.actionBtn} onPress={() => onComment?.(item)}>
 								<MaterialCommunityIcons
@@ -902,6 +903,7 @@ export default function TelaPainelCidade() {
 									icon="calendar-star"
 									color="#6C5CE7"
 									delay={0}
+									styles={styles}
 								/>
 								<StatCard
 									value={painelCidade.proximos}
@@ -909,6 +911,7 @@ export default function TelaPainelCidade() {
 									icon="clock-fast"
 									color="#22D3EE"
 									delay={80}
+									styles={styles}
 								/>
 								<StatCard
 									value={painelCidade.hotspots}
@@ -916,6 +919,7 @@ export default function TelaPainelCidade() {
 									icon="fire"
 									color="#F97316"
 									delay={160}
+									styles={styles}
 								/>
 							</View>
 
@@ -966,6 +970,8 @@ export default function TelaPainelCidade() {
 								? navigation.navigate(route, nested)
 								: navigation.navigate(route)
 						}
+							styles={styles}
+							colors={colors}
 						/>
 					))}
 				</View>
@@ -1079,6 +1085,9 @@ export default function TelaPainelCidade() {
 								params: { screen: "Detalhes", params: { evento: evt } },
 							})
 						}
+						styles={styles}
+						colors={colors}
+						blurTint={blurTint}
 					/>
 				))}
 
