@@ -21,12 +21,16 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function ComunidadeCriadorDetalhes({
   route,
   navigation,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { creatorId } = route.params;
   const [creator, setCreator] = useState(null);
@@ -65,7 +69,7 @@ export default function ComunidadeCriadorDetalhes({
         >
           <BlurView
             intensity={35}
-            tint="dark"
+            tint={blurTint}
             style={styles.headerBlur}
           >
             <MaterialCommunityIcons
@@ -76,7 +80,7 @@ export default function ComunidadeCriadorDetalhes({
           </BlurView>
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -92,9 +96,9 @@ export default function ComunidadeCriadorDetalhes({
       >
         <LinearGradient
           colors={[
-            Colors.backgroundSecondary,
-            Colors.surface,
-            Colors.background,
+            colors.backgroundSecondary,
+            colors.surface,
+            colors.background,
           ]}
           style={[
             styles.header,
@@ -109,7 +113,7 @@ export default function ComunidadeCriadorDetalhes({
             >
               <BlurView
                 intensity={35}
-                tint="dark"
+                tint={blurTint}
                 style={styles.headerBlur}
               >
                 <MaterialCommunityIcons
@@ -125,7 +129,7 @@ export default function ComunidadeCriadorDetalhes({
             <TouchableOpacity style={styles.moreButton}>
               <BlurView
                 intensity={35}
-                tint="dark"
+                tint={blurTint}
                 style={styles.headerBlur}
               >
                 <MaterialCommunityIcons
@@ -148,7 +152,7 @@ export default function ComunidadeCriadorDetalhes({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       >
@@ -157,7 +161,7 @@ export default function ComunidadeCriadorDetalhes({
           entering={FadeInUp.delay(120).springify()}
         >
           <LinearGradient
-            colors={[Colors.primary, Colors.primaryDark]}
+            colors={[colors.primary, colors.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.profileHeader}
@@ -166,7 +170,7 @@ export default function ComunidadeCriadorDetalhes({
             <MaterialCommunityIcons
               name="account"
               size={80}
-              color={Colors.textPrimary}
+              color={colors.textPrimary}
             />
           </View>
           <Text style={styles.creatorName}>Criador em Destaque</Text>
@@ -197,7 +201,7 @@ export default function ComunidadeCriadorDetalhes({
               <MaterialCommunityIcons
                 name="plus"
                 size={20}
-                color={Colors.primary}
+                color={colors.primary}
               />
               <Text style={styles.followButtonText}>Seguir</Text>
             </TouchableOpacity>
@@ -208,7 +212,7 @@ export default function ComunidadeCriadorDetalhes({
               <MaterialCommunityIcons
                 name="message-outline"
                 size={20}
-                color={Colors.textPrimary}
+                color={colors.textPrimary}
               />
             </TouchableOpacity>
             </View>
@@ -249,7 +253,7 @@ export default function ComunidadeCriadorDetalhes({
                   <MaterialCommunityIcons
                     name="image"
                     size={32}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </View>
               </View>
@@ -279,7 +283,7 @@ export default function ComunidadeCriadorDetalhes({
                 <MaterialCommunityIcons
                   name="image"
                   size={40}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
               </View>
               <View style={styles.workInfo}>
@@ -289,7 +293,7 @@ export default function ComunidadeCriadorDetalhes({
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={24}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
           ))}
@@ -300,10 +304,11 @@ export default function ComunidadeCriadorDetalhes({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -322,8 +327,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
   },
   backButton: {
     width: 52,
@@ -371,11 +376,11 @@ const styles = StyleSheet.create({
   creatorName: {
     fontSize: 24,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   creatorGenre: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   statsContainer: {
@@ -390,11 +395,11 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 20,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   statLabel: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   actionButtons: {
@@ -408,12 +413,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: c.textPrimary,
     paddingVertical: 12,
     borderRadius: 12,
   },
   followButtonText: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "700",
     fontSize: 14,
   },
@@ -428,7 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -439,16 +444,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   seeAll: {
     fontSize: 12,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
   sectionContent: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
   },
   portfolioGrid: {
@@ -462,29 +467,29 @@ const styles = StyleSheet.create({
   },
   portfolioPlaceholder: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   workItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   workImage: {
     width: 50,
     height: 50,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -495,11 +500,12 @@ const styles = StyleSheet.create({
   workTitle: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   workDate: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
 });
+}

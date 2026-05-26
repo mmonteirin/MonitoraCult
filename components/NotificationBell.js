@@ -18,9 +18,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNotifications } from "../context/NotificationContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function NotificationBell({ onPress, color, size = 24, style }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const { naoLidas } = useNotifications();
 
   const scale = useSharedValue(1);
@@ -61,7 +65,7 @@ export default function NotificationBell({ onPress, color, size = 24, style }) {
         <MaterialCommunityIcons
           name={naoLidas > 0 ? "bell-ring" : "bell-outline"}
           size={size}
-          color={naoLidas > 0 ? Colors.primary : (color || Colors.textSecondary)}
+          color={naoLidas > 0 ? colors.primary : (color || colors.textSecondary)}
         />
       </Animated.View>
 
@@ -81,7 +85,8 @@ export default function NotificationBell({ onPress, color, size = 24, style }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     width: 44,
     height: 44,
@@ -96,12 +101,12 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: Colors.error,
+    backgroundColor: c.error,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 3,
     borderWidth: 1.5,
-    borderColor: Colors.background,
+    borderColor: c.background,
   },
   badgeWide: {
     minWidth: 22,
@@ -114,3 +119,4 @@ const styles = StyleSheet.create({
     lineHeight: 12,
   },
 });
+}

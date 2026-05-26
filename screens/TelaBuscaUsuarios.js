@@ -16,11 +16,15 @@ import {
 } from "react-native";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { searchUsers } from "../services/userService";
 import { useAuth } from "../context/AuthContext";
 
 const TelaBuscaUsuarios = ({ navigation, route }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const { user } = useAuth();
   const embedded = !!route?.params?.embedded;
   const scrollY = route?.params?.scrollY;
@@ -91,7 +95,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
       <MaterialCommunityIcons
         name="chevron-right"
         size={24}
-        color={Colors.textMuted}
+        color={colors.textMuted}
       />
     </TouchableOpacity>
   );
@@ -115,7 +119,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
             <MaterialCommunityIcons
               name="chevron-left"
               size={24}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </TouchableOpacity>
           <Text style={styles.titulo}>Buscar usuários</Text>
@@ -134,7 +138,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
           <MaterialCommunityIcons
             name="magnify"
             size={20}
-            color={Colors.textMuted}
+            color={colors.textMuted}
             style={styles.searchIcon}
           />
           <TextInput
@@ -144,7 +148,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
                 ? "Buscar pessoas..."
                 : "Buscar por nome ou @username"
             }
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -153,7 +157,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
               <MaterialCommunityIcons
                 name="close-circle"
                 size={20}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
           )}
@@ -162,7 +166,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
 
       {!embedded && searchQuery.length === 0 && (
         <View style={styles.tipBox}>
-          <MaterialCommunityIcons name="message-plus-outline" size={20} color={Colors.primary} />
+          <MaterialCommunityIcons name="message-plus-outline" size={20} color={colors.primary} />
           <Text style={styles.tipText}>Selecione uma pessoa para iniciar uma conversa direta.</Text>
         </View>
       )}
@@ -172,7 +176,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
         <View style={styles.centerContainer}>
           <ActivityIndicator
             size="large"
-            color={Colors.primary}
+            color={colors.primary}
           />
         </View>
       ) : usuarios.length > 0 ? (
@@ -194,7 +198,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
           <MaterialCommunityIcons
             name="account-search-outline"
             size={48}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.emptyText}>
             Nenhum usuário encontrado
@@ -209,7 +213,7 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
             <MaterialCommunityIcons
               name="account-search-outline"
               size={42}
-              color={Colors.textMuted}
+              color={colors.textMuted}
             />
           </View>
           <Text style={styles.emptyText}>
@@ -224,15 +228,16 @@ const TelaBuscaUsuarios = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   containerEmbedded: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   header: {
@@ -242,7 +247,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
 
   btnVoltar: {
@@ -255,7 +260,7 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   searchContainer: {
@@ -264,9 +269,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     minHeight: 52,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   searchWrap: {
@@ -290,21 +295,21 @@ const styles = StyleSheet.create({
   },
 
   embeddedLabel: {
-    color: Colors.primary,
+    color: c.primary,
     fontSize: 12,
     fontWeight: "800",
     textTransform: "uppercase",
   },
 
   embeddedTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 26,
     fontWeight: "800",
     marginTop: 2,
   },
 
   embeddedSub: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     marginTop: 5,
     lineHeight: 18,
@@ -318,7 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     fontSize: 16,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   listFlex: {
@@ -338,9 +343,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 10,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   avatar: {
@@ -357,12 +362,12 @@ const styles = StyleSheet.create({
   nome: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   username: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
@@ -375,14 +380,14 @@ const styles = StyleSheet.create({
 
   emptyText: {
     fontSize: 15,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 16,
     fontWeight: "700",
     textAlign: "center",
   },
 
   emptySubtext: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     marginTop: 6,
     lineHeight: 18,
@@ -395,9 +400,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   tipBox: {
@@ -408,17 +413,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 14,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   tipText: {
     flex: 1,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     lineHeight: 18,
   },
-});
+  });
+}
 
 export default TelaBuscaUsuarios;

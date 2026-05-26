@@ -15,7 +15,8 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useCommunity } from "../hooks/useCommunity";
 
 const INNER_TABS = [
@@ -50,7 +51,7 @@ function PostCard({ post, onLike, onComment, onDelete, currentUid }) {
           {post.authorPhoto ? (
             <Image source={{ uri: post.authorPhoto }} style={postStyles.avatarImg} />
           ) : (
-            <MaterialCommunityIcons name="account" size={22} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="account" size={22} color={colors.textMuted} />
           )}
         </View>
         <View style={{ flex: 1 }}>
@@ -62,7 +63,7 @@ function PostCard({ post, onLike, onComment, onDelete, currentUid }) {
             { text: "Cancelar", style: "cancel" },
             { text: "Excluir", style: "destructive", onPress: () => onDelete(post.id) },
           ])}>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
           </TouchableOpacity>
         )}
       </View>
@@ -80,14 +81,14 @@ function PostCard({ post, onLike, onComment, onDelete, currentUid }) {
           <MaterialCommunityIcons
             name={isLiked ? "heart" : "heart-outline"}
             size={20}
-            color={isLiked ? Colors.error : Colors.textMuted}
+            color={isLiked ? colors.error : colors.textMuted}
           />
-          <Text style={[postStyles.actionText, isLiked && { color: Colors.error }]}>
+          <Text style={[postStyles.actionText, isLiked && { color: colors.error }]}>
             {post.likesCount || 0}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={postStyles.actionBtn} onPress={() => onComment(post.id)}>
-          <MaterialCommunityIcons name="comment-outline" size={20} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="comment-outline" size={20} color={colors.textMuted} />
           <Text style={postStyles.actionText}>{post.commentsCount || 0}</Text>
         </TouchableOpacity>
       </View>
@@ -100,7 +101,7 @@ function ThreadCard({ thread, onPress }) {
     <TouchableOpacity style={threadStyles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={threadStyles.row}>
         <View style={threadStyles.avatar}>
-          <MaterialCommunityIcons name="account" size={18} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="account" size={18} color={colors.textMuted} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={threadStyles.title} numberOfLines={2}>{thread.title}</Text>
@@ -110,11 +111,11 @@ function ThreadCard({ thread, onPress }) {
       <Text style={threadStyles.desc} numberOfLines={2}>{thread.description}</Text>
       <View style={threadStyles.stats}>
         <View style={threadStyles.stat}>
-          <MaterialCommunityIcons name="comment-outline" size={14} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="comment-outline" size={14} color={colors.textMuted} />
           <Text style={threadStyles.statText}>{thread.repliesCount || 0} respostas</Text>
         </View>
         <View style={threadStyles.stat}>
-          <MaterialCommunityIcons name="heart-outline" size={14} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="heart-outline" size={14} color={colors.textMuted} />
           <Text style={threadStyles.statText}>{thread.likesCount || 0}</Text>
         </View>
       </View>
@@ -123,6 +124,9 @@ function ThreadCard({ thread, onPress }) {
 }
 
 export default function ComunidadeGrupoDetalhes({ route, navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { groupId } = route.params;
   const {
@@ -218,7 +222,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
   const renderHeader = () => (
     <View>
       {/* CAPA */}
-      <LinearGradient colors={[Colors.primary, Colors.primaryDark, Colors.background]} style={styles.cover}>
+      <LinearGradient colors={[colors.primary, colors.primaryDark, colors.background]} style={styles.cover}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="chevron-left" size={28} color="#fff" />
         </TouchableOpacity>
@@ -230,7 +234,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
         )}
         <View style={styles.coverContent}>
           <View style={styles.groupIcon}>
-            <MaterialCommunityIcons name="account-group" size={36} color={Colors.primary} />
+            <MaterialCommunityIcons name="account-group" size={36} color={colors.primary} />
           </View>
           <Text style={styles.groupName}>{currentGroup?.name || "Carregando..."}</Text>
           {currentGroup?.genre && (
@@ -257,7 +261,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
           <MaterialCommunityIcons
             name={currentGroup?.isPrivate ? "lock-outline" : "earth"}
             size={18}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.infoLabel}>{currentGroup?.isPrivate ? "Privado" : "Público"}</Text>
         </View>
@@ -270,9 +274,9 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name={isMember ? "check" : "plus"}
               size={16}
-              color={isMember ? Colors.success : "#fff"}
+              color={isMember ? colors.success : "#fff"}
             />
-            <Text style={[styles.joinBtnText, isMember && { color: Colors.success }]}>
+            <Text style={[styles.joinBtnText, isMember && { color: colors.success }]}>
               {isMember ? "Membro" : "Participar"}
             </Text>
           </TouchableOpacity>
@@ -290,7 +294,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name={t.icon}
               size={16}
-              color={innerTab === t.key ? Colors.primary : Colors.textMuted}
+              color={innerTab === t.key ? colors.primary : colors.textMuted}
             />
             <Text style={[styles.innerTabText, innerTab === t.key && styles.innerTabTextActive]}>
               {t.label}
@@ -306,10 +310,10 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
       {isMember && (
         <TouchableOpacity style={styles.composeBox} onPress={() => setShowPostModal(true)} activeOpacity={0.8}>
           <View style={styles.composeAvatar}>
-            <MaterialCommunityIcons name="account" size={20} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="account" size={20} color={colors.textMuted} />
           </View>
           <Text style={styles.composePlaceholder}>Compartilhe algo com a comunidade...</Text>
-          <MaterialCommunityIcons name="pencil-outline" size={18} color={Colors.primary} />
+          <MaterialCommunityIcons name="pencil-outline" size={18} color={colors.primary} />
         </TouchableOpacity>
       )}
       {posts.map((post) => (
@@ -324,7 +328,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
       ))}
       {posts.length === 0 && (
         <View style={styles.emptySection}>
-          <MaterialCommunityIcons name="post-outline" size={48} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="post-outline" size={48} color={colors.textMuted} />
           <Text style={styles.emptySectionText}>
             {isMember ? "Seja o primeiro a postar!" : "Entre na comunidade para ver os posts"}
           </Text>
@@ -354,7 +358,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
       ))}
       {forumThreads.length === 0 && (
         <View style={styles.emptySection}>
-          <MaterialCommunityIcons name="forum-outline" size={48} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="forum-outline" size={48} color={colors.textMuted} />
           <Text style={styles.emptySectionText}>Nenhum tópico ainda. Inicie a conversa!</Text>
         </View>
       )}
@@ -378,7 +382,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
 
       <View style={styles.sobreInfoBox}>
         <View style={styles.sobreInfoRow}>
-          <MaterialCommunityIcons name="calendar-outline" size={18} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="calendar-outline" size={18} color={colors.textMuted} />
           <Text style={styles.sobreInfoText}>
             Criada em {currentGroup?.createdAt
               ? (currentGroup.createdAt.toDate ? currentGroup.createdAt.toDate() : new Date(currentGroup.createdAt.seconds * 1000)).toLocaleDateString("pt-BR")
@@ -386,7 +390,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
           </Text>
         </View>
         <View style={styles.sobreInfoRow}>
-          <MaterialCommunityIcons name="tag-outline" size={18} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="tag-outline" size={18} color={colors.textMuted} />
           <Text style={styles.sobreInfoText}>Categoria: {currentGroup?.genre || "—"}</Text>
         </View>
       </View>
@@ -397,7 +401,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -423,7 +427,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
             {innerTab === "sobre" && renderSobreContent()}
           </View>
         }
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
       />
@@ -436,13 +440,13 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Novo Post</Text>
                 <TouchableOpacity onPress={() => setShowPostModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color={Colors.textSecondary} />
+                  <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TextInput
                 style={styles.postInput}
                 placeholder="O que você quer compartilhar?"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={postContent}
                 onChangeText={setPostContent}
                 multiline
@@ -456,7 +460,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
                 onPress={handleSubmitPost}
                 disabled={!postContent.trim() || submittingPost}
               >
-                <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.submitBtnGradient}>
+                <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.submitBtnGradient}>
                   {submittingPost
                     ? <ActivityIndicator color="#fff" />
                     : <Text style={styles.submitBtnText}>Publicar</Text>}
@@ -475,13 +479,13 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Novo Tópico</Text>
                 <TouchableOpacity onPress={() => setShowThreadModal(false)}>
-                  <MaterialCommunityIcons name="close" size={24} color={Colors.textSecondary} />
+                  <MaterialCommunityIcons name="close" size={24} color={colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <TextInput
                 style={styles.textInput}
                 placeholder="Título do tópico"
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={threadData.title}
                 onChangeText={(v) => setThreadData((d) => ({ ...d, title: v }))}
                 maxLength={120}
@@ -489,7 +493,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
               <TextInput
                 style={[styles.textInput, styles.textArea]}
                 placeholder="Descreva seu tópico..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 value={threadData.description}
                 onChangeText={(v) => setThreadData((d) => ({ ...d, description: v }))}
                 multiline
@@ -501,7 +505,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
                 onPress={handleSubmitThread}
                 disabled={submittingThread}
               >
-                <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.submitBtnGradient}>
+                <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.submitBtnGradient}>
                   {submittingThread
                     ? <ActivityIndicator color="#fff" />
                     : <Text style={styles.submitBtnText}>Criar Tópico</Text>}
@@ -515,9 +519,10 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
+  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.background },
   cover: { height: 200, padding: 16, justifyContent: "space-between" },
   backBtn: {
     width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.3)",
@@ -529,9 +534,9 @@ const styles = StyleSheet.create({
   },
   coverContent: { alignItems: "center", paddingBottom: 8 },
   groupIcon: {
-    width: 68, height: 68, borderRadius: 22, backgroundColor: Colors.surface,
+    width: 68, height: 68, borderRadius: 22, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center", marginBottom: 10,
-    borderWidth: 2, borderColor: Colors.primary,
+    borderWidth: 2, borderColor: c.primary,
   },
   groupName: { fontSize: 22, fontWeight: "800", color: "#fff", textAlign: "center" },
   genreBadge: {
@@ -541,72 +546,72 @@ const styles = StyleSheet.create({
   genreBadgeText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   infoRow: {
     flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: Colors.surface, borderBottomWidth: 1, borderBottomColor: Colors.border,
+    backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.border,
   },
   infoItem: { alignItems: "center", paddingHorizontal: 12 },
-  infoNum: { fontSize: 16, fontWeight: "800", color: Colors.textPrimary },
-  infoLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
-  infoDiv: { width: 1, height: 30, backgroundColor: Colors.border },
+  infoNum: { fontSize: 16, fontWeight: "800", color: c.textPrimary },
+  infoLabel: { fontSize: 11, color: c.textMuted, marginTop: 2 },
+  infoDiv: { width: 1, height: 30, backgroundColor: c.border },
   joinBtn: {
     flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: Colors.primary, borderRadius: 14,
+    backgroundColor: c.primary, borderRadius: 14,
   },
-  joinBtnMember: { backgroundColor: "rgba(34,197,94,0.12)", borderWidth: 1, borderColor: Colors.success },
+  joinBtnMember: { backgroundColor: "rgba(34,197,94,0.12)", borderWidth: 1, borderColor: c.success },
   joinBtnText: { color: "#fff", fontSize: 13, fontWeight: "700" },
   innerTabBar: {
-    flexDirection: "row", borderBottomWidth: 1, borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    flexDirection: "row", borderBottomWidth: 1, borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
   innerTab: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 6, paddingVertical: 12,
   },
-  innerTabActive: { borderBottomWidth: 2, borderBottomColor: Colors.primary },
-  innerTabText: { fontSize: 12, color: Colors.textMuted, fontWeight: "600" },
-  innerTabTextActive: { color: Colors.primary },
+  innerTabActive: { borderBottomWidth: 2, borderBottomColor: c.primary },
+  innerTabText: { fontSize: 12, color: c.textMuted, fontWeight: "600" },
+  innerTabTextActive: { color: c.primary },
   composeBox: {
     flexDirection: "row", alignItems: "center", gap: 10, margin: 16,
-    backgroundColor: Colors.surface, padding: 14, borderRadius: 16,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.surface, padding: 14, borderRadius: 16,
+    borderWidth: 1, borderColor: c.border,
   },
   composeAvatar: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.card,
+    width: 36, height: 36, borderRadius: 18, backgroundColor: c.card,
     justifyContent: "center", alignItems: "center",
   },
-  composePlaceholder: { flex: 1, color: Colors.textMuted, fontSize: 14 },
+  composePlaceholder: { flex: 1, color: c.textMuted, fontSize: 14 },
   emptySection: { alignItems: "center", paddingVertical: 48 },
-  emptySectionText: { color: Colors.textMuted, fontSize: 14, marginTop: 12, textAlign: "center" },
+  emptySectionText: { color: c.textMuted, fontSize: 14, marginTop: 12, textAlign: "center" },
   newThreadBtn: {
     flexDirection: "row", alignItems: "center", gap: 8, margin: 16, padding: 12,
-    backgroundColor: Colors.primary, borderRadius: 14, justifyContent: "center",
+    backgroundColor: c.primary, borderRadius: 14, justifyContent: "center",
   },
   newThreadBtnText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   sobreBox: { padding: 20 },
-  sobreTitle: { fontSize: 16, fontWeight: "700", color: Colors.textPrimary, marginBottom: 10 },
-  sobreDesc: { fontSize: 14, color: Colors.textSecondary, lineHeight: 21 },
+  sobreTitle: { fontSize: 16, fontWeight: "700", color: c.textPrimary, marginBottom: 10 },
+  sobreDesc: { fontSize: 14, color: c.textSecondary, lineHeight: 21 },
   tagsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
-  tag: { backgroundColor: Colors.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  tagText: { color: Colors.primary, fontSize: 13, fontWeight: "600" },
+  tag: { backgroundColor: c.surface, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  tagText: { color: c.primary, fontSize: 13, fontWeight: "600" },
   sobreInfoBox: { marginTop: 20, gap: 12 },
   sobreInfoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  sobreInfoText: { color: Colors.textSecondary, fontSize: 14 },
+  sobreInfoText: { color: c.textSecondary, fontSize: 14 },
   // MODALS
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
   modalCard: {
-    backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28,
     padding: 24, paddingBottom: 40,
   },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary },
+  modalTitle: { fontSize: 18, fontWeight: "800", color: c.textPrimary },
   postInput: {
-    backgroundColor: Colors.card, borderRadius: 14, padding: 14,
-    color: Colors.textPrimary, fontSize: 15, minHeight: 120, textAlignVertical: "top",
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.card, borderRadius: 14, padding: 14,
+    color: c.textPrimary, fontSize: 15, minHeight: 120, textAlignVertical: "top",
+    borderWidth: 1, borderColor: c.border,
   },
-  charCount: { fontSize: 11, color: Colors.textMuted, textAlign: "right", marginTop: 6, marginBottom: 14 },
+  charCount: { fontSize: 11, color: c.textMuted, textAlign: "right", marginTop: 6, marginBottom: 14 },
   textInput: {
-    backgroundColor: Colors.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
-    color: Colors.textPrimary, fontSize: 14, borderWidth: 1, borderColor: Colors.border, marginBottom: 12,
+    backgroundColor: c.card, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    color: c.textPrimary, fontSize: 14, borderWidth: 1, borderColor: c.border, marginBottom: 12,
   },
   textArea: { minHeight: 100, textAlignVertical: "top" },
   submitBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
@@ -616,38 +621,39 @@ const styles = StyleSheet.create({
 
 const postStyles = StyleSheet.create({
   card: {
-    marginHorizontal: 16, marginBottom: 12, backgroundColor: Colors.card,
-    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border,
+    marginHorizontal: 16, marginBottom: 12, backgroundColor: c.card,
+    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border,
   },
   authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
   avatar: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.surface,
+    width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center", overflow: "hidden",
   },
   avatarImg: { width: 38, height: 38 },
-  authorName: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary },
-  postDate: { fontSize: 12, color: Colors.textMuted, marginTop: 1 },
-  content: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20, marginBottom: 10 },
+  authorName: { fontSize: 14, fontWeight: "700", color: c.textPrimary },
+  postDate: { fontSize: 12, color: c.textMuted, marginTop: 1 },
+  content: { fontSize: 14, color: c.textSecondary, lineHeight: 20, marginBottom: 10 },
   postImage: { width: "100%", height: 200, borderRadius: 12, marginBottom: 10 },
-  actions: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10 },
+  actions: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 },
   actionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  actionText: { color: Colors.textMuted, fontSize: 13 },
+  actionText: { color: c.textMuted, fontSize: 13 },
 });
 
 const threadStyles = StyleSheet.create({
   card: {
-    marginHorizontal: 16, marginBottom: 10, backgroundColor: Colors.card,
-    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: Colors.border,
+    marginHorizontal: 16, marginBottom: 10, backgroundColor: c.card,
+    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border,
   },
   row: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
   avatar: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface,
+    width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
   },
-  title: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary, flex: 1 },
-  meta: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  desc: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18, marginBottom: 10 },
-  stats: { flexDirection: "row", gap: 16, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 8 },
+  title: { fontSize: 14, fontWeight: "700", color: c.textPrimary, flex: 1 },
+  meta: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+  desc: { fontSize: 13, color: c.textSecondary, lineHeight: 18, marginBottom: 10 },
+  stats: { flexDirection: "row", gap: 16, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 },
   stat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  statText: { fontSize: 12, color: Colors.textMuted },
+  statText: { fontSize: 12, color: c.textMuted },
 });
+}

@@ -8,7 +8,8 @@ import {
   FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function CommunityCategorySection({
@@ -21,6 +22,9 @@ export default function CommunityCategorySection({
   isMember,
   checkIsMember,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const [expanded, setExpanded] = useState(true);
   const displayedGroups = expanded ? groups : groups.slice(0, 2);
 
@@ -37,7 +41,7 @@ export default function CommunityCategorySection({
       literatur: "#FFAAA5",
       fotografia: "#B4E7FF",
     };
-    return colorMap[categoryKey?.toLowerCase()] || Colors.primary;
+    return colorMap[categoryKey?.toLowerCase()] || colors.primary;
   };
 
   const categoryColor = getCategoryColor(category);
@@ -71,7 +75,7 @@ export default function CommunityCategorySection({
             <MaterialCommunityIcons
               name={expanded ? "chevron-up" : "chevron-down"}
               size={24}
-              color={Colors.textSecondary}
+              color={colors.textSecondary}
             />
           </TouchableOpacity>
         )}
@@ -153,7 +157,7 @@ export default function CommunityCategorySection({
               <MaterialCommunityIcons
                 name="arrow-right"
                 size={16}
-                color={Colors.primary}
+                color={colors.primary}
               />
             </TouchableOpacity>
           )}
@@ -163,7 +167,7 @@ export default function CommunityCategorySection({
           <MaterialCommunityIcons
             name="folder-open-outline"
             size={32}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.emptyCategoryText}>
             Nenhum grupo nesta categoria
@@ -174,13 +178,14 @@ export default function CommunityCategorySection({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   sectionContainer: {
     marginBottom: 24,
     marginHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.02)",
   },
@@ -190,7 +195,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.04)",
+    borderBottomColor: c.glass,
   },
   headerContent: {
     flex: 1,
@@ -211,12 +216,12 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     textTransform: "capitalize",
   },
   categoryDesc: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   groupsList: {
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.03)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glass,
   },
   groupItemLast: {
     marginBottom: 0,
@@ -250,7 +255,7 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   membersBadge: {
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
   },
   groupDesc: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     lineHeight: 16,
   },
   joinBtn: {
@@ -289,12 +294,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.04)",
+    borderTopColor: c.glass,
   },
   seeAllText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   emptyCategory: {
     alignItems: "center",
@@ -303,7 +308,8 @@ const styles = StyleSheet.create({
   },
   emptyCategoryText: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 8,
   },
 });
+}

@@ -6,7 +6,9 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -14,13 +16,13 @@ import {
   View,
 } from "react-native";
 
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import {
   createSupportTicket,
   listenSupportMessages,
@@ -45,21 +47,23 @@ function formatDate(value) {
   });
 }
 
-function statusColor(status) {
-  if (status === "resolvido") return Colors.success;
-  if (status === "aguardando_usuario") return Colors.warning;
-  if (status === "em_atendimento") return Colors.info;
-  return Colors.primary;
+function statusColor(status, colors) {
+  if (status === "resolvido") return colors.success;
+  if (status === "aguardando_usuario") return colors.warning;
+  if (status === "em_atendimento") return colors.info;
+  return colors.primary;
 }
 
-function priorityColor(priority) {
-  if (priority === "alta") return Colors.error;
-  if (priority === "media") return Colors.warning;
-  return Colors.success;
+function priorityColor(priority, colors) {
+  if (priority === "alta") return colors.error;
+  if (priority === "media") return colors.warning;
+  return colors.success;
 }
 
 export default function TelaSuporte({ navigation }) {
   const { user, nome, foto } = useAuth();
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
 
   const [tickets, setTickets] = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
@@ -201,6 +205,7 @@ export default function TelaSuporte({ navigation }) {
 
   const renderTicket = ({ item }) => {
     const active = selectedTicket?.id === item.id;
+    const ticketStatusColor = statusColor(item.status, colors);
 
     return (
       <TouchableOpacity
@@ -209,11 +214,11 @@ export default function TelaSuporte({ navigation }) {
         onPress={() => setSelectedTicket(item)}
       >
         <View style={styles.ticketTop}>
-          <View style={[styles.ticketIcon, { backgroundColor: `${statusColor(item.status)}22` }]}>
+          <View style={[styles.ticketIcon, { backgroundColor: `${ticketStatusColor}22` }]}>
             <MaterialCommunityIcons
               name={item.unreadUser ? "message-alert-outline" : "lifebuoy"}
               size={22}
-              color={statusColor(item.status)}
+              color={ticketStatusColor}
             />
           </View>
 
@@ -226,8 +231,8 @@ export default function TelaSuporte({ navigation }) {
             </Text>
           </View>
 
-          <View style={[styles.statusPill, { borderColor: statusColor(item.status) }]}>
-            <Text style={[styles.statusText, { color: statusColor(item.status) }]}>
+          <View style={[styles.statusPill, { borderColor: ticketStatusColor }]}>
+            <Text style={[styles.statusText, { color: ticketStatusColor }]}>
               {SUPPORT_STATUS[item.status] || "Aberto"}
             </Text>
           </View>
@@ -238,7 +243,7 @@ export default function TelaSuporte({ navigation }) {
         </Text>
 
         <View style={styles.ticketFooter}>
-          <View style={[styles.priorityDot, { backgroundColor: priorityColor(item.prioridade) }]} />
+          <View style={[styles.priorityDot, { backgroundColor: priorityColor(item.prioridade, colors) }]} />
           <Text style={styles.priorityText}>Prioridade {item.prioridade || "normal"}</Text>
           {item.unreadUser ? <Text style={styles.unreadText}>Nova resposta</Text> : null}
         </View>
@@ -251,13 +256,15 @@ export default function TelaSuporte({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.header}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Inicio"))}
             style={styles.backButton}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.primary} />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
 
           <View style={styles.headerCopy}>
@@ -271,7 +278,7 @@ export default function TelaSuporte({ navigation }) {
           style={styles.newTicketButton}
           onPress={() => setNewTicketVisible(true)}
         >
-          <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFF" />
+          <MaterialCommunityIcons name="plus-circle-outline" size={20} color={colors.onPrimary} />
           <Text style={styles.newTicketText}>Novo chamado</Text>
         </TouchableOpacity>
       </LinearGradient>
@@ -282,7 +289,7 @@ export default function TelaSuporte({ navigation }) {
 
           {ticketsLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator color={Colors.primary} />
+              <ActivityIndicator color={colors.primary} />
             </View>
           ) : (
             <FlatList
@@ -292,7 +299,7 @@ export default function TelaSuporte({ navigation }) {
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
                 <View style={styles.emptyBox}>
-                  <MaterialCommunityIcons name="headset" size={42} color={Colors.textMuted} />
+                  <MaterialCommunityIcons name="headset" size={42} color={colors.textMuted} />
                   <Text style={styles.emptyTitle}>Nenhum chamado aberto</Text>
                   <Text style={styles.emptyText}>Quando precisar, abra um chamado e acompanhe tudo por aqui.</Text>
                 </View>
@@ -314,13 +321,13 @@ export default function TelaSuporte({ navigation }) {
                 <MaterialCommunityIcons
                   name="shield-account-outline"
                   size={26}
-                  color={Colors.primaryLight}
+                  color={colors.primaryLight}
                 />
               </View>
 
               {messagesLoading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={colors.primary} />
                 </View>
               ) : (
                 <FlatList
@@ -332,11 +339,15 @@ export default function TelaSuporte({ navigation }) {
                     const mine = item.authorId === user?.uid;
                     return (
                       <View style={[styles.messageBubble, mine ? styles.myBubble : styles.adminBubble]}>
-                        <Text style={styles.messageAuthor}>
+                        <Text style={mine ? styles.messageAuthorMine : styles.messageAuthorOther}>
                           {mine ? "Você" : item.authorName || "Suporte"}
                         </Text>
-                        <Text style={styles.messageText}>{item.texto}</Text>
-                        <Text style={styles.messageTime}>{formatDate(item.createdAt)}</Text>
+                        <Text style={mine ? styles.messageTextMine : styles.messageTextOther}>
+                          {item.texto}
+                        </Text>
+                        <Text style={mine ? styles.messageTimeMine : styles.messageTimeOther}>
+                          {formatDate(item.createdAt)}
+                        </Text>
                       </View>
                     );
                   }}
@@ -348,7 +359,7 @@ export default function TelaSuporte({ navigation }) {
                   value={reply}
                   onChangeText={setReply}
                   placeholder="Responder ao suporte..."
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   multiline
                   style={styles.replyInput}
                 />
@@ -359,16 +370,16 @@ export default function TelaSuporte({ navigation }) {
                   disabled={!reply.trim() || sending}
                 >
                   {sending ? (
-                    <ActivityIndicator color="#FFF" size="small" />
+                    <ActivityIndicator color={colors.onPrimary} size="small" />
                   ) : (
-                    <MaterialCommunityIcons name="send" size={19} color="#FFF" />
+                    <MaterialCommunityIcons name="send" size={19} color={colors.onPrimary} />
                   )}
                 </TouchableOpacity>
               </View>
             </>
           ) : (
             <View style={styles.chatEmpty}>
-              <MaterialCommunityIcons name="message-text-outline" size={46} color={Colors.textMuted} />
+              <MaterialCommunityIcons name="message-text-outline" size={46} color={colors.textMuted} />
               <Text style={styles.emptyTitle}>Selecione um chamado</Text>
               <Text style={styles.emptyText}>As mensagens com a equipe aparecem aqui em tempo real.</Text>
             </View>
@@ -376,14 +387,37 @@ export default function TelaSuporte({ navigation }) {
         </View>
       </View>
 
-      <Modal visible={newTicketVisible} transparent animationType="fade" statusBarTranslucent>
-        <View style={styles.modalOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.modalCard}>
-            <LinearGradient colors={["rgba(108,92,231,0.18)", "rgba(15,15,20,0.96)"]} style={styles.modalGradient}>
+      <Modal
+        visible={newTicketVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={resetForm}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={resetForm} />
+          <View style={styles.modalCard}>
+            <LinearGradient
+              colors={[colors.primarySoft, "transparent"]}
+              style={styles.modalAccent}
+            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollContent}
+            >
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Novo chamado</Text>
+                <View style={styles.modalTitleRow}>
+                  <View style={styles.modalIconWrap}>
+                    <MaterialCommunityIcons name="lifebuoy" size={22} color={colors.primary} />
+                  </View>
+                  <Text style={styles.modalTitle}>Novo chamado</Text>
+                </View>
                 <TouchableOpacity onPress={resetForm} style={styles.closeButton}>
-                  <MaterialCommunityIcons name="close" size={22} color="#FFF" />
+                  <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
                 </TouchableOpacity>
               </View>
 
@@ -393,18 +427,18 @@ export default function TelaSuporte({ navigation }) {
                   <MaterialCommunityIcons
                     name={categoriaSelecionada?.icon || "shape-outline"}
                     size={20}
-                    color={Colors.primary}
+                    color={colors.primary}
                   />
-                  <Text style={[styles.selectText, !categoria && { color: Colors.textMuted }]}>
+                  <Text style={[styles.selectText, !categoria && { color: colors.textMuted }]}>
                     {categoriaSelecionada?.label || "Selecione uma categoria"}
                   </Text>
                 </View>
-                <MaterialCommunityIcons name="chevron-down" size={22} color={Colors.primary} />
+                <MaterialCommunityIcons name="chevron-down" size={22} color={colors.primary} />
               </TouchableOpacity>
 
               {categoria ? (
                 <View style={styles.priorityCard}>
-                  <View style={[styles.priorityDot, { backgroundColor: priorityColor(prioridade) }]} />
+                  <View style={[styles.priorityDot, { backgroundColor: priorityColor(prioridade, colors) }]} />
                   <Text style={styles.priorityText}>Prioridade {prioridade}</Text>
                 </View>
               ) : null}
@@ -412,7 +446,7 @@ export default function TelaSuporte({ navigation }) {
               <Text style={styles.label}>Mensagem</Text>
               <TextInput
                 placeholder="Conte o que aconteceu com o máximo de detalhes..."
-                placeholderTextColor={Colors.textMuted}
+                placeholderTextColor={colors.textMuted}
                 multiline
                 maxLength={700}
                 value={mensagem}
@@ -426,60 +460,75 @@ export default function TelaSuporte({ navigation }) {
                 style={[styles.submitButton, submitting && styles.disabledButton]}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#FFF" />
+                  <ActivityIndicator color={colors.onPrimary} />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="send" size={18} color="#FFF" />
+                    <MaterialCommunityIcons name="send" size={18} color={colors.onPrimary} />
                     <Text style={styles.submitButtonText}>Abrir chamado</Text>
                   </>
                 )}
               </TouchableOpacity>
-            </LinearGradient>
-          </BlurView>
-        </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-      <Modal visible={categoryModalVisible} transparent animationType="fade" statusBarTranslucent>
+      <Modal
+        visible={categoryModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={50} tint="dark" style={styles.categoryCard}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setCategoryModalVisible(false)}
+          />
+          <View style={styles.categoryCard}>
             <Text style={styles.modalTitle}>Escolha uma categoria</Text>
-            {SUPPORT_CATEGORIES.map((item) => {
-              const active = categoria === item.id;
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    setCategoria(item.id);
-                    setCategoryModalVisible(false);
-                  }}
-                  style={[styles.option, active && styles.optionActive]}
-                >
-                  <View style={styles.selectContent}>
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={20}
-                      color={active ? "#FFF" : Colors.primaryLight}
-                    />
-                    <Text style={[styles.optionText, active && { color: "#FFF" }]}>
-                      {item.label}
-                    </Text>
-                  </View>
-                  {active ? <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" /> : null}
-                </TouchableOpacity>
-              );
-            })}
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.categoryList}>
+              {SUPPORT_CATEGORIES.map((item) => {
+                const active = categoria === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      setCategoria(item.id);
+                      setCategoryModalVisible(false);
+                    }}
+                    style={[styles.option, active && styles.optionActive]}
+                  >
+                    <View style={styles.selectContent}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={20}
+                        color={active ? colors.onPrimary : colors.primary}
+                      />
+                      <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                        {item.label}
+                      </Text>
+                    </View>
+                    {active ? (
+                      <MaterialCommunityIcons name="check-circle" size={20} color={colors.onPrimary} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setCategoryModalVisible(false)}>
               <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
-          </BlurView>
+          </View>
         </View>
       </Modal>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     paddingTop: 55,
     paddingHorizontal: 20,
@@ -492,46 +541,48 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
+    borderWidth: 1,
+    borderColor: c.border,
   },
   headerCopy: { flex: 1 },
-  title: { fontSize: 22, fontWeight: "800", color: Colors.textPrimary },
-  subtitle: { color: Colors.textSecondary, marginTop: 4, lineHeight: 19 },
+  title: { fontSize: 22, fontWeight: "800", color: c.textPrimary },
+  subtitle: { color: c.textSecondary, marginTop: 4, lineHeight: 19 },
   newTicketButton: {
     marginTop: 18,
     height: 50,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
-  newTicketText: { color: "#FFF", fontWeight: "800", fontSize: 15 },
+  newTicketText: { color: c.onPrimary, fontWeight: "800", fontSize: 15 },
   body: { flex: 1, padding: 16 },
   listPanel: { flex: 1 },
   chatPanel: {
     flex: 1.15,
     marginTop: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
-  sectionTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "800", marginBottom: 12 },
+  sectionTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "800", marginBottom: 12 },
   ticketCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 18,
     padding: 14,
     marginBottom: 12,
   },
-  ticketCardActive: { borderColor: Colors.primary, backgroundColor: Colors.backgroundElevated },
+  ticketCardActive: { borderColor: c.primary, backgroundColor: c.backgroundElevated },
   ticketTop: { flexDirection: "row", alignItems: "center" },
   ticketIcon: {
     width: 42,
@@ -542,36 +593,44 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   ticketInfo: { flex: 1 },
-  ticketTitle: { color: Colors.textPrimary, fontWeight: "800", fontSize: 14 },
-  ticketMeta: { color: Colors.textMuted, fontSize: 12, marginTop: 3 },
+  ticketTitle: { color: c.textPrimary, fontWeight: "800", fontSize: 14 },
+  ticketMeta: { color: c.textMuted, fontSize: 12, marginTop: 3 },
   statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
   statusText: { fontSize: 11, fontWeight: "800" },
-  ticketMessage: { color: Colors.textSecondary, marginTop: 12, lineHeight: 19 },
+  ticketMessage: { color: c.textSecondary, marginTop: 12, lineHeight: 19 },
   ticketFooter: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   priorityDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
-  priorityText: { color: Colors.textMuted, fontSize: 12, textTransform: "capitalize" },
-  unreadText: { color: Colors.primaryLight, fontSize: 12, fontWeight: "800", marginLeft: "auto" },
+  priorityText: { color: c.textMuted, fontSize: 12, textTransform: "capitalize" },
+  unreadText: { color: c.primaryLight, fontSize: 12, fontWeight: "800", marginLeft: "auto" },
   chatHeader: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  chatTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: "900" },
-  chatSubtitle: { color: Colors.textMuted, marginTop: 3, fontSize: 12 },
+  chatTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "900" },
+  chatSubtitle: { color: c.textMuted, marginTop: 3, fontSize: 12 },
   messagesList: { flex: 1 },
   messagesContent: { padding: 14 },
   messageBubble: { maxWidth: "88%", padding: 12, borderRadius: 16, marginBottom: 10 },
-  myBubble: { alignSelf: "flex-end", backgroundColor: Colors.primary },
-  adminBubble: { alignSelf: "flex-start", backgroundColor: Colors.backgroundElevated },
-  messageAuthor: { color: "#FFF", fontSize: 11, fontWeight: "900", marginBottom: 4 },
-  messageText: { color: "#FFF", fontSize: 14, lineHeight: 19 },
-  messageTime: { color: "rgba(255,255,255,0.62)", fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  myBubble: { alignSelf: "flex-end", backgroundColor: c.primary },
+  adminBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  messageAuthorMine: { color: c.onPrimary, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextMine: { color: c.onPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeMine: { color: "rgba(255,255,255,0.72)", fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  messageAuthorOther: { color: c.textMuted, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextOther: { color: c.textPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeOther: { color: c.textMuted, fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
   replyBar: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     padding: 10,
     flexDirection: "row",
     alignItems: "flex-end",
@@ -582,16 +641,18 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxHeight: 110,
     borderRadius: 14,
-    backgroundColor: Colors.background,
-    color: Colors.textPrimary,
+    backgroundColor: c.background,
+    color: c.textPrimary,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: c.border,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -599,44 +660,85 @@ const styles = StyleSheet.create({
   loadingBox: { paddingVertical: 40, alignItems: "center", justifyContent: "center" },
   emptyBox: {
     padding: 24,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
   chatEmpty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 26 },
-  emptyTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: "800", marginTop: 10 },
-  emptyText: { color: Colors.textSecondary, textAlign: "center", lineHeight: 19, marginTop: 6 },
+  emptyTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "800", marginTop: 10 },
+  emptyText: { color: c.textSecondary, textAlign: "center", lineHeight: 19, marginTop: 6 },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.68)",
+    backgroundColor: c.overlayStronger,
     justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 22,
   },
   modalCard: {
-    borderRadius: 26,
+    width: "100%",
+    maxHeight: "88%",
+    borderRadius: 28,
     overflow: "hidden",
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.border,
+    shadowColor: c.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
   },
-  modalGradient: { padding: 20 },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  modalTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: "900" },
+  modalAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+  },
+  modalScrollContent: {
+    padding: 20,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  modalTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    paddingRight: 12,
+  },
+  modalIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: c.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  modalTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "900", flex: 1 },
   closeButton: {
     width: 38,
     height: 38,
     borderRadius: 13,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
   },
-  label: { color: Colors.textPrimary, marginBottom: 9, marginTop: 8, fontWeight: "700" },
+  label: { color: c.textPrimary, marginBottom: 9, marginTop: 8, fontWeight: "700" },
   select: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     paddingHorizontal: 14,
     paddingVertical: 14,
     flexDirection: "row",
@@ -644,14 +746,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   selectContent: { flexDirection: "row", alignItems: "center", flex: 1 },
-  selectText: { color: Colors.textPrimary, marginLeft: 10, flex: 1 },
+  selectText: { color: c.textPrimary, marginLeft: 10, flex: 1 },
   priorityCard: { marginTop: 12, flexDirection: "row", alignItems: "center" },
   textarea: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    color: Colors.textPrimary,
+    borderColor: c.border,
+    color: c.textPrimary,
     minHeight: 150,
     textAlignVertical: "top",
     padding: 14,
@@ -661,41 +763,55 @@ const styles = StyleSheet.create({
     marginTop: 18,
     height: 52,
     borderRadius: 16,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     alignItems: "center",
     justifyContent: "center",
     flexDirection: "row",
     gap: 8,
   },
-  submitButtonText: { color: "#FFF", fontWeight: "900" },
+  submitButtonText: { color: c.onPrimary, fontWeight: "900" },
   categoryCard: {
-    borderRadius: 24,
+    width: "100%",
+    maxHeight: "75%",
+    borderRadius: 28,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.border,
     padding: 20,
-    backgroundColor: "rgba(15,15,20,0.92)",
-    overflow: "hidden",
+    backgroundColor: c.card,
+    shadowColor: c.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  categoryList: {
+    maxHeight: 320,
+    marginTop: 8,
   },
   option: {
     padding: 14,
     borderRadius: 15,
     marginTop: 10,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  optionActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  optionText: { color: Colors.textPrimary, marginLeft: 10, fontSize: 15 },
+  optionActive: { backgroundColor: c.primary, borderColor: c.primary },
+  optionText: { color: c.textPrimary, marginLeft: 10, fontSize: 15 },
+  optionTextActive: { color: c.onPrimary },
   cancelButton: {
     marginTop: 14,
     height: 50,
     borderRadius: 15,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  cancelText: { color: "#FFF", fontWeight: "700" },
+  cancelText: { color: c.textPrimary, fontWeight: "700" },
 });
+}

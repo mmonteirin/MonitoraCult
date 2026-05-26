@@ -27,7 +27,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import EventSignalPill from "./EventSignalPill";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 import {
   formatarDistancia,
@@ -46,12 +47,6 @@ const SPACING = 14;
 const AnimatedFlatList =
   Animated.createAnimatedComponent(FlatList);
 
-const OVERLAY_COLORS = [
-  "rgba(0,0,0,0)",
-  "rgba(0,0,0,0.25)",
-  "rgba(16,19,31,1)",
-];
-
 const GLOW_COLORS = [
   "rgba(124,58,237,0.18)",
   "transparent",
@@ -62,7 +57,7 @@ const GLOW_COLORS = [
 /* BADGES */
 /* -------------------------------------------------------------------------- */
 
-const ScoreBadge = memo(({ score }) => (
+const ScoreBadge = memo(({ score, styles }) => (
   <View style={styles.scoreBadge}>
     <MaterialCommunityIcons
       name="trending-up"
@@ -76,7 +71,7 @@ const ScoreBadge = memo(({ score }) => (
   </View>
 ));
 
-const CategoryBadge = memo(({ category }) => (
+const CategoryBadge = memo(({ category, styles }) => (
   <View style={styles.categoryBadge}>
     <Text style={styles.categoryText}>
       {category}
@@ -84,7 +79,7 @@ const CategoryBadge = memo(({ category }) => (
   </View>
 ));
 
-const DistanceBadge = memo(({ distance }) => {
+const DistanceBadge = memo(({ distance, styles, colors }) => {
   if (distance == null) return null;
 
   return (
@@ -92,7 +87,7 @@ const DistanceBadge = memo(({ distance }) => {
       <MaterialCommunityIcons
         name="map-marker"
         size={12}
-        color="#C084FC"
+        color={colors.onPrimary}
       />
 
       <Text style={styles.distanceText}>
@@ -111,6 +106,9 @@ const HeroCard = memo(function HeroCard({
   index,
   scrollX,
   onPress,
+  styles,
+  colors,
+  overlayColors,
 }) {
   const sizeIndex = CARD_WIDTH + SPACING;
 
@@ -243,7 +241,7 @@ const HeroCard = memo(function HeroCard({
 
         {/* OVERLAY */}
         <LinearGradient
-          colors={OVERLAY_COLORS}
+          colors={overlayColors}
           style={StyleSheet.absoluteFillObject}
         />
 
@@ -265,6 +263,7 @@ const HeroCard = memo(function HeroCard({
           <EventSignalPill
             countdown={countdown}
             ticketSignal={ticketSignal}
+            onImage
           />
 
           <ScoreBadge
@@ -272,6 +271,7 @@ const HeroCard = memo(function HeroCard({
               item?.score ||
               item?.likes
             }
+            styles={styles}
           />
         </View>
 
@@ -283,10 +283,13 @@ const HeroCard = memo(function HeroCard({
                 item?.categoria ||
                 "Cultura"
               }
+              styles={styles}
             />
 
             <DistanceBadge
               distance={item?.distancia}
+              styles={styles}
+              colors={colors}
             />
           </View>
 
@@ -339,6 +342,13 @@ export default function TrendingCarousel({
   scrollX,
   onPress,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const overlayColors = useMemo(
+    () => ["transparent", colors.overlayDark, "rgba(0,0,0,0.96)"],
+    [colors.overlayDark]
+  );
+
   const onAnimatedScroll =
     useAnimatedScrollHandler({
       onScroll: (event) => {
@@ -354,9 +364,12 @@ export default function TrendingCarousel({
         index={index}
         scrollX={scrollX}
         onPress={onPress}
+        styles={styles}
+        colors={colors}
+        overlayColors={overlayColors}
       />
     ),
-    [onPress, scrollX]
+    [onPress, scrollX, styles, colors, overlayColors]
   );
 
   const keyExtractor = useCallback(
@@ -408,7 +421,8 @@ export default function TrendingCarousel({
 /* STYLES */
 /* -------------------------------------------------------------------------- */
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   wrapper: {
     marginTop: 4,
   },
@@ -425,12 +439,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     overflow: "hidden",
     backgroundColor:
-      Colors?.surface || "#18122B",
+      c.surface,
 
     borderWidth: 1,
 
-    borderColor:
-      "rgba(255,255,255,0.05)",
+    borderColor: c.glassBorder,
 
     shadowColor: "#000",
 
@@ -459,7 +472,7 @@ const styles = StyleSheet.create({
   heroImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#10131F",
+    backgroundColor: c.surfaceMuted,
   },
 
   topArea: {
@@ -574,7 +587,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
   },
 
   scoreBadge: {
@@ -594,7 +607,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
   },
 
   scoreText: {
@@ -652,7 +665,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   distanceText: {
@@ -665,3 +678,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+}

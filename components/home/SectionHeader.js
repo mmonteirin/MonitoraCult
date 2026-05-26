@@ -9,10 +9,9 @@ import {
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import {
-  Colors,
-  Typography,
-} from "../../styles/Colors";
+import { Typography } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function SectionHeader({
   title,
@@ -21,6 +20,9 @@ export default function SectionHeader({
   icon = "arrow-right",
   onAction,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   return (
     <View style={styles.container}>
       <View style={styles.copy}>
@@ -46,7 +48,7 @@ export default function SectionHeader({
           <MaterialCommunityIcons
             name={icon}
             size={18}
-            color={Colors.primaryLight}
+            color={colors.primaryLight}
           />
         </TouchableOpacity>
       )}
@@ -54,7 +56,8 @@ export default function SectionHeader({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     paddingHorizontal: 18,
     marginTop: 24,
@@ -68,12 +71,12 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   title: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 22,
     fontFamily: Typography.bold,
   },
   subtitle: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     marginTop: 4,
     fontFamily: Typography.regular,
@@ -85,11 +88,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 14,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
   },
   actionText: {
-    color: Colors.primaryLight,
+    color: c.primaryLight,
     fontSize: 12,
     fontFamily: Typography.semiBold,
   },
 });
+}

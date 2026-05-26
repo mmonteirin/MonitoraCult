@@ -32,7 +32,11 @@ export default function EventoStack() {
       <Stack.Screen name="EventosPublicos" component={EventosPublicos} />
 
       {/* DETALHES E AÇÕES */}
-      <Stack.Screen name="Detalhes" component={EventoDetalhes} />
+      <Stack.Screen 
+        name="Detalhes" 
+        component={EventoDetalhes}
+        options={{ tabBarStyle: { display: 'none' } }}
+      />
       <Stack.Screen name="EventoDetalhesPublico" component={EventoDetalhesPublico} />
       <Stack.Screen name="PerfilPublico" component={PerfilPublico} />
       <Stack.Screen name="Avaliacao" component={EventoAvaliacao} />

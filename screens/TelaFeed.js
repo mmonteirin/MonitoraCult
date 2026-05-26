@@ -70,7 +70,8 @@ import {
 
 import { db } from "../firebaseConfig";
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 import {
 	adicionarFeedComentario,
@@ -137,7 +138,7 @@ function formatarNum(n) {
 
 // ─── Botão de like animado ────────────────────────────────────────────────────
 
-const LikeButton = memo(({ isLiked, onPress }) => {
+const LikeButton = memo(({ isLiked, onPress, s, colors }) => {
 	const scale = useSharedValue(1);
 	const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -152,7 +153,7 @@ const LikeButton = memo(({ isLiked, onPress }) => {
 				<MaterialCommunityIcons
 					name={isLiked ? "heart" : "heart-outline"}
 					size={26}
-					color={isLiked ? Colors.primary : Colors.textPrimary}
+					color={isLiked ? colors.primary : colors.textPrimary}
 				/>
 			</Animated.View>
 		</TouchableOpacity>
@@ -161,7 +162,7 @@ const LikeButton = memo(({ isLiked, onPress }) => {
 
 // ─── Card de post/evento ──────────────────────────────────────────────────────
 
-const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComment, onShare, onNotify, onNavigate, onPerfil }) => {
+const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComment, onShare, onNotify, onNavigate, onPerfil, s, colors, blurTint }) => {
 	const scale = useSharedValue(1);
 	const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -183,12 +184,12 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 						<Text numberOfLines={1} style={s.cardAutor}>{item.nomeUsuario || "Usuário"}</Text>
 						{item.localEvento ? (
 							<View style={s.localRow}>
-								<MaterialCommunityIcons name="map-marker" size={11} color={Colors.primary} />
+								<MaterialCommunityIcons name="map-marker" size={11} color={colors.primary} />
 								<Text numberOfLines={1} style={s.localText}>{item.localEvento}</Text>
 							</View>
 						) : null}
 					</View>
-					<BlurView intensity={40} tint="dark" style={s.datePill}>
+					<BlurView intensity={40} tint={blurTint} style={s.datePill}>
 						<Text style={s.dateText}>{formatarData(item.createdAt)}</Text>
 					</BlurView>
 				</TouchableOpacity>
@@ -202,7 +203,7 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 					/>
 					<LinearGradient colors={["transparent", "rgba(0,0,0,0.92)"]} style={s.imgOverlay}>
 						{item.dataEvento ? (
-							<BlurView intensity={40} tint="dark" style={s.eventDatePill}>
+							<BlurView intensity={40} tint={blurTint} style={s.eventDatePill}>
 								<MaterialCommunityIcons name="calendar" size={11} color="#fff" />
 								<Text style={s.eventDateText}>{item.dataEvento}</Text>
 							</BlurView>
@@ -232,12 +233,12 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 				{/* ── AÇÕES ── */}
 				<View style={s.actions}>
 					<View style={s.actionsLeft}>
-						<LikeButton isLiked={isLiked} onPress={() => onLike(item.id, item.type)} />
+						<LikeButton isLiked={isLiked} onPress={() => onLike(item.id, item.type)} s={s} colors={colors} />
 						<TouchableOpacity style={s.actionBtn} onPress={() => onComment(item)}>
-							<MaterialCommunityIcons name="comment-outline" size={24} color={Colors.textPrimary} />
+							<MaterialCommunityIcons name="comment-outline" size={24} color={colors.textPrimary} />
 						</TouchableOpacity>
 						<TouchableOpacity style={s.actionBtn} onPress={() => onShare(item)}>
-							<MaterialCommunityIcons name="share-variant-outline" size={23} color={Colors.textPrimary} />
+							<MaterialCommunityIcons name="share-variant-outline" size={23} color={colors.textPrimary} />
 						</TouchableOpacity>
 					</View>
 					{item.type === "evento" ? (
@@ -248,7 +249,7 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 							<MaterialCommunityIcons
 								name={subscribedEvents[item.id] ? "bell-ring" : "bell-plus-outline"}
 								size={16}
-								color={subscribedEvents[item.id] ? Colors.primary : "#FFF"}
+								color={subscribedEvents[item.id] ? colors.primary : colors.textSecondary}
 							/>
 							<Text style={[s.notifBtnText, subscribedEvents[item.id] && s.notifBtnTextActive]}>
 								{subscribedEvents[item.id] ? "Inscrito" : "Notificar"}
@@ -273,7 +274,7 @@ const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComme
 
 // ─── Modal de comentários ─────────────────────────────────────────────────────
 
-function ModalComentarios({ item, comentarios, loading, text, setText, sending, onSend, onClose, foto, nome, insets }) {
+function ModalComentarios({ item, comentarios, loading, text, setText, sending, onSend, onClose, foto, nome, insets, s, colors }) {
 	const formatarData_ = formatarData;
 	return (
 		<Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
@@ -290,13 +291,13 @@ function ModalComentarios({ item, comentarios, loading, text, setText, sending, 
 							</Text>
 						</View>
 						<TouchableOpacity style={s.sheetClose} onPress={onClose}>
-							<MaterialCommunityIcons name="close" size={20} color={Colors.textPrimary} />
+							<MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
 						</TouchableOpacity>
 					</View>
 
 					{loading ? (
 						<View style={s.sheetLoading}>
-							<ActivityIndicator color={Colors.primary} />
+							<ActivityIndicator color={colors.primary} />
 						</View>
 					) : (
 						<FlatList
@@ -306,7 +307,7 @@ function ModalComentarios({ item, comentarios, loading, text, setText, sending, 
 							showsVerticalScrollIndicator={false}
 							ListEmptyComponent={
 								<View style={s.emptyComment}>
-									<MaterialCommunityIcons name="comment-text-outline" size={36} color={Colors.textMuted} />
+									<MaterialCommunityIcons name="comment-text-outline" size={36} color={colors.textMuted} />
 									<Text style={s.emptyCommentText}>Seja o primeiro a comentar</Text>
 								</View>
 							}
@@ -335,7 +336,7 @@ function ModalComentarios({ item, comentarios, loading, text, setText, sending, 
 								value={text}
 								onChangeText={setText}
 								placeholder={`Comentar como ${nome || "você"}…`}
-								placeholderTextColor={Colors.textMuted}
+								placeholderTextColor={colors.textMuted}
 								style={s.composerText}
 								multiline
 								maxLength={500}
@@ -346,8 +347,8 @@ function ModalComentarios({ item, comentarios, loading, text, setText, sending, 
 								onPress={onSend}
 							>
 								{sending
-									? <ActivityIndicator size="small" color="#fff" />
-									: <MaterialCommunityIcons name="send" size={16} color="#fff" />}
+									? <ActivityIndicator size="small" color={colors.onPrimary} />
+									: <MaterialCommunityIcons name="send" size={16} color={colors.onPrimary} />}
 							</TouchableOpacity>
 						</View>
 					</View>
@@ -360,6 +361,10 @@ function ModalComentarios({ item, comentarios, loading, text, setText, sending, 
 // ─── Aba Feed (conteúdo principal) ───────────────────────────────────────────
 
 function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed" }) {
+	const { colors, isDark } = useTheme();
+	const s = useThemedStyles(createFeedStyles);
+	const blurTint = isDark ? "dark" : "light";
+
 	const [items,            setItems]            = useState([]);
 	const [loading,          setLoading]          = useState(true);
 	const [refreshing,       setRefreshing]       = useState(false);
@@ -630,8 +635,8 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 
 	if (loading) {
 		return (
-			<View style={s.loading}>
-				<MaterialCommunityIcons name="compass-rose" size={54} color={Colors.primary} />
+			<View style={[s.loading, { backgroundColor: colors.background }]}>
+				<MaterialCommunityIcons name="compass-rose" size={54} color={colors.primary} />
 				<Text style={s.loadingText}>Carregando social...</Text>
 			</View>
 		);
@@ -645,10 +650,11 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 				onScroll={verticalScroll}
 				scrollEventThrottle={16}
 				bounces
+				style={{ flex: 1, backgroundColor: colors.background }}
 				refreshControl={
-					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
 				}
-				contentContainerStyle={{ paddingBottom: 140 }}
+				contentContainerStyle={{ paddingBottom: 140, backgroundColor: colors.background }}
 			>
 				{mode === "descubra" && (
 					<>
@@ -684,7 +690,7 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 							</Animated.View>
 						) : (
 							<View style={s.empty}>
-								<MaterialCommunityIcons name="compass-outline" size={52} color={Colors.textMuted} />
+								<MaterialCommunityIcons name="compass-outline" size={52} color={colors.textMuted} />
 								<Text style={s.emptyTitle}>Nada em destaque ainda</Text>
 								<Text style={s.emptySub}>Quando a cidade se movimentar, aparece aqui.</Text>
 							</View>
@@ -715,7 +721,7 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 
 						{itemsFiltrados.length === 0 ? (
 							<View style={s.empty}>
-								<MaterialCommunityIcons name="post-outline" size={52} color={Colors.textMuted} />
+								<MaterialCommunityIcons name="post-outline" size={52} color={colors.textMuted} />
 								<Text style={s.emptyTitle}>Nenhuma publicação</Text>
 								<Text style={s.emptySub}>Seja o primeiro a publicar algo!</Text>
 							</View>
@@ -736,6 +742,9 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 										const uid = it.userId || it.organizador?.uid;
 										if (uid) navigation.navigate("PerfilPublico", { userId: uid });
 									}}
+									s={s}
+									colors={colors}
+									blurTint={blurTint}
 								/>
 							))
 						)}
@@ -755,6 +764,8 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 				foto={foto}
 				nome={nome}
 				insets={insets}
+				s={s}
+				colors={colors}
 			/>
 		</>
 	);
@@ -763,6 +774,10 @@ function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed"
 // ─── TELA PRINCIPAL ───────────────────────────────────────────────────────────
 
 export default function TelaFeed({ navigation, route }) {
+	const { colors, isDark } = useTheme();
+	const s = useThemedStyles(createFeedStyles);
+	const blurTint = isDark ? "dark" : "light";
+
 	const insets = useSafeAreaInsets();
 	const { user, nome, foto } = useAuth();
 
@@ -844,10 +859,19 @@ export default function TelaFeed({ navigation, route }) {
 	);
 
 	return (
-		<View style={s.container}>
-			<StatusBar barStyle="light-content" />
+		<View
+			key={isDark ? "feed-dark" : "feed-light"}
+			style={[s.container, { backgroundColor: colors.background }]}
+		>
+			<StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-			<Animated.View style={[s.contentArea, contentInsetStyle]}>
+			<Animated.View
+				style={[
+					s.contentArea,
+					contentInsetStyle,
+					{ backgroundColor: colors.background },
+				]}
+			>
 				{activeTab === "descubra" && (
 					<AbaFeed
 						navigation={navigation}
@@ -900,7 +924,7 @@ export default function TelaFeed({ navigation, route }) {
 				style={[s.headerOverlay, headerAnim]}
 			>
 				<LinearGradient
-					colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
+					colors={[colors.backgroundSecondary, colors.surface, colors.background]}
 					style={[s.headerGrad, { paddingTop: insets.top + 12 }]}
 				>
 					<Animated.View style={headerRowCollapse}>
@@ -926,7 +950,7 @@ export default function TelaFeed({ navigation, route }) {
 									<MaterialCommunityIcons
 										name="account-group"
 										size={11}
-										color={Colors.primaryLight}
+										color={colors.primaryLight}
 									/>
 									<Text style={s.socialBadgeText}>Social</Text>
 								</View>
@@ -944,11 +968,11 @@ export default function TelaFeed({ navigation, route }) {
 									style={s.headerBtn}
 									onPress={() => navigation.navigate("CriarPost")}
 								>
-									<BlurView intensity={35} tint="dark" style={s.headerBlur}>
+									<BlurView intensity={35} tint={blurTint} style={s.headerBlur}>
 										<MaterialCommunityIcons
 											name="pencil-plus-outline"
 											size={20}
-											color="#fff"
+											color={colors.textPrimary}
 										/>
 									</BlurView>
 								</TouchableOpacity>
@@ -960,11 +984,11 @@ export default function TelaFeed({ navigation, route }) {
 									style={s.headerBtn}
 									onPress={() => setActiveTab("pessoas")}
 								>
-									<BlurView intensity={35} tint="dark" style={s.headerBlur}>
+									<BlurView intensity={35} tint={blurTint} style={s.headerBlur}>
 										<MaterialCommunityIcons
 											name="message-plus-outline"
 											size={20}
-											color="#fff"
+											color={colors.textPrimary}
 										/>
 									</BlurView>
 								</TouchableOpacity>
@@ -972,7 +996,6 @@ export default function TelaFeed({ navigation, route }) {
 
 							<NotificationBell
 								onPress={() => navigation.navigate("Notificacoes")}
-								color="#fff"
 								size={20}
 								style={s.headerBtn}
 							/>
@@ -999,7 +1022,7 @@ export default function TelaFeed({ navigation, route }) {
 									<MaterialCommunityIcons
 										name={active ? tab.iconOn : tab.icon}
 										size={14}
-										color={active ? "#fff" : Colors.textMuted}
+										color={active ? colors.onPrimary : colors.textMuted}
 									/>
 									<Text style={[s.tabLabel, active && s.tabLabelActive]}>
 										{tab.label}
@@ -1016,10 +1039,11 @@ export default function TelaFeed({ navigation, route }) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
+function createFeedStyles(c) {
+	return StyleSheet.create({
+	container: { flex: 1, backgroundColor: c.background },
 
-	contentArea: { flex: 1 },
+	contentArea: { flex: 1, backgroundColor: c.background },
 
 	headerOverlay: {
 		position: "absolute",
@@ -1043,7 +1067,7 @@ const s = StyleSheet.create({
 		borderRadius: 14,
 		borderWidth: 1.5,
 		borderColor: "rgba(139,124,255,0.35)",
-		backgroundColor: Colors.card,
+		backgroundColor: c.card,
 	},
 	headerCopy: { flex: 1, minWidth: 0 },
 	headerTitleRow: {
@@ -1054,12 +1078,12 @@ const s = StyleSheet.create({
 	},
 	greeting: {
 		flex: 1,
-		color: Colors.textSecondary,
+		color: c.textSecondary,
 		fontSize: 13,
 		fontWeight: "500",
 	},
 	nameInline: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 15,
 		fontWeight: "800",
 	},
@@ -1075,12 +1099,12 @@ const s = StyleSheet.create({
 		borderColor: "rgba(139,124,255,0.22)",
 	},
 	socialBadgeText: {
-		color: Colors.primaryLight,
+		color: c.primaryLight,
 		fontSize: 10,
 		fontWeight: "700",
 	},
 	city: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 11,
 		marginTop: 3,
 	},
@@ -1089,7 +1113,9 @@ const s = StyleSheet.create({
 		width: 52,
 		height: 52,
 		borderRadius: 18,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glass,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -1100,7 +1126,7 @@ const s = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 		overflow: "hidden",
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glass,
 	},
 
 	tabRow: {
@@ -1117,29 +1143,29 @@ const s = StyleSheet.create({
 		paddingHorizontal: 12,
 		paddingVertical: 7,
 		borderRadius: 18,
-		backgroundColor: Colors.glass,
+		backgroundColor: c.glass,
 		borderWidth: 1,
-		borderColor: Colors.glassBorder,
+		borderColor: c.glassBorder,
 	},
 	tabActive: {
-		backgroundColor: Colors.primaryDark,
-		borderColor: Colors.primary,
-		shadowColor: Colors.primary,
+		backgroundColor: c.primaryDark,
+		borderColor: c.primary,
+		shadowColor: c.primary,
 		shadowOpacity: 0.35,
 		shadowRadius: 8,
 		shadowOffset: { width: 0, height: 0 },
 		elevation: 6,
 	},
-	tabLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: "600" },
-	tabLabelActive: { color: "#fff" },
+	tabLabel: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+	tabLabelActive: { color: c.onPrimary },
 
 	// LOADING
-	loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
-	loadingText: { color: Colors.textPrimary, fontSize: 15, fontWeight: "600", marginTop: 14 },
+	loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.background },
+	loadingText: { color: c.textPrimary, fontSize: 15, fontWeight: "600", marginTop: 14 },
 
 	// CARD
 	card: {
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		marginHorizontal: 16, marginBottom: 20,
 		borderRadius: 28, overflow: "hidden",
 	},
@@ -1147,12 +1173,12 @@ const s = StyleSheet.create({
 		padding: 14, flexDirection: "row",
 		alignItems: "center", gap: 12,
 	},
-	avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.card },
-	cardAutor: { color: Colors.textPrimary, fontWeight: "700", fontSize: 14 },
+	avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: c.card },
+	cardAutor: { color: c.textPrimary, fontWeight: "700", fontSize: 14 },
 	localRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
-	localText: { color: Colors.textMuted, fontSize: 11 },
+	localText: { color: c.textMuted, fontSize: 11 },
 	datePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
-	dateText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+	dateText: { color: c.textPrimary, fontSize: 11, fontWeight: "700" },
 	imgWrapper: { width: "100%", height: 400, backgroundColor: "#000" },
 	cardImg: { width: "100%", height: "100%" },
 	imgOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 16 },
@@ -1165,43 +1191,65 @@ const s = StyleSheet.create({
 	actions: { paddingHorizontal: 6, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
 	actionsLeft: { flexDirection: "row", alignItems: "center" },
 	actionBtn: { padding: 8 },
-	notifBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.10)", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, gap: 6 },
-	notifBtnActive: { backgroundColor: "rgba(108,92,231,0.18)" },
-	notifBtnText: { color: "#FFF", fontWeight: "600", fontSize: 13 },
-	notifBtnTextActive: { color: Colors.primary },
+	notifBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: c.glass,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+		paddingHorizontal: 14,
+		paddingVertical: 9,
+		borderRadius: 20,
+		gap: 6,
+	},
+	notifBtnActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+	notifBtnText: { color: c.textPrimary, fontWeight: "600", fontSize: 13 },
+	notifBtnTextActive: { color: c.primary },
 	metrics: { paddingHorizontal: 16, paddingBottom: 14 },
-	metricsLikes: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13 },
-	metricsComments: { color: Colors.textSecondary, fontSize: 13, marginTop: 4 },
+	metricsLikes: { color: c.textPrimary, fontWeight: "700", fontSize: 13 },
+	metricsComments: { color: c.textSecondary, fontSize: 13, marginTop: 4 },
 
 	// EMPTY
 	empty: { alignItems: "center", paddingVertical: 64 },
-	emptyTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: "700", marginTop: 14 },
-	emptySub: { color: Colors.textMuted, fontSize: 13, marginTop: 6 },
+	emptyTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "700", marginTop: 14 },
+	emptySub: { color: c.textMuted, fontSize: 13, marginTop: 6 },
 
 	// MODAL
 	modalWrap: { flex: 1, justifyContent: "flex-end" },
-	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.65)" },
-	sheet: { maxHeight: "82%", minHeight: "55%", backgroundColor: Colors.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, borderColor: Colors.glassBorder, overflow: "hidden" },
-	handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.18)", marginTop: 10, marginBottom: 10 },
-	sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.07)" },
-	sheetTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "800" },
-	sheetSub: { color: Colors.textMuted, fontSize: 12, marginTop: 3 },
-	sheetClose: { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.07)" },
+	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: c.overlayStronger },
+	sheet: { maxHeight: "82%", minHeight: "55%", backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, borderColor: c.glassBorder, overflow: "hidden" },
+	handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, marginTop: 10, marginBottom: 10 },
+	sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: c.border },
+	sheetTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "800" },
+	sheetSub: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+	sheetClose: { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center", backgroundColor: c.glass },
 	sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
 	commentList: { paddingHorizontal: 16, paddingVertical: 12, flexGrow: 1 },
 	emptyComment: { alignItems: "center", paddingVertical: 44 },
-	emptyCommentText: { color: Colors.textMuted, fontSize: 13, marginTop: 10 },
+	emptyCommentText: { color: c.textMuted, fontSize: 13, marginTop: 10 },
 	commentRow: { flexDirection: "row", marginBottom: 12 },
-	commentAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 10, backgroundColor: Colors.background },
-	commentBubble: { flex: 1, padding: 11, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.06)" },
+	commentAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 10, backgroundColor: c.background },
+	commentBubble: { flex: 1, padding: 11, borderRadius: 16, backgroundColor: c.surfaceMuted },
 	commentTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
-	commentAuthor: { flex: 1, color: Colors.textPrimary, fontSize: 12, fontWeight: "800", paddingRight: 8 },
-	commentDate: { color: Colors.textMuted, fontSize: 11 },
-	commentBody: { color: Colors.textSecondary, fontSize: 13, lineHeight: 18 },
-	composer: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.07)" },
-	composerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10, marginBottom: 3, backgroundColor: Colors.background },
-	composerInput: { flex: 1, flexDirection: "row", alignItems: "flex-end", borderRadius: 22, backgroundColor: "rgba(255,255,255,0.07)", borderWidth: 1, borderColor: "rgba(255,255,255,0.07)", paddingLeft: 14, paddingRight: 5, paddingVertical: 5 },
-	composerText: { flex: 1, color: Colors.textPrimary, fontSize: 14, maxHeight: 96, paddingTop: 8, paddingBottom: 8 },
-	sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: Colors.primary, marginLeft: 6 },
+	commentAuthor: { flex: 1, color: c.textPrimary, fontSize: 12, fontWeight: "800", paddingRight: 8 },
+	commentDate: { color: c.textMuted, fontSize: 11 },
+	commentBody: { color: c.textSecondary, fontSize: 13, lineHeight: 18 },
+	composer: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
+	composerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10, marginBottom: 3, backgroundColor: c.background },
+	composerInput: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "flex-end",
+		borderRadius: 22,
+		backgroundColor: c.surface,
+		borderWidth: 1,
+		borderColor: c.border,
+		paddingLeft: 14,
+		paddingRight: 5,
+		paddingVertical: 5,
+	},
+	composerText: { flex: 1, color: c.textPrimary, fontSize: 14, maxHeight: 96, paddingTop: 8, paddingBottom: 8 },
+	sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: c.primary, marginLeft: 6 },
 	sendBtnOff: { opacity: 0.4 },
 });
+}

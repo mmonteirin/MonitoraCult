@@ -21,6 +21,7 @@ import { MotiView } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getEventos } from "../services/mapaCulturalService";
+import { Colors } from "../styles/Colors";
 
 const { width } = Dimensions.get("window");
 
@@ -209,7 +210,7 @@ export default function TelaCulturaViva({ navigation }) {
       <View style={styles.loadingContainer}>
         <ActivityIndicator
           size="large"
-          color="#8B5CF6"
+          color={Colors.primaryLight}
         />
 
         <Text style={styles.loadingText}>
@@ -289,8 +290,8 @@ export default function TelaCulturaViva({ navigation }) {
 
                 <LinearGradient
                   colors={[
-                    "#8B5CF6",
-                    "#5B21B6",
+                    Colors.primaryLight,
+                    Colors.primaryDark,
                   ]}
                   style={styles.heroIcon}
                 >
@@ -403,7 +404,7 @@ export default function TelaCulturaViva({ navigation }) {
                         <MaterialCommunityIcons
                           name="calendar-outline"
                           size={14}
-                          color="#8B5CF6"
+                          color={Colors.primaryLight}
                         />
                         <Text style={styles.dateHighlightText}>
                           {item.data}
@@ -419,15 +420,15 @@ export default function TelaCulturaViva({ navigation }) {
                           <LinearGradient
                             colors={
                               eventosSalvos.has(item.id)
-                                ? ["#8B5CF6", "#6D28D9"]
-                                : ["rgba(139,92,246,0.3)", "rgba(109,40,217,0.3)"]
+                                ? [Colors.primaryLight, Colors.primaryDark]
+                                : [Colors.primarySoft, "rgba(109,40,217,0.3)"]
                             }
                             style={styles.gradientBtnSalvar}
                           >
                             <MaterialCommunityIcons
                               name={eventosSalvos.has(item.id) ? "bookmark" : "bookmark-outline"}
                               size={16}
-                              color={eventosSalvos.has(item.id) ? "#FFF" : "#8B5CF6"}
+                              color={eventosSalvos.has(item.id) ? "#FFF" : Colors.primaryLight}
                             />
                             <Text style={[
                               styles.textoBtnSalvar,
@@ -461,7 +462,7 @@ const styles = StyleSheet.create({
 
   container:{
     flex:1,
-    backgroundColor:"#070B14",
+    backgroundColor:Colors.background,
   },
 
   bg:{
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
     flex:1,
     justifyContent:"center",
     alignItems:"center",
-    backgroundColor:"#070B14",
+    backgroundColor:Colors.background,
   },
 
   loadingText:{
@@ -492,7 +493,7 @@ const styles = StyleSheet.create({
     width:300,
     height:300,
     borderRadius:200,
-    backgroundColor:"rgba(124,58,237,0.18)",
+    backgroundColor:Colors.purpleGlow,
   },
 
   glowBottom:{
@@ -502,7 +503,7 @@ const styles = StyleSheet.create({
     width:260,
     height:260,
     borderRadius:200,
-    backgroundColor:"rgba(59,130,246,0.10)",
+    backgroundColor:"rgba(34,211,238,0.10)",
   },
 
   header:{
@@ -516,7 +517,7 @@ const styles = StyleSheet.create({
     borderRadius:16,
     justifyContent:"center",
     alignItems:"center",
-    backgroundColor:"rgba(255,255,255,0.08)",
+    backgroundColor:Colors.glass,
     marginBottom:24,
   },
 
@@ -574,7 +575,7 @@ const styles = StyleSheet.create({
   },
 
   liveText:{
-    color:"#EF4444",
+    color:Colors.error,
     fontWeight:"800",
     fontSize:12,
   },
@@ -614,7 +615,7 @@ const styles = StyleSheet.create({
     paddingHorizontal:12,
     paddingVertical:6,
     borderRadius:16,
-    backgroundColor:"rgba(139,92,246,0.95)",
+    backgroundColor:Colors.primary,
     alignSelf:"flex-start",
     marginBottom:12,
     borderWidth:1,
@@ -644,18 +645,18 @@ const styles = StyleSheet.create({
   dateHighlight:{
     flexDirection:"row",
     alignItems:"center",
-    backgroundColor:"rgba(139,92,246,0.15)",
+    backgroundColor:Colors.primarySoft,
     borderRadius:10,
     paddingHorizontal:10,
     paddingVertical:6,
     marginBottom:12,
     alignSelf:"flex-start",
     borderWidth:1,
-    borderColor:"rgba(139,92,246,0.3)",
+    borderColor:Colors.primarySoft,
   },
 
   dateHighlightText:{
-    color:"#8B5CF6",
+    color:Colors.primaryLight,
     fontSize:12,
     fontWeight:"700",
     marginLeft:6,
@@ -677,11 +678,11 @@ const styles = StyleSheet.create({
     paddingVertical:10,
     paddingHorizontal:14,
     borderWidth:1,
-    borderColor:"rgba(139,92,246,0.5)",
+    borderColor:Colors.primary,
   },
 
   textoBtnSalvar:{
-    color:"#8B5CF6",
+    color:Colors.primaryLight,
     fontWeight:"800",
     fontSize:12,
     marginLeft:4,

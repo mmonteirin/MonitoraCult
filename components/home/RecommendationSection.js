@@ -31,7 +31,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import EventCard from "./EventCard";
 import SectionHeader from "./SectionHeader";
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 import {
   getProfileStrength,
   getRecommendationReason,
@@ -46,6 +47,10 @@ export default function RecommendationSection({
   loading = false,
   onPress,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const rotationAnim = useSharedValue(0);
 
   useEffect(() => {
@@ -110,16 +115,16 @@ export default function RecommendationSection({
         style={styles.insightCardOuter}
         entering={FadeInDown.delay(100).springify()}
       >
-        <BlurView intensity={30} tint="dark" style={styles.insightCard}>
+        <BlurView intensity={30} tint={blurTint} style={styles.insightCard}>
           <LinearGradient
-            colors={["rgba(139, 92, 246, 0.15)", "rgba(16, 19, 31, 0)"]}
+            colors={[`${colors.primary}26`, "transparent"]}
             style={styles.insightGlow}
           />
 
           <View style={styles.insightHeader}>
             <View style={styles.iconWrap}>
               <LinearGradient
-                colors={[Colors?.primary || "#7C3AED", "#5B21B6"]}
+                colors={[colors.primary, colors.primaryDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.iconGradientBg}
@@ -193,7 +198,7 @@ export default function RecommendationSection({
                   onPress={() => onPress?.(item)}
                 >
                   <LinearGradient
-                    colors={[Colors?.primary || "#7C3AED", "#5B21B6"]}
+                    colors={[colors.primary, colors.primaryDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.ctaGradient}
@@ -218,8 +223,11 @@ export default function RecommendationSection({
 // ─── Sub-componentes ──────────────────────────────────────────────────────────
 
 function ProfileStrengthBadge({ strength }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   const label = strength >= 70 ? "Perfil rico" : strength >= 40 ? "Em evolução" : "Novo";
-  const color = strength >= 70 ? Colors.success || "#22C55E" : Colors.warning || "#F59E0B";
+  const color = strength >= 70 ? colors.success : colors.warning;
 
   return (
     <View style={[styles.strengthBadge, { borderColor: color }]}>
@@ -229,6 +237,7 @@ function ProfileStrengthBadge({ strength }) {
 }
 
 function MatchBar({ percent }) {
+  const styles = useThemedStyles(createThemedScreenStyles);
   const filled = Math.round((percent / 100) * 5);
   return (
     <View style={styles.matchBarRow}>
@@ -250,6 +259,8 @@ function MatchBar({ percent }) {
 }
 
 function RecommendationSkeleton() {
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   return (
     <View style={styles.container}>
       <View style={styles.skeletonHeader} />
@@ -264,6 +275,10 @@ function RecommendationSkeleton() {
 }
 
 function EmptyProfileState({ profileStrength }) {
+  const { isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   // Perfil zerado: não renderiza nada (a seção de Destaques já cobre)
   if (profileStrength === 0) return null;
 
@@ -273,7 +288,7 @@ function EmptyProfileState({ profileStrength }) {
       style={styles.emptyContainer}
       entering={FadeInDown.springify()}
     >
-      <BlurView intensity={20} tint="dark" style={styles.emptyCard}>
+      <BlurView intensity={20} tint={blurTint} style={styles.emptyCard}>
         <MaterialCommunityIcons name="creation" size={28} color="#8B5CF6" />
         <Text style={styles.emptyTitle}>Descubra sua curadoria pessoal</Text>
         <Text style={styles.emptySubtitle}>
@@ -305,7 +320,8 @@ function calcMatchPercent(evento, signals) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginTop: 24,
   },
@@ -315,11 +331,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.06)",
+    borderColor: c.glassBorder,
   },
   insightCard: {
     padding: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.01)",
+    backgroundColor: c.glass,
   },
   insightGlow: {
     ...StyleSheet.absoluteFillObject,
@@ -344,12 +360,12 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   insightTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 17,
     fontWeight: "bold",
   },
   insightSubtitle: {
-    color: Colors?.textSecondary || "#94A3B8",
+    color: c.textSecondary,
     fontSize: 12,
     marginTop: 2,
   },
@@ -376,12 +392,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 34,
     borderRadius: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    backgroundColor: c.overlayLight,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.04)",
+    borderColor: c.glassBorder,
   },
   reasonText: {
-    color: "#E2E8F0",
+    color: c.textSecondary,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -407,7 +423,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   matchLabel: {
-    color: Colors?.textSecondary || "#94A3B8",
+    color: c.textSecondary,
     fontSize: 11,
     fontWeight: "600",
   },
@@ -437,7 +453,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   ctaText: {
-    color: "#FFF",
+    color: c.onPrimary,
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -456,14 +472,14 @@ const styles = StyleSheet.create({
     borderColor: "rgba(139, 92, 246, 0.2)",
   },
   emptyTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
     marginTop: 12,
     textAlign: "center",
   },
   emptySubtitle: {
-    color: Colors?.textSecondary || "#94A3B8",
+    color: c.textSecondary,
     fontSize: 13,
     marginTop: 6,
     textAlign: "center",
@@ -474,7 +490,7 @@ const styles = StyleSheet.create({
     height: 20,
     width: 160,
     borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: c.glass,
     marginHorizontal: 16,
     marginBottom: 16,
   },
@@ -482,12 +498,13 @@ const styles = StyleSheet.create({
     height: 90,
     marginHorizontal: 16,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.overlayLight,
     marginBottom: 16,
   },
   skeletonItem: {
     height: 240,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.overlayLight,
   },
 });
+}

@@ -39,7 +39,9 @@ import * as Sharing from "expo-sharing";
 
 import { useAuth } from "../context/AuthContext";
 import { useIngressos } from "../hooks/useIngressos";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 import SeletorIngressos from "../components/SeletorIngressos";
 import CarrinhoIngressos from "../components/CarrinhoIngressos";
 
@@ -72,6 +74,9 @@ const buildQrPayload = (ing, eventoId) =>
 // ─── Componente: Stepper de progresso ───────────────────────────────────────────
 
 function ProgressStepper({ etapaAtual }) {
+  const { colors } = useTheme();
+  const stepper = useThemedStyles(createStepperStyles);
+
   const etapas = [
     { id: "selecao", label: "Seleção", icon: "ticket-outline" },
     { id: "carrinho", label: "Carrinho", icon: "cart-outline" },
@@ -104,7 +109,7 @@ function ProgressStepper({ etapaAtual }) {
                 <MaterialCommunityIcons
                   name={etapa.icon}
                   size={16}
-                  color={ativo ? "#FFF" : Colors.textMuted}
+                  color={ativo ? "#FFF" : colors.textMuted}
                 />
               )}
             </View>
@@ -140,14 +145,16 @@ function ProgressStepper({ etapaAtual }) {
 
 function IngressoCard({ ingresso, evento, index, onShare }) {
   const shotRef = useRef(null);
+  const { colors } = useTheme();
+  const card = useThemedStyles(createIngressoCardStyles);
 
   const corTipo = {
-    inteira: Colors.primary,
-    meia: Colors.accentCyan,
-    estudante: Colors.success,
-    senior: Colors.accentOrange,
-    promocional: Colors.accentPink,
-  }[ingresso.tipo] || Colors.primary;
+    inteira: colors.primary,
+    meia: colors.accentCyan,
+    estudante: colors.success,
+    senior: colors.accentOrange,
+    promocional: colors.accentPink,
+  }[ingresso.tipo] || colors.primary;
 
   const labelTipo = {
     inteira: "Inteira",
@@ -222,20 +229,20 @@ function IngressoCard({ ingresso, evento, index, onShare }) {
             </Text>
 
             <View style={card.metaItem}>
-              <MaterialCommunityIcons name="calendar-outline" size={12} color={Colors.textMuted} />
+              <MaterialCommunityIcons name="calendar-outline" size={12} color={colors.textMuted} />
               <Text style={card.metaText}>{evento?.dataEvento || "—"}</Text>
             </View>
 
             {evento?.horaInicio && (
               <View style={card.metaItem}>
-                <MaterialCommunityIcons name="clock-outline" size={12} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="clock-outline" size={12} color={colors.textMuted} />
                 <Text style={card.metaText}>{evento.horaInicio}</Text>
               </View>
             )}
 
             {evento?.localEvento && (
               <View style={card.metaItem}>
-                <MaterialCommunityIcons name="map-marker-outline" size={12} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="map-marker-outline" size={12} color={colors.textMuted} />
                 <Text style={card.metaText} numberOfLines={2}>{evento.localEvento}</Text>
               </View>
             )}
@@ -248,7 +255,7 @@ function IngressoCard({ ingresso, evento, index, onShare }) {
             {/* Status */}
             {ingresso.status === "utilizado" ? (
               <View style={card.statusUsado}>
-                <MaterialCommunityIcons name="check-circle" size={13} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="check-circle" size={13} color={colors.textMuted} />
                 <Text style={card.statusUsadoText}>Utilizado</Text>
               </View>
             ) : (
@@ -262,7 +269,7 @@ function IngressoCard({ ingresso, evento, index, onShare }) {
 
         {/* Rodapé */}
         <TouchableOpacity style={card.shareBtn} onPress={handleShare} activeOpacity={0.8}>
-          <MaterialCommunityIcons name="share-variant-outline" size={15} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="share-variant-outline" size={15} color={colors.textMuted} />
           <Text style={card.shareBtnText}>Compartilhar ingresso</Text>
         </TouchableOpacity>
       </View>
@@ -273,6 +280,9 @@ function IngressoCard({ ingresso, evento, index, onShare }) {
 // ─── Modal de sucesso: exibe todos os QR Codes gerados ────────────────────────
 
 function ModalSucesso({ visible, resultado, evento, onClose, onVerIngressos }) {
+  const { colors, isDark } = useTheme();
+  const suc = useThemedStyles(createSucStyles);
+  const blurTint = isDark ? "dark" : "light";
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -290,7 +300,7 @@ function ModalSucesso({ visible, resultado, evento, onClose, onVerIngressos }) {
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      <BlurView intensity={40} tint="dark" style={suc.overlay}>
+      <BlurView intensity={40} tint={blurTint} style={suc.overlay}>
         <Animated.View style={[suc.sheet, { opacity: opacityAnim, transform: [{ scale: scaleAnim }] }]}>
           {/* Ícone de sucesso */}
           <LinearGradient colors={["#22C55E", "#15803D"]} style={suc.iconCircle}>
@@ -329,7 +339,7 @@ function ModalSucesso({ visible, resultado, evento, onClose, onVerIngressos }) {
 
           {/* Botões */}
           <TouchableOpacity style={suc.btnPrimary} onPress={onVerIngressos} activeOpacity={0.85}>
-            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={suc.btnGrad}>
+            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={suc.btnGrad}>
               <MaterialCommunityIcons name="ticket-account" size={18} color="#FFF" />
               <Text style={suc.btnPrimaryText}>Ver meus ingressos</Text>
             </LinearGradient>
@@ -347,6 +357,9 @@ function ModalSucesso({ visible, resultado, evento, onClose, onVerIngressos }) {
 // ─── Tela principal ───────────────────────────────────────────────────────────
 
 export default function TelaIngressos({ route, navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
   const evento = route.params?.evento;
@@ -401,7 +414,7 @@ export default function TelaIngressos({ route, navigation }) {
   if (!evento) {
     return (
       <View style={[styles.container, styles.center]}>
-        <MaterialCommunityIcons name="alert-circle" size={48} color={Colors.error} />
+        <MaterialCommunityIcons name="alert-circle" size={48} color={colors.error} />
         <Text style={styles.errorText}>Evento não encontrado</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.btnVoltar}>
           <Text style={styles.btnVoltarText}>← Voltar</Text>
@@ -456,7 +469,7 @@ export default function TelaIngressos({ route, navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
 
       {/* Modal de sucesso com QR Codes */}
       <ModalSucesso
@@ -468,9 +481,9 @@ export default function TelaIngressos({ route, navigation }) {
       />
 
       {/* HEADER */}
-      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.header}>
+      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {gratuito ? "Reservar Ingresso" : "Comprar Ingressos"}
@@ -516,7 +529,7 @@ export default function TelaIngressos({ route, navigation }) {
             <MaterialCommunityIcons
               name={capacidadeRestante > 0 ? "ticket-account" : "ticket-remove"}
               size={16}
-              color={capacidadeRestante > 0 ? Colors.success : Colors.error}
+              color={capacidadeRestante > 0 ? colors.success : colors.error}
             />
             <Text style={capacidadeRestante > 0 ? styles.disponivelText : styles.esgotadoText}>
               {capacidadeRestante > 0
@@ -529,7 +542,7 @@ export default function TelaIngressos({ route, navigation }) {
         {/* Info sobre QR Code */}
         {etapa === "selecao" && (
           <View style={styles.infoQr}>
-            <MaterialCommunityIcons name="qrcode" size={22} color={Colors.primary} />
+            <MaterialCommunityIcons name="qrcode" size={22} color={colors.primary} />
             <View style={{ flex: 1 }}>
               <Text style={styles.infoQrTitle}>QR Code de entrada</Text>
               <Text style={styles.infoQrSub}>
@@ -557,7 +570,7 @@ export default function TelaIngressos({ route, navigation }) {
             onPress={() => setEtapa("carrinho")}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={[Colors.primary, Colors.primaryDark]} style={styles.btnIrCarrinhoGrad}>
+            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.btnIrCarrinhoGrad}>
               <MaterialCommunityIcons name="cart-arrow-right" size={20} color="#FFF" />
               <View style={styles.btnIrCarrinhoInfo}>
                 <Text style={styles.btnIrCarrinhoText}>
@@ -579,7 +592,7 @@ export default function TelaIngressos({ route, navigation }) {
               style={styles.btnVoltarCarrinho}
               onPress={() => setEtapa("selecao")}
             >
-              <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
+              <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
               <Text style={styles.btnVoltarCarrinhoText}>Voltar à seleção</Text>
             </TouchableOpacity>
             <CarrinhoIngressos
@@ -600,7 +613,7 @@ export default function TelaIngressos({ route, navigation }) {
         {etapa === "processando" && (
           <View style={styles.processando}>
             <View style={styles.processandoAnim}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
             <Text style={styles.processandoTitle}>Processando sua compra</Text>
             <Text style={styles.processandoSub}>
@@ -608,15 +621,15 @@ export default function TelaIngressos({ route, navigation }) {
             </Text>
             <View style={styles.processandoSteps}>
               <View style={styles.processandoStep}>
-                <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
+                <MaterialCommunityIcons name="check-circle" size={16} color={colors.success} />
                 <Text style={styles.processandoStepText}>Validando disponibilidade</Text>
               </View>
               <View style={styles.processandoStep}>
-                <MaterialCommunityIcons name="check-circle" size={16} color={Colors.success} />
+                <MaterialCommunityIcons name="check-circle" size={16} color={colors.success} />
                 <Text style={styles.processandoStepText}>Gerando ingressos</Text>
               </View>
               <View style={styles.processandoStep}>
-                <ActivityIndicator size={12} color={Colors.primary} />
+                <ActivityIndicator size={12} color={colors.primary} />
                 <Text style={styles.processandoStepText}>Criando QR Codes</Text>
               </View>
             </View>
@@ -627,7 +640,7 @@ export default function TelaIngressos({ route, navigation }) {
         {etapa === "sucesso" && !modalSucesso && (
           <View style={styles.sucessoInline}>
             <LinearGradient colors={["#22C55E20", "transparent"]} style={styles.sucessoInlineGrad}>
-              <MaterialCommunityIcons name="qrcode-scan" size={48} color={Colors.success} />
+              <MaterialCommunityIcons name="qrcode-scan" size={48} color={colors.success} />
               <Text style={styles.sucessoInlineText}>QR Codes gerados!</Text>
             </LinearGradient>
           </View>
@@ -641,264 +654,271 @@ export default function TelaIngressos({ route, navigation }) {
 
 const CARD_W = SCREEN_W * 0.82;
 
-const card = StyleSheet.create({
-  wrapper: {
-    width: CARD_W,
-    backgroundColor: Colors.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: "hidden",
-    marginRight: 14,
-  },
-  topBar: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  tipoBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  tipoText: { fontSize: 12, fontWeight: "700" },
-  numero: { color: Colors.textMuted, fontSize: 12, fontWeight: "600" },
-  body: {
-    flexDirection: "row",
-    paddingHorizontal: 14,
-    paddingBottom: 14,
-    gap: 0,
-    alignItems: "flex-start",
-  },
-  qrCol: { alignItems: "center", width: 130 },
-  qrBox: {
-    padding: 10,
-    backgroundColor: "#1A1F30",
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  scanHint: {
-    color: Colors.textMuted,
-    fontSize: 10,
-    marginTop: 6,
-    textAlign: "center",
-  },
-  separator: {
-    width: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  perfTop: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.background,
-    marginBottom: 4,
-  },
-  perfDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.border,
-    marginBottom: 5,
-  },
-  perfBottom: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.background,
-    marginTop: 4,
-  },
-  infoCol: { flex: 1, paddingLeft: 4 },
-  nomeEvento: {
-    color: Colors.textPrimary,
-    fontSize: 14,
-    fontWeight: "800",
-    lineHeight: 19,
-    marginBottom: 10,
-  },
-  metaItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 5,
-    marginBottom: 5,
-  },
-  metaText: { color: Colors.textMuted, fontSize: 11, flex: 1, lineHeight: 15 },
-  codigoBox: {
-    backgroundColor: Colors.primarySoft,
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 8,
-  },
-  codigoLabel: { color: Colors.textMuted, fontSize: 9, fontWeight: "600", marginBottom: 2 },
-  codigo: {
-    color: Colors.primaryLight,
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    fontFamily: "monospace",
-  },
-  statusAtivo: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    alignSelf: "flex-start",
-  },
-  statusDot: { width: 6, height: 6, borderRadius: 3 },
-  statusAtivoText: { fontSize: 11, fontWeight: "700" },
-  statusUsado: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: 8,
-  },
-  statusUsadoText: { color: Colors.textMuted, fontSize: 11 },
-  shareBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  shareBtnText: { color: Colors.textMuted, fontSize: 12, fontWeight: "600" },
-});
+function createIngressoCardStyles(c) {
+  return StyleSheet.create({
+    wrapper: {
+      width: CARD_W,
+      backgroundColor: c.surface,
+      borderRadius: 20,
+      borderWidth: 1,
+      overflow: "hidden",
+      marginRight: 14,
+    },
+    topBar: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    tipoBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+    },
+    tipoText: { fontSize: 12, fontWeight: "700" },
+    numero: { color: c.textMuted, fontSize: 12, fontWeight: "600" },
+    body: {
+      flexDirection: "row",
+      paddingHorizontal: 14,
+      paddingBottom: 14,
+      gap: 0,
+      alignItems: "flex-start",
+    },
+    qrCol: { alignItems: "center", width: 130 },
+    qrBox: {
+      padding: 10,
+      backgroundColor: c.surfaceMuted,
+      borderRadius: 14,
+      borderWidth: 1,
+    },
+    scanHint: {
+      color: c.textMuted,
+      fontSize: 10,
+      marginTop: 6,
+      textAlign: "center",
+    },
+    separator: {
+      width: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 10,
+    },
+    perfTop: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: c.background,
+      marginBottom: 4,
+    },
+    perfDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.border,
+      marginBottom: 5,
+    },
+    perfBottom: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: c.background,
+      marginTop: 4,
+    },
+    infoCol: { flex: 1, paddingLeft: 4 },
+    nomeEvento: {
+      color: c.textPrimary,
+      fontSize: 14,
+      fontWeight: "800",
+      lineHeight: 19,
+      marginBottom: 10,
+    },
+    metaItem: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 5,
+      marginBottom: 5,
+    },
+    metaText: { color: c.textMuted, fontSize: 11, flex: 1, lineHeight: 15 },
+    codigoBox: {
+      backgroundColor: c.primarySoft,
+      borderRadius: 8,
+      padding: 8,
+      marginTop: 8,
+    },
+    codigoLabel: { color: c.textMuted, fontSize: 9, fontWeight: "600", marginBottom: 2 },
+    codigo: {
+      color: c.primaryLight,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 1,
+      fontFamily: "monospace",
+    },
+    statusAtivo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      marginTop: 8,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 999,
+      alignSelf: "flex-start",
+    },
+    statusDot: { width: 6, height: 6, borderRadius: 3 },
+    statusAtivoText: { fontSize: 11, fontWeight: "700" },
+    statusUsado: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: 8,
+    },
+    statusUsadoText: { color: c.textMuted, fontSize: 11 },
+    shareBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 10,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
+    shareBtnText: { color: c.textMuted, fontSize: 12, fontWeight: "600" },
+  });
+}
 
-const stepper = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  step: {
-    flex: 1,
-    alignItems: "center",
-  },
-  circle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.glass,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  circleActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  circleComplete: {
-    backgroundColor: Colors.success,
-    borderColor: Colors.success,
-  },
-  line: {
-    position: "absolute",
-    top: 16,
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: Colors.border,
-    zIndex: -1,
-  },
-  lineActive: {
-    backgroundColor: Colors.primary,
-  },
-  label: {
-    fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 6,
-    fontWeight: "600",
-  },
-  labelActive: {
-    color: Colors.primary,
-    fontWeight: "700",
-  },
-  labelComplete: {
-    color: Colors.success,
-    fontWeight: "700",
-  },
-});
+function createStepperStyles(c) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    step: {
+      flex: 1,
+      alignItems: "center",
+    },
+    circle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: c.glass,
+      borderWidth: 2,
+      borderColor: c.border,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    circleActive: {
+      backgroundColor: c.primary,
+      borderColor: c.primary,
+    },
+    circleComplete: {
+      backgroundColor: c.success,
+      borderColor: c.success,
+    },
+    line: {
+      position: "absolute",
+      top: 16,
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: c.border,
+      zIndex: -1,
+    },
+    lineActive: {
+      backgroundColor: c.primary,
+    },
+    label: {
+      fontSize: 11,
+      color: c.textMuted,
+      marginTop: 6,
+      fontWeight: "600",
+    },
+    labelActive: {
+      color: c.primary,
+      fontWeight: "700",
+    },
+    labelComplete: {
+      color: c.success,
+      fontWeight: "700",
+    },
+  });
+}
 
-const suc = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.6)",
-  },
-  sheet: {
-    backgroundColor: Colors.surface,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 28,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    alignItems: "center",
-    borderTopWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-  iconCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  titulo: {
-    color: Colors.textPrimary,
-    fontSize: 22,
-    fontWeight: "800",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  subtitulo: {
-    color: Colors.textMuted,
-    fontSize: 13,
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  qrScroll: { width: "100%", marginBottom: 8 },
-  qrScrollContent: { paddingLeft: 4, paddingRight: 4 },
-  swipeHint: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  aviso: {
-    color: Colors.textMuted,
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 18,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  btnPrimary: { width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 10 },
-  btnGrad: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 15,
-  },
-  btnPrimaryText: { color: "#FFF", fontSize: 15, fontWeight: "800" },
-  btnSecondary: { paddingVertical: 10 },
-  btnSecondaryText: { color: Colors.textMuted, fontSize: 14 },
-});
+function createSucStyles(c) {
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: c.overlayStronger,
+    },
+    sheet: {
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      paddingTop: 28,
+      paddingBottom: 40,
+      paddingHorizontal: 24,
+      alignItems: "center",
+      borderTopWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    iconCircle: {
+      width: 68,
+      height: 68,
+      borderRadius: 34,
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    titulo: {
+      color: c.textPrimary,
+      fontSize: 22,
+      fontWeight: "800",
+      marginBottom: 4,
+      textAlign: "center",
+    },
+    subtitulo: {
+      color: c.textMuted,
+      fontSize: 13,
+      marginBottom: 20,
+      textAlign: "center",
+    },
+    qrScroll: { width: "100%", marginBottom: 8 },
+    qrScrollContent: { paddingLeft: 4, paddingRight: 4 },
+    swipeHint: {
+      color: c.textMuted,
+      fontSize: 11,
+      marginBottom: 12,
+      textAlign: "center",
+    },
+    aviso: {
+      color: c.textMuted,
+      fontSize: 12,
+      textAlign: "center",
+      lineHeight: 18,
+      marginBottom: 20,
+      paddingHorizontal: 10,
+    },
+    btnPrimary: { width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 10 },
+    btnGrad: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 15,
+    },
+    btnPrimaryText: { color: c.onPrimary, fontSize: 15, fontWeight: "800" },
+    btnSecondary: { paddingVertical: 10 },
+    btnSecondaryText: { color: c.textMuted, fontSize: 14 },
+  });
+}
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   center: { justifyContent: "center", alignItems: "center" },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 16 },
@@ -914,12 +934,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     justifyContent: "center",
     alignItems: "center",
   },
   headerTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
@@ -927,9 +947,9 @@ const styles = StyleSheet.create({
   stepperWrapper: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
 
   eventoBanner: {
@@ -954,38 +974,38 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.success + "18",
+    backgroundColor: c.success + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
   },
-  disponivelText: { color: Colors.success, fontSize: 13, fontWeight: "600" },
+  disponivelText: { color: c.success, fontSize: 13, fontWeight: "600" },
   esgotado: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: Colors.error + "18",
+    backgroundColor: c.error + "18",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginBottom: 12,
   },
-  esgotadoText: { color: Colors.error, fontSize: 13, fontWeight: "600" },
+  esgotadoText: { color: c.error, fontSize: 13, fontWeight: "600" },
 
   infoQr: {
     flexDirection: "row",
     gap: 12,
-    backgroundColor: Colors.primarySoft,
+    backgroundColor: c.primarySoft,
     borderRadius: 14,
     padding: 12,
     marginBottom: 14,
     alignItems: "flex-start",
     borderWidth: 1,
-    borderColor: Colors.primary + "30",
+    borderColor: c.primary + "30",
   },
-  infoQrTitle: { color: Colors.primaryLight, fontSize: 13, fontWeight: "700", marginBottom: 3 },
-  infoQrSub: { color: Colors.textMuted, fontSize: 12, lineHeight: 17 },
+  infoQrTitle: { color: c.primaryLight, fontSize: 13, fontWeight: "700", marginBottom: 3 },
+  infoQrSub: { color: c.textMuted, fontSize: 12, lineHeight: 17 },
 
   btnIrCarrinho: {
     marginVertical: 16,
@@ -1019,13 +1039,13 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.primary + "15",
+    backgroundColor: c.primary + "15",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
-  processandoTitle: { color: Colors.textPrimary, fontSize: 18, fontWeight: "700", marginTop: 16 },
-  processandoSub: { color: Colors.textMuted, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 32 },
+  processandoTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "700", marginTop: 16 },
+  processandoSub: { color: c.textMuted, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 32 },
   processandoSteps: {
     marginTop: 32,
     width: "100%",
@@ -1038,19 +1058,19 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   processandoStepText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 13,
     fontWeight: "600",
   },
 
   sucessoInline: { borderRadius: 20, overflow: "hidden", marginVertical: 16 },
   sucessoInlineGrad: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 24 },
-  sucessoInlineText: { color: Colors.success, fontSize: 20, fontWeight: "700", marginTop: 12 },
+  sucessoInlineText: { color: c.success, fontSize: 20, fontWeight: "700", marginTop: 12 },
 
   carrinhoContainer: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     paddingTop: 16,
   },
 
@@ -1063,18 +1083,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   btnVoltarCarrinhoText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     fontWeight: "600",
   },
 
-  errorText: { color: Colors.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },
+  errorText: { color: c.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },
   btnVoltar: {
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
   },
   btnVoltarText: { color: "#FFF", fontWeight: "700" },
 });
+}

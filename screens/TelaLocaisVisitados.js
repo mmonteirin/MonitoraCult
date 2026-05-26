@@ -29,7 +29,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
 import { auth } from "../firebaseConfig";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { removerLocalVisitado } from "../services/localVisitadoService";
 import useLocaisVisitados from "../hooks/useLocaisVisitados";
 
@@ -66,14 +67,15 @@ function confirmar(mensagem, callback) {
 
 // ─── Componentes internos ─────────────────────────────────────────────────────
 
-function StatCard({ icon, valor, label, color = Colors.primary }) {
+function StatCard({ icon, valor, label, color, styles, themeColors, blurTint }) {
+  const accent = color ?? themeColors.primary;
   return (
-    <BlurView intensity={30} tint="dark" style={styles.statCard}>
+    <BlurView intensity={30} tint={blurTint} style={styles.statCard}>
       <LinearGradient
-        colors={[`${color}22`, "transparent"]}
+        colors={[`${accent}22`, "transparent"]}
         style={StyleSheet.absoluteFill}
       />
-      <MaterialCommunityIcons name={icon} size={22} color={color} />
+      <MaterialCommunityIcons name={icon} size={22} color={accent} />
       <Text style={styles.statValor}>{valor ?? "—"}</Text>
       <Text style={styles.statLabel} numberOfLines={1}>
         {label}
@@ -82,9 +84,9 @@ function StatCard({ icon, valor, label, color = Colors.primary }) {
   );
 }
 
-function PodiumCard({ local, posicao }) {
-  const colors = ["#FFD166", "#C4C8D4", "#CD7F32"];
-  const color = colors[posicao] || Colors.primary;
+function PodiumCard({ local, posicao, styles, themeColors, blurTint }) {
+  const medalColors = ["#FFD166", "#C4C8D4", "#CD7F32"];
+  const color = medalColors[posicao] || themeColors.primary;
   const icon = iconeCategoria(local.categoria);
 
   return (
@@ -92,7 +94,7 @@ function PodiumCard({ local, posicao }) {
       entering={FadeInDown.delay(posicao * 80).springify()}
       style={styles.podiumCard}
     >
-      <BlurView intensity={35} tint="dark" style={styles.podiumInner}>
+      <BlurView intensity={35} tint={blurTint} style={styles.podiumInner}>
         <LinearGradient
           colors={[`${color}18`, "transparent"]}
           style={StyleSheet.absoluteFill}
@@ -126,11 +128,11 @@ function PodiumCard({ local, posicao }) {
   );
 }
 
-function LocalCard({ item, index, onRemover }) {
+function LocalCard({ item, index, onRemover, styles, themeColors, blurTint }) {
   const icon = iconeCategoria(item.categoria);
   return (
     <Animated.View entering={FadeInDown.delay(index * 50).springify()}>
-      <BlurView intensity={30} tint="dark" style={styles.card}>
+      <BlurView intensity={30} tint={blurTint} style={styles.card}>
         <LinearGradient
           colors={["rgba(124,58,237,0.10)", "transparent"]}
           style={styles.cardGlow}
@@ -140,7 +142,7 @@ function LocalCard({ item, index, onRemover }) {
           {/* Ícone */}
           <View style={styles.cardIconWrap}>
             <LinearGradient
-              colors={[Colors.primary, Colors.primaryDark || "#5B21B6"]}
+              colors={[themeColors.primary, themeColors.primaryDark || "#5B21B6"]}
               style={StyleSheet.absoluteFill}
             />
             <MaterialCommunityIcons name={icon} size={18} color="#FFF" />
@@ -178,7 +180,7 @@ function LocalCard({ item, index, onRemover }) {
             <MaterialCommunityIcons
               name="trash-can-outline"
               size={19}
-              color={Colors.error}
+              color={themeColors.error}
             />
           </TouchableOpacity>
         </View>
@@ -189,7 +191,7 @@ function LocalCard({ item, index, onRemover }) {
             <MaterialCommunityIcons
               name="repeat"
               size={13}
-              color={Colors.primaryLight || "#8B7CFF"}
+              color={themeColors.primaryLight || "#8B7CFF"}
             />
             <Text style={styles.cardVisitasText}>
               {item.visitas} {item.visitas === 1 ? "visita" : "visitas"}
@@ -208,6 +210,9 @@ function LocalCard({ item, index, onRemover }) {
 // ─── Tela principal ───────────────────────────────────────────────────────────
 
 export default function TelaLocaisVisitados() {
+  const { colors: themeColors, isDark } = useTheme();
+  const styles = useThemedStyles((c) => createThemedScreenStyles(c, isDark));
+  const blurTint = isDark ? "dark" : "light";
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const uid = auth.currentUser?.uid;
@@ -224,11 +229,13 @@ export default function TelaLocaisVisitados() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* ── HEADER ── */}
       <LinearGradient
-        colors={["#111827", "#070B14"]}
+        colors={isDark 
+          ? [themeColors.surfaceMuted, themeColors.background] 
+          : [themeColors.backgroundSecondary, themeColors.background]}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <View style={styles.headerRow}>
@@ -236,7 +243,7 @@ export default function TelaLocaisVisitados() {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={themeColors.textPrimary} />
           </TouchableOpacity>
 
           <View style={{ flex: 1 }}>
@@ -251,25 +258,37 @@ export default function TelaLocaisVisitados() {
             icon="map-marker-multiple"
             valor={stats.totalLocais}
             label="Locais"
-            color={Colors.primary}
+            color={themeColors.primary}
+            styles={styles}
+            themeColors={themeColors}
+            blurTint={blurTint}
           />
           <StatCard
             icon="ticket-confirmation-outline"
             valor={stats.totalVisitas}
             label="Visitas"
-            color={Colors.accentCyan || "#22D3EE"}
+            color={themeColors.accentCyan}
+            styles={styles}
+            themeColors={themeColors}
+            blurTint={blurTint}
           />
           <StatCard
             icon="music"
             valor={stats.categoriaMaisVisitada || "—"}
             label="Categoria fav."
             color="#FFD166"
+            styles={styles}
+            themeColors={themeColors}
+            blurTint={blurTint}
           />
           <StatCard
             icon="home-city"
             valor={stats.bairroFavorito || "—"}
             label="Bairro fav."
-            color={Colors.success}
+            color={themeColors.success}
+            styles={styles}
+            themeColors={themeColors}
+            blurTint={blurTint}
           />
         </View>
       </LinearGradient>
@@ -277,7 +296,7 @@ export default function TelaLocaisVisitados() {
       {/* ── CONTEÚDO ── */}
       {loading ? (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={themeColors.primary} />
         </View>
       ) : locais.length === 0 ? (
         <View style={styles.emptyBox}>
@@ -285,7 +304,7 @@ export default function TelaLocaisVisitados() {
             <MaterialCommunityIcons
               name="map-marker-off-outline"
               size={42}
-              color={Colors.primary}
+              color={themeColors.primary}
             />
           </View>
           <Text style={styles.emptyTitle}>Nenhum local ainda</Text>
@@ -315,7 +334,14 @@ export default function TelaLocaisVisitados() {
                 </View>
                 <View style={styles.podiumRow}>
                   {favoritos.map((local, i) => (
-                    <PodiumCard key={local.id} local={local} posicao={i} />
+                    <PodiumCard
+                      key={local.id}
+                      local={local}
+                      posicao={i}
+                      styles={styles}
+                      themeColors={themeColors}
+                      blurTint={blurTint}
+                    />
                   ))}
                 </View>
                 <View style={styles.sectionDivider} />
@@ -328,6 +354,9 @@ export default function TelaLocaisVisitados() {
               item={item}
               index={index}
               onRemover={handleRemover}
+              styles={styles}
+              themeColors={themeColors}
+              blurTint={blurTint}
             />
           )}
         />
@@ -338,10 +367,11 @@ export default function TelaLocaisVisitados() {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c, isDark) {
+	return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
   },
 
   // Header
@@ -358,18 +388,18 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
   },
   title: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 26,
     fontWeight: "800",
   },
   subtitle: {
-    color: "rgba(255,255,255,0.6)",
+    color: isDark ? "rgba(255,255,255,0.6)" : c.textMuted,
     fontSize: 13,
     marginTop: 3,
   },
@@ -386,18 +416,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    borderColor: c.glass,
+    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : c.surface,
   },
   statValor: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "800",
     marginTop: 6,
     textAlign: "center",
   },
   statLabel: {
-    color: "rgba(255,255,255,0.5)",
+    color: isDark ? "rgba(255,255,255,0.5)" : c.textMuted,
     fontSize: 10,
     marginTop: 2,
     textAlign: "center",
@@ -437,8 +467,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    borderColor: c.glass,
+    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : c.surface,
   },
   podiumBadge: {
     paddingHorizontal: 8,
@@ -461,14 +491,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   podiumNome: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 12,
     fontWeight: "700",
     textAlign: "center",
     lineHeight: 17,
   },
   podiumBairro: {
-    color: "rgba(255,255,255,0.5)",
+    color: isDark ? "rgba(255,255,255,0.5)" : c.textMuted,
     fontSize: 10,
     marginTop: 3,
     textAlign: "center",
@@ -485,11 +515,11 @@ const styles = StyleSheet.create({
   },
   sectionDivider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: c.glass,
     marginVertical: 16,
   },
   sectionTitle2: {
-    color: "rgba(255,255,255,0.7)",
+    color: isDark ? "rgba(255,255,255,0.7)" : c.textSecondary,
     fontSize: 13,
     fontWeight: "700",
     marginBottom: 12,
@@ -501,8 +531,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
-    backgroundColor: "rgba(255,255,255,0.03)",
+    borderColor: c.glass,
+    backgroundColor: isDark ? "rgba(255,255,255,0.03)" : c.card,
+    shadowColor: c.shadow,
+    shadowOpacity: isDark ? 0.15 : 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: isDark ? 3 : 2,
   },
   cardGlow: {
     position: "absolute",
@@ -510,6 +545,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 80,
+    opacity: isDark ? 1 : 0.3,
   },
   cardMain: {
     flexDirection: "row",
@@ -530,7 +566,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardNome: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -541,14 +577,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   cardMetaText: {
-    color: "rgba(255,255,255,0.5)",
+    color: isDark ? "rgba(255,255,255,0.5)" : c.textMuted,
     fontSize: 12,
   },
   deleteBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: "rgba(239,68,68,0.08)",
+    backgroundColor: isDark ? "rgba(239,68,68,0.08)" : "rgba(239,68,68,0.10)",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -561,24 +597,24 @@ const styles = StyleSheet.create({
     paddingBottom: 14,
     paddingTop: 4,
     borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.05)",
+    borderTopColor: c.glass,
   },
   cardVisitasBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    backgroundColor: "rgba(108,92,231,0.14)",
+    backgroundColor: isDark ? "rgba(108,92,231,0.14)" : "rgba(108,92,231,0.10)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
   },
   cardVisitasText: {
-    color: Colors.primaryLight || "#8B7CFF",
+    color: c.primaryLight || "#8B7CFF",
     fontSize: 12,
     fontWeight: "700",
   },
   cardData: {
-    color: "rgba(255,255,255,0.4)",
+    color: isDark ? "rgba(255,255,255,0.4)" : c.textMuted,
     fontSize: 11,
   },
 
@@ -598,21 +634,22 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 45,
-    backgroundColor: "rgba(124,58,237,0.12)",
+    backgroundColor: isDark ? "rgba(124,58,237,0.12)" : "rgba(108,92,231,0.08)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
   },
   emptyTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "800",
     marginBottom: 10,
   },
   emptyText: {
-    color: "rgba(255,255,255,0.6)",
+    color: isDark ? "rgba(255,255,255,0.6)" : c.textSecondary,
     fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
   },
 });
+}

@@ -50,7 +50,8 @@ import { calcularDistancia } from "../utils/distance";
 
 import { useAuth } from "../context/AuthContext";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 import CategoryPills from "../components/home/CategoryPills";
 
@@ -87,6 +88,10 @@ export default function TelaInicio() {
     const insets = useSafeAreaInsets();
 
     const { user, nome } = useAuth();
+
+    const { colors, isDark } = useTheme();
+    const styles = useThemedStyles(createThemedScreenStyles);
+    const blurTint = isDark ? "dark" : "light";
 
     const [eventos, setEventos] = useState([]);
 
@@ -144,6 +149,14 @@ export default function TelaInicio() {
     useEffect(() => {
         carregarHome();
     }, [usuarioId]);
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, []);
 
     const carregarHome = async () => {
         try {
@@ -270,7 +283,7 @@ export default function TelaInicio() {
             backgroundColor: interpolateColor(
                 backgroundOpacity,
                 [0, 1],
-                ["rgba(0,0,0,0)", Colors.background]
+                ["rgba(0,0,0,0)", colors.background]
             ),
 
             opacity: interpolate(
@@ -280,7 +293,7 @@ export default function TelaInicio() {
                 Extrapolate.CLAMP
             ),
         };
-    });
+    }, [colors.background]);
 
     const momentStyle = useAnimatedStyle(() => {
         return {
@@ -386,10 +399,11 @@ export default function TelaInicio() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
+                <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
                 <MaterialCommunityIcons
                     name="calendar-star"
                     size={60}
-                    color={Colors.primary}
+                    color={colors.primary}
                 />
 
                 <Text style={styles.loadingText}>
@@ -401,7 +415,7 @@ export default function TelaInicio() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="light-content" />
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
             <Animated.ScrollView
                 entering={FadeIn.duration(700)}
@@ -419,7 +433,7 @@ export default function TelaInicio() {
                             carregarHome();
                             refreshRecomendacoes();
                         }}
-                        tintColor={Colors.primary}
+                        tintColor={colors.primary}
                     />
                 }
             >
@@ -430,9 +444,9 @@ export default function TelaInicio() {
                 >
                     <LinearGradient
                         colors={[
-                            Colors.backgroundSecondary,
-                            Colors.surface,
-                            Colors.background,
+                            colors.backgroundSecondary,
+                            colors.surface,
+                            colors.background,
                         ]}
                         style={[
                             styles.headerContainer,
@@ -474,13 +488,13 @@ export default function TelaInicio() {
                                 >
                                     <BlurView
                                         intensity={35}
-                                        tint="dark"
+                                        tint={blurTint}
                                         style={styles.headerBlur}
                                     >
                                         <MaterialCommunityIcons
                                             name="magnify"
                                             size={22}
-                                            color="#FFF"
+                                            color={colors.textPrimary}
                                         />
                                     </BlurView>
                                 </TouchableOpacity>
@@ -496,13 +510,13 @@ export default function TelaInicio() {
                                 >
                                     <BlurView
                                         intensity={35}
-                                        tint="dark"
+                                        tint={blurTint}
                                         style={styles.headerBlur}
                                     >
                                         <MaterialCommunityIcons
                                             name="bell-outline"
                                             size={22}
-                                            color="#FFF"
+                                            color={colors.textPrimary}
                                         />
 
                                         <View
@@ -641,9 +655,13 @@ export default function TelaInicio() {
                 }}
             >
                 <View style={styles.modalOverlay}>
-                    <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill}>
+                    <BlurView intensity={70} tint={blurTint} style={StyleSheet.absoluteFill}>
                         <LinearGradient
-                            colors={["rgba(10, 8, 20, 0.96)", "rgba(139, 92, 246, 0.12)", "rgba(7, 11, 20, 0.98)"]}
+                            colors={
+                                isDark
+                                    ? ["rgba(10, 8, 20, 0.96)", "rgba(139, 92, 246, 0.12)", "rgba(7, 11, 20, 0.98)"]
+                                    : ["rgba(255, 255, 255, 0.96)", "rgba(108, 92, 231, 0.08)", "rgba(248, 249, 250, 0.98)"]
+                            }
                             style={StyleSheet.absoluteFill}
                         />
                     </BlurView>
@@ -667,8 +685,8 @@ export default function TelaInicio() {
                                     setModalAIVisivel(false);
                                 }}
                             >
-                                <BlurView intensity={25} tint="light" style={styles.modalCloseBlur}>
-                                    <MaterialCommunityIcons name="close" size={20} color="#FFF" />
+                                <BlurView intensity={25} tint={blurTint} style={styles.modalCloseBlur}>
+                                    <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
                                 </BlurView>
                             </TouchableOpacity>
                         </View>
@@ -764,21 +782,22 @@ export default function TelaInicio() {
     );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+    return StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: c.background,
     },
 
     loadingContainer: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: c.background,
         alignItems: "center",
         justifyContent: "center",
     },
 
     loadingText: {
-        color: Colors.textPrimary,
+        color: c.textPrimary,
         fontSize: 15,
         fontWeight: "600",
         marginTop: 16,
@@ -817,34 +836,34 @@ const styles = StyleSheet.create({
         alignItems: "center",
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.08)",
-        backgroundColor: "rgba(255,255,255,0.04)",
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
     },
 
     notificationDot: {
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: Colors.primary,
+        backgroundColor: c.primary,
         position: "absolute",
         right: 13,
         top: 13,
     },
 
     greeting: {
-        color: Colors.textSecondary,
+        color: c.textSecondary,
         fontSize: 15,
     },
 
     name: {
-        color: Colors.textPrimary,
+        color: c.textPrimary,
         fontSize: 32,
         fontWeight: "800",
         marginTop: 4,
     },
 
     city: {
-        color: Colors.textMuted,
+        color: c.textMuted,
         fontSize: 14,
         marginTop: 6,
     },
@@ -855,17 +874,17 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: 20,
-        backgroundColor: "rgba(0,0,0,0.6)",
+        backgroundColor: c.overlayDark,
     },
 
     modalContent: {
         width: "100%",
         height: "82%",
-        backgroundColor: "rgba(18, 14, 36, 0.92)",
+        backgroundColor: c.card,
         borderRadius: 32,
         padding: 22,
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.08)",
+        borderColor: c.glassBorder,
         overflow: "hidden",
         justifyContent: "space-between",
     },
@@ -908,16 +927,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.12)",
-        backgroundColor: "rgba(255,255,255,0.05)",
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
     },
 
     typewriterBox: {
-        backgroundColor: "rgba(139, 92, 246, 0.08)",
+        backgroundColor: c.primarySoft,
         borderRadius: 20,
         padding: 16,
         borderWidth: 1,
-        borderColor: "rgba(139, 92, 246, 0.12)",
+        borderColor: c.glassBorder,
         marginBottom: 18,
         flexDirection: "row",
         alignItems: "flex-start",
@@ -930,14 +949,14 @@ const styles = StyleSheet.create({
 
     typewriterText: {
         flex: 1,
-        color: "#F3E8FF",
+        color: c.textPrimary,
         fontSize: 14,
         lineHeight: 22,
         fontWeight: "600",
     },
 
     cursor: {
-        color: "#C084FC",
+        color: c.primaryLight,
         fontWeight: "bold",
     },
 
@@ -950,8 +969,8 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         overflow: "hidden",
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.06)",
-        backgroundColor: "rgba(255, 255, 255, 0.02)",
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
         marginBottom: 12,
     },
 
@@ -987,14 +1006,14 @@ const styles = StyleSheet.create({
     },
 
     aiCardCategory: {
-        color: "rgba(255, 255, 255, 0.4)",
+        color: c.textMuted,
         fontSize: 11,
         fontWeight: "700",
         textTransform: "uppercase",
     },
 
     aiCardTitle: {
-        color: "#FFF",
+        color: c.textPrimary,
         fontSize: 17,
         fontWeight: "700",
         marginBottom: 6,
@@ -1008,35 +1027,35 @@ const styles = StyleSheet.create({
     },
 
     aiCardLocalText: {
-        color: "rgba(255, 255, 255, 0.6)",
+        color: c.textSecondary,
         fontSize: 13,
         fontWeight: "500",
     },
 
     aiReasonBubble: {
-        backgroundColor: "rgba(255, 255, 255, 0.04)",
+        backgroundColor: c.overlayLight,
         borderRadius: 12,
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.03)",
+        borderColor: c.glassBorder,
     },
 
     aiReasonText: {
-        color: "#D8B4FE",
+        color: c.primaryLight,
         fontSize: 12,
         fontWeight: "600",
         lineHeight: 18,
     },
 
     modalExploreButton: {
-        backgroundColor: Colors.primary,
+        backgroundColor: c.primary,
         height: 52,
         borderRadius: 18,
         justifyContent: "center",
         alignItems: "center",
         marginTop: 12,
-        shadowColor: "#8B5CF6",
+        shadowColor: c.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.25,
         shadowRadius: 8,
@@ -1044,8 +1063,9 @@ const styles = StyleSheet.create({
     },
 
     modalExploreButtonText: {
-        color: "#FFF",
+        color: c.onPrimary,
         fontWeight: "bold",
         fontSize: 14,
     },
 });
+}

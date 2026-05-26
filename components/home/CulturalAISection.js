@@ -4,7 +4,8 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Animated, { FadeInDown, LinearTransition } from "react-native-reanimated";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 const { width } = Dimensions.get("window");
 
@@ -16,6 +17,10 @@ const PROMPTS_SUGERIDOS = [
 ];
 
 export default function CulturalAISection({ onPressInsight }) {
+  const { isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const [loadingAI, setLoadingAI] = useState(false);
   const [promptSelecionado, setPromptSelecionado] = useState(null);
 
@@ -54,7 +59,7 @@ export default function CulturalAISection({ onPressInsight }) {
       layout={LinearTransition.springify()} 
       style={styles.container}
     >
-      <BlurView intensity={40} tint="dark" style={styles.box}>
+      <BlurView intensity={40} tint={blurTint} style={styles.box}>
         
         {/* Header da IA - Interrogação/Sparkles removida daqui */}
         <View style={styles.headerRow}>
@@ -121,22 +126,24 @@ export default function CulturalAISection({ onPressInsight }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: { paddingHorizontal: 16, marginTop: 24, marginBottom: 8 },
-  box: { padding: 20, borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.06)", backgroundColor: "rgba(255, 255, 255, 0.02)" },
+  box: { padding: 20, borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: c.glassBorder, backgroundColor: c.glass },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  aiBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(139, 92, 246, 0.25)", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, gap: 6 },
-  aiBadgeText: { color: "#C084FC", fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 },
-  title: { color: "#FFF", fontSize: 18, fontWeight: "bold", marginBottom: 8 },
-  description: { color: Colors?.textSecondary || "#94A3B8", fontSize: 13, lineHeight: 20, marginBottom: 16 },
+  aiBadge: { flexDirection: "row", alignItems: "center", backgroundColor: c.primarySoft, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, gap: 6 },
+  aiBadgeText: { color: c.primaryLight, fontSize: 11, fontWeight: "bold", textTransform: "uppercase", letterSpacing: 0.5 },
+  title: { color: c.textPrimary, fontSize: 18, fontWeight: "bold", marginBottom: 8 },
+  description: { color: c.textSecondary, fontSize: 13, lineHeight: 20, marginBottom: 16 },
   promptsContainer: { marginBottom: 20, marginHorizontal: -20 },
   scrollPrompts: { paddingHorizontal: 20, gap: 8 },
-  promptChip: { backgroundColor: "rgba(255, 255, 255, 0.05)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.04)" },
-  promptChipActive: { backgroundColor: "rgba(139, 92, 246, 0.3)", borderColor: "#8B5CF6" },
-  promptChipText: { color: Colors?.textSecondary || "#94A3B8", fontSize: 12, fontWeight: "600" },
-  promptChipTextActive: { color: "#FFF", fontWeight: "700" },
-  button: { backgroundColor: Colors?.primary || "#7C3AED", height: 52, borderRadius: 18, justifyContent: "center", alignItems: "center", shadowColor: "#8B5CF6", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 },
-  buttonDisabled: { backgroundColor: "rgba(124, 58, 237, 0.6)" },
-  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 14 },
+  promptChip: { backgroundColor: c.overlayLight, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderColor: c.glassBorder },
+  promptChipActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+  promptChipText: { color: c.textSecondary, fontSize: 12, fontWeight: "600" },
+  promptChipTextActive: { color: c.textPrimary, fontWeight: "700" },
+  button: { backgroundColor: c.primary, height: 52, borderRadius: 18, justifyContent: "center", alignItems: "center", shadowColor: c.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 },
+  buttonDisabled: { backgroundColor: c.primarySoft },
+  buttonText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
   loaderRow: { flexDirection: "row", alignItems: "center", gap: 10 },
 });
+}

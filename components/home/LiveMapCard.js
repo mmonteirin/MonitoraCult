@@ -19,12 +19,17 @@ import Animated, {
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function LiveMapCard({
   onPress,
   activeCount = 0,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const animatedScale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -51,7 +56,7 @@ export default function LiveMapCard({
       >
         <BlurView
           intensity={18}
-          tint="dark"
+          tint={blurTint}
           style={styles.liveContent}
         >
           <View style={styles.liveDot} />
@@ -59,8 +64,8 @@ export default function LiveMapCard({
           <View style={styles.iconWrap}>
             <LinearGradient
               colors={[
-                Colors.primary + "33",
-                Colors.primaryLight + "1a",
+                `${colors.primary}33`,
+                `${colors.primaryLight}1a`,
               ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -69,7 +74,7 @@ export default function LiveMapCard({
             <MaterialCommunityIcons
               name="map-marker-radius"
               size={24}
-              color={Colors.primaryLight}
+              color={colors.primaryLight}
             />
           </View>
 
@@ -88,7 +93,7 @@ export default function LiveMapCard({
           <MaterialCommunityIcons
             name="chevron-right"
             size={24}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
         </BlurView>
       </TouchableOpacity>
@@ -96,7 +101,8 @@ export default function LiveMapCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   liveCard: {
     marginHorizontal: 18,
     marginTop: 28,
@@ -109,8 +115,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
 
-
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -126,10 +131,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     top: -4,
     left: -4,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
 
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
 
   liveDot: {
@@ -137,7 +142,7 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
 
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
 
     marginRight: 14,
   },
@@ -150,10 +155,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
 
-    backgroundColor: Colors.overlayLight,
+    backgroundColor: c.overlayLight,
 
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
 
   copy: {
@@ -162,16 +167,17 @@ const styles = StyleSheet.create({
   },
 
   liveTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 17,
     fontWeight: "800",
     letterSpacing: -0.4,
   },
 
   liveSub: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 13,
     marginTop: 4,
     lineHeight: 18,
   },
 });
+}

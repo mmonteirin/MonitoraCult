@@ -12,7 +12,7 @@ import {
 import { db } from "../firebaseConfig";
 
 const HISTORY_KEY = "@monitoracult_busca_global";
-const DEFAULT_IMAGE = "https://placehold.co/600x400?text=Evento";
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200";
 
 const normalizar = (value) =>
   String(value || "")

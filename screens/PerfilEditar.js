@@ -20,18 +20,21 @@ import AppText from "../components/AppText";
 import { useAuth } from "../context/AuthContext";
 import { auth, db } from "../firebaseConfig";
 import { uploadImagem } from "../services/uploadService";
-import { Colors } from "../styles/Colors";
-
-const Section = ({ title, children }) => (
-	<View style={styles.section}>
-		<AppText style={styles.sectionTitle}>{title}</AppText>
-		<View style={styles.sectionCard}>{children}</View>
-	</View>
-);
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function PerfilEditar({ navigation }) {
 	const insets = useSafeAreaInsets();
 	const { user, nome: nomeContext, foto: fotoContext, refreshProfile } = useAuth();
+	const { colors } = useTheme();
+	const styles = useThemedStyles(createPerfilEditarStyles);
+
+	const Section = ({ title, children }) => (
+		<View style={styles.section}>
+			<AppText style={styles.sectionTitle}>{title}</AppText>
+			<View style={styles.sectionCard}>{children}</View>
+		</View>
+	);
 
 	const [loading, setLoading] = useState(false);
 	const [nome, setNome] = useState(nomeContext || "");
@@ -160,7 +163,7 @@ export default function PerfilEditar({ navigation }) {
 	}) => (
 		<View style={[styles.inputRow, multiline && styles.inputRowMultiline]}>
 			<View style={styles.inputIcon}>
-				<MaterialCommunityIcons name={icon} size={19} color={Colors.primary} />
+				<MaterialCommunityIcons name={icon} size={19} color={colors.primary} />
 			</View>
 			<View style={styles.inputCopy}>
 				<AppText style={styles.inputLabel}>{label}</AppText>
@@ -168,7 +171,7 @@ export default function PerfilEditar({ navigation }) {
 					value={value}
 					onChangeText={onChangeText}
 					placeholder={label}
-					placeholderTextColor={Colors.textMuted}
+					placeholderTextColor={colors.textMuted}
 					style={[styles.input, multiline && styles.inputMultiline]}
 					multiline={multiline}
 					keyboardType={keyboardType}
@@ -181,12 +184,12 @@ export default function PerfilEditar({ navigation }) {
 	return (
 		<View style={styles.container}>
 			<LinearGradient
-				colors={[Colors.backgroundSecondary, Colors.surface, Colors.background]}
+				colors={[colors.backgroundSecondary, colors.surface, colors.background]}
 				style={[styles.header, { paddingTop: insets.top + 12 }]}
 			>
 				<View style={styles.headerTop}>
 					<TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
-						<MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+						<MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
 					</TouchableOpacity>
 
 					<AppText style={styles.headerTitle}>Editar perfil</AppText>
@@ -197,9 +200,9 @@ export default function PerfilEditar({ navigation }) {
 						disabled={loading}
 					>
 						{loading ? (
-							<ActivityIndicator size="small" color={Colors.primary} />
+							<ActivityIndicator size="small" color={colors.primary} />
 						) : (
-							<MaterialCommunityIcons name="check" size={24} color={Colors.primary} />
+							<MaterialCommunityIcons name="check" size={24} color={colors.primary} />
 						)}
 					</TouchableOpacity>
 				</View>
@@ -211,7 +214,7 @@ export default function PerfilEditar({ navigation }) {
 							style={styles.avatar}
 						/>
 						<TouchableOpacity onPress={escolherFoto} style={styles.camera}>
-							<MaterialCommunityIcons name="camera" size={17} color="#fff" />
+							<MaterialCommunityIcons name="camera" size={17} color={colors.onPrimary} />
 						</TouchableOpacity>
 					</View>
 
@@ -332,14 +335,14 @@ export default function PerfilEditar({ navigation }) {
 						style={styles.saveBtn}
 					>
 						<LinearGradient
-							colors={[Colors.primary, Colors.primaryDark]}
+							colors={[colors.primary, colors.primaryDark]}
 							style={styles.saveGradient}
 						>
 							{loading ? (
-								<ActivityIndicator color="#fff" />
+								<ActivityIndicator color={colors.onPrimary} />
 							) : (
 								<>
-									<MaterialCommunityIcons name="check-circle-outline" size={20} color="#fff" />
+									<MaterialCommunityIcons name="check-circle-outline" size={20} color={colors.onPrimary} />
 									<AppText style={styles.saveText}>Salvar alterações</AppText>
 								</>
 							)}
@@ -351,8 +354,9 @@ export default function PerfilEditar({ navigation }) {
 	);
 }
 
-const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: Colors.background },
+function createPerfilEditarStyles(c) {
+	return StyleSheet.create({
+	container: { flex: 1, backgroundColor: c.background },
 	header: {
 		paddingHorizontal: 18,
 		paddingBottom: 18,
@@ -371,20 +375,20 @@ const styles = StyleSheet.create({
 		borderRadius: 14,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: "rgba(255,255,255,0.06)",
+		backgroundColor: c.glass,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.07)",
+		borderColor: c.glassBorder,
 	},
-	headerTitle: { color: Colors.textPrimary, fontSize: 20, fontWeight: "800" },
+	headerTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "800" },
 	disabled: { opacity: 0.55 },
 	previewCard: {
 		flexDirection: "row",
 		alignItems: "center",
 		padding: 14,
 		borderRadius: 24,
-		backgroundColor: "rgba(255,255,255,0.06)",
+		backgroundColor: c.glass,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassBorder,
 	},
 	avatarWrap: { position: "relative" },
 	avatar: {
@@ -392,8 +396,8 @@ const styles = StyleSheet.create({
 		height: 82,
 		borderRadius: 41,
 		borderWidth: 2,
-		borderColor: Colors.primary,
-		backgroundColor: Colors.card,
+		borderColor: c.primary,
+		backgroundColor: c.card,
 	},
 	camera: {
 		position: "absolute",
@@ -404,18 +408,18 @@ const styles = StyleSheet.create({
 		borderRadius: 16,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: Colors.primary,
+		backgroundColor: c.primary,
 		borderWidth: 2,
-		borderColor: Colors.surface,
+		borderColor: c.surface,
 	},
 	previewCopy: { flex: 1, marginLeft: 14 },
-	previewName: { color: Colors.textPrimary, fontSize: 19, fontWeight: "800" },
-	previewHandle: { color: Colors.primaryLight, fontSize: 13, marginTop: 2, fontWeight: "700" },
-	previewBio: { color: Colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
+	previewName: { color: c.textPrimary, fontSize: 19, fontWeight: "800" },
+	previewHandle: { color: c.primaryLight, fontSize: 13, marginTop: 2, fontWeight: "700" },
+	previewBio: { color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
 	content: { paddingHorizontal: 16, paddingTop: 18 },
 	section: { marginBottom: 18 },
 	sectionTitle: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 		fontSize: 12,
 		fontWeight: "800",
 		textTransform: "uppercase",
@@ -425,9 +429,9 @@ const styles = StyleSheet.create({
 	sectionCard: {
 		borderRadius: 24,
 		overflow: "hidden",
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderWidth: 1,
-		borderColor: Colors.border,
+		borderColor: c.border,
 	},
 	inputRow: {
 		flexDirection: "row",
@@ -436,7 +440,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 14,
 		paddingVertical: 10,
 		borderBottomWidth: 1,
-		borderBottomColor: "rgba(255,255,255,0.06)",
+		borderBottomColor: c.divider,
 	},
 	inputRowMultiline: { alignItems: "flex-start" },
 	inputIcon: {
@@ -445,13 +449,13 @@ const styles = StyleSheet.create({
 		borderRadius: 15,
 		alignItems: "center",
 		justifyContent: "center",
-		backgroundColor: Colors.primarySoft,
+		backgroundColor: c.primarySoft,
 		marginRight: 12,
 	},
 	inputCopy: { flex: 1 },
-	inputLabel: { color: Colors.textMuted, fontSize: 12, fontWeight: "700", marginBottom: 3 },
+	inputLabel: { color: c.textMuted, fontSize: 12, fontWeight: "700", marginBottom: 3 },
 	input: {
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 15,
 		paddingVertical: 2,
 	},
@@ -474,5 +478,6 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		gap: 9,
 	},
-	saveText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+	saveText: { color: c.onPrimary, fontSize: 16, fontWeight: "800" },
 });
+}

@@ -22,9 +22,13 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { newsId } = route.params;
   const [news, setNews] = useState(null);
@@ -77,7 +81,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
         >
           <BlurView
             intensity={35}
-            tint="dark"
+            tint={blurTint}
             style={styles.headerBlur}
           >
             <MaterialCommunityIcons
@@ -88,7 +92,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
           </BlurView>
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -104,9 +108,9 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
       >
         <LinearGradient
           colors={[
-            Colors.backgroundSecondary,
-            Colors.surface,
-            Colors.background,
+            colors.backgroundSecondary,
+            colors.surface,
+            colors.background,
           ]}
           style={[
             styles.header,
@@ -121,7 +125,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
             >
               <BlurView
                 intensity={35}
-                tint="dark"
+                tint={blurTint}
                 style={styles.headerBlur}
               >
                 <MaterialCommunityIcons
@@ -135,7 +139,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
             <TouchableOpacity style={styles.moreButton}>
               <BlurView
                 intensity={35}
-                tint="dark"
+                tint={blurTint}
                 style={styles.headerBlur}
               >
                 <MaterialCommunityIcons
@@ -158,7 +162,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       >
@@ -168,7 +172,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="newspaper"
               size={80}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
         </View>
@@ -192,7 +196,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="account"
                   size={24}
-                  color={Colors.primary}
+                  color={colors.primary}
                 />
               </View>
               <View>
@@ -210,7 +214,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="eye"
                 size={16}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>0 visualizações</Text>
             </View>
@@ -218,7 +222,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="heart"
                 size={16}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>0 curtidas</Text>
             </View>
@@ -259,7 +263,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name={isLiked ? "heart" : "heart-outline"}
                 size={20}
-                color={isLiked ? Colors.error : Colors.textSecondary}
+                color={isLiked ? colors.error : colors.textSecondary}
               />
               <Text
                 style={[
@@ -279,7 +283,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="share-outline"
                 size={20}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.actionButtonText}>
                 Compartilhar
@@ -293,7 +297,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="bookmark-outline"
                 size={20}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.actionButtonText}>Salvar</Text>
             </TouchableOpacity>
@@ -317,7 +321,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                   <MaterialCommunityIcons
                     name="newspaper"
                     size={24}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </View>
                 <View style={styles.relatedNewsInfo}>
@@ -334,7 +338,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={20}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
             ))}
@@ -345,10 +349,11 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     paddingHorizontal: 20,
@@ -367,8 +372,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
   },
   backButton: {
     width: 52,
@@ -401,7 +406,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   imagePlaceholder: {
     flex: 1,
@@ -422,12 +427,12 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 16,
     lineHeight: 28,
   },
@@ -443,18 +448,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
   authorName: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   publishDate: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   statsBar: {
@@ -469,16 +474,16 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: 16,
   },
   articleContent: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   actionButtons: {
@@ -493,7 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   actionButtonActive: {
     backgroundColor: "rgba(239, 68, 68, 0.1)",
@@ -501,15 +506,15 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   actionButtonTextActive: {
-    color: Colors.error,
+    color: c.error,
   },
   relatedTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   relatedNewsItem: {
@@ -518,13 +523,13 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   relatedNewsImage: {
     width: 50,
     height: 50,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -534,11 +539,12 @@ const styles = StyleSheet.create({
   relatedNewsTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   relatedNewsDate: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
 });
+}

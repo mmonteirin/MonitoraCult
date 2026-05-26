@@ -17,7 +17,8 @@ import Animated, {
   useAnimatedScrollHandler,
 } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { getPublicProfile } from "../services/profileService";
 
 const TAB_BAR_CLEARANCE = 130;
@@ -40,6 +41,8 @@ const formatarHora = (timestamp) => {
 
 // ✅ Item de conversa
 const ConversaItem = memo(({ conversa, onPress, userId, onDelete }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const [showOptions, setShowOptions] = useState(false);
 
   // Identificar outro usuário
@@ -146,7 +149,7 @@ const ConversaItem = memo(({ conversa, onPress, userId, onDelete }) => {
           <MaterialCommunityIcons
             name="dots-vertical"
             size={20}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
         </TouchableOpacity>
       </TouchableOpacity>
@@ -184,6 +187,8 @@ const ListaConversas = memo(
     onNovaConversa,
     onDeleteConversa,
   }) => {
+    const { colors } = useTheme();
+    const styles = useThemedStyles(createThemedScreenStyles);
     const bottomPad = embedded ? TAB_BAR_CLEARANCE_EMBEDDED : TAB_BAR_CLEARANCE;
 
     const scrollHandler = useAnimatedScrollHandler({
@@ -196,7 +201,7 @@ const ListaConversas = memo(
     if (loading) {
       return (
         <View style={[styles.loader, embedded && styles.flexFill]}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       );
     }
@@ -207,7 +212,7 @@ const ListaConversas = memo(
           <MaterialCommunityIcons
             name="message-outline"
             size={48}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.vazioText}>Nenhuma conversa ainda</Text>
           <TouchableOpacity
@@ -249,7 +254,8 @@ const ListaConversas = memo(
   }
 );
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   flexFill: {
     flex: 1,
   },
@@ -271,14 +277,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   conversaNaoLida: {
-    backgroundColor: Colors.primary + "12",
-    borderColor: Colors.primary + "55",
+    backgroundColor: c.primary + "12",
+    borderColor: c.primary + "55",
   },
 
   avatar: {
@@ -301,37 +307,37 @@ const styles = StyleSheet.create({
 
   nome: {
     fontSize: 15,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "700",
   },
 
   nomeNaoLido: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "700",
   },
 
   hora: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   horaNaoLida: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
 
   ultimaMensagem: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   ultimaMensagemNaoLida: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontWeight: "600",
   },
 
   badgeNaoLidas: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -355,12 +361,12 @@ const styles = StyleSheet.create({
   },
 
   optionsMenu: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     marginTop: 4,
     marginHorizontal: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
 
@@ -400,13 +406,13 @@ const styles = StyleSheet.create({
 
   vazioText: {
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 12,
   },
 
   btnNovaConversa: {
     marginTop: 20,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
@@ -416,6 +422,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
   },
-});
+  });
+}
 
 export default ListaConversas;

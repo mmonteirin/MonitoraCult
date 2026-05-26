@@ -25,7 +25,8 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebaseConfig";
 import { configurarLembreteEvento } from "../services/subscribedEventsService";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const DEFAULT_IMAGE =
   "https://placehold.co/600x400?text=Evento";
@@ -77,6 +78,9 @@ const buildMonthDays = (monthDate) => {
 };
 
 export default function TelaAgendaEventos({ navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [eventos, setEventos] = useState([]);
@@ -152,7 +156,7 @@ export default function TelaAgendaEventos({ navigation }) {
   };
 
   const renderEvento = ({ item }) => (
-    <BlurView intensity={24} tint="dark" style={styles.eventCard}>
+    <BlurView intensity={24} tint={blurTint} style={styles.eventCard}>
       <Image
         source={{ uri: item.imagemEvento || DEFAULT_IMAGE }}
         style={styles.eventImage}
@@ -192,7 +196,7 @@ export default function TelaAgendaEventos({ navigation }) {
                 <MaterialCommunityIcons
                   name={active ? "bell-ring" : "bell-outline"}
                   size={13}
-                  color={active ? "#FFF" : Colors.textSecondary}
+                  color={active ? "#FFF" : colors.textSecondary}
                 />
 
                 <Text
@@ -214,7 +218,7 @@ export default function TelaAgendaEventos({ navigation }) {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -222,7 +226,7 @@ export default function TelaAgendaEventos({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={["#0F172A", "#111827", "#1E1B4B"]}
+        colors={[colors.backgroundSecondary, colors.surfaceMuted, colors.backgroundDeep]}
         style={[styles.header, { paddingTop: insets.top + 10 }]}
       >
         <TouchableOpacity
@@ -323,7 +327,7 @@ export default function TelaAgendaEventos({ navigation }) {
               <MaterialCommunityIcons
                 name="calendar-search"
                 size={48}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
 
               <Text style={styles.emptyText}>
@@ -337,14 +341,15 @@ export default function TelaAgendaEventos({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
   },
   loading: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -360,18 +365,18 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.glassStrong,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 14,
   },
   headerTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "900",
   },
   headerSubtitle: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   content: {
@@ -388,12 +393,12 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
   },
   monthTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 18,
     fontWeight: "900",
     textTransform: "capitalize",
@@ -405,15 +410,15 @@ const styles = StyleSheet.create({
   weekText: {
     flex: 1,
     textAlign: "center",
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "800",
   },
   calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
     borderRadius: 20,
     padding: 8,
   },
@@ -425,27 +430,27 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   dayCellActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   dayText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "800",
   },
   dayTextActive: {
-    color: "#FFF",
+    color: c.textPrimary,
   },
   dayDot: {
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: Colors.warning,
+    backgroundColor: c.warning,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
     paddingHorizontal: 4,
   },
   dayDotText: {
-    color: "#111827",
+    color: c.surfaceMuted,
     fontSize: 10,
     fontWeight: "900",
   },
@@ -456,24 +461,24 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 18,
     padding: 16,
     alignItems: "center",
   },
   summaryValue: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "900",
   },
   summaryLabel: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
   },
   sectionTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: "900",
     marginTop: 24,
@@ -483,9 +488,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: 20,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.07)",
+    borderColor: c.glassBorder,
     marginBottom: 12,
     padding: 10,
   },
@@ -493,24 +498,24 @@ const styles = StyleSheet.create({
     width: 88,
     height: 112,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   eventContent: {
     flex: 1,
     marginLeft: 12,
   },
   eventTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "900",
   },
   eventMeta: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 6,
     fontSize: 12,
   },
   eventTime: {
-    color: Colors.primaryLight,
+    color: c.primaryLight,
     marginTop: 8,
     fontSize: 12,
     fontWeight: "800",
@@ -528,30 +533,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 7,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.glassStrong,
   },
   reminderChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   reminderText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 11,
     fontWeight: "800",
   },
   reminderTextActive: {
-    color: "#FFF",
+    color: c.textPrimary,
   },
   emptyBox: {
     alignItems: "center",
     paddingVertical: 42,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderRadius: 20,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 10,
   },
 });
+}

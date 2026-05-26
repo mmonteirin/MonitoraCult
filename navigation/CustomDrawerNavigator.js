@@ -16,11 +16,19 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
-import { Colors, Gradients, Radius, Typography } from "../styles/Colors";
+import { useColors, useGradients, useTheme } from "../context/ThemeContext";
+import { Radius, Status, Typography } from "../styles/Colors";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function CustomDrawerContent(props) {
   const insets = useSafeAreaInsets();
   const { user, nome, foto, role, logout } = useAuth();
+  const colors = useColors();
+  const Gradients = useGradients();
+  const { isDark } = useTheme();
+  const styles = useThemedStyles(createDrawerStyles);
+  const blurTint = isDark ? "dark" : "light";
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-20)).current;
@@ -89,20 +97,27 @@ export default function CustomDrawerContent(props) {
         <TouchableOpacity style={styles.supportButton} activeOpacity={0.85} onPress={() => props.navigation.navigate("PainelCidade")}>
           <LinearGradient colors={["rgba(124,58,237,0.15)", "rgba(91,76,240,0.08)"]} style={styles.cityButtonGradient}>
             <View style={styles.cityIconWrapper}>
-              <MaterialCommunityIcons name="city-variant-outline" size={20} color={Colors.primary} />
+              <MaterialCommunityIcons name="city-variant-outline" size={20} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.supportText}>Painel da Cidade</Text>
               <Text style={styles.citySubText}>Eventos e ocorrências</Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={22} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textMuted} />
           </LinearGradient>
         </TouchableOpacity>
 
-        <TouchableOpacity activeOpacity={0.8} style={styles.logoutButton} onPress={() => setShowLogoutModal(true)}>
-          <MaterialCommunityIcons name="logout" size={20} color={Colors.error} />
-          <Text style={styles.logoutText}>Sair da Conta</Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtonsRow}>
+          <View style={styles.themeButton}>
+            <ThemeToggle size={20} />
+            <Text style={styles.themeText}>Tema</Text>
+          </View>
+
+          <TouchableOpacity activeOpacity={0.8} style={styles.logoutButton} onPress={() => setShowLogoutModal(true)}>
+            <MaterialCommunityIcons name="logout" size={20} color={colors.error} />
+            <Text style={styles.logoutText}>Sair</Text>
+          </TouchableOpacity>
+        </View>
 
         <Text style={styles.version}>MonitoraCult • v0.6</Text>
       </View>
@@ -110,8 +125,8 @@ export default function CustomDrawerContent(props) {
       {/* MODAL PADRONIZADO DE LOGOUT */}
       <Modal visible={showLogoutModal} transparent animationType="fade" statusBarTranslucent onRequestClose={() => setShowLogoutModal(false)}>
         <View style={styles.modalOverlay}>
-          <BlurView intensity={55} tint="dark" style={styles.modalCard}>
-            <LinearGradient colors={["#EF4444", "#DC2626"]} style={styles.modalIcon}>
+          <BlurView intensity={55} tint={blurTint} style={styles.modalCard}>
+            <LinearGradient colors={[Status.error, Status.errorDark]} style={styles.modalIcon}>
               <MaterialCommunityIcons name="logout-variant" size={34} color="#FFF" />
             </LinearGradient>
 
@@ -124,7 +139,7 @@ export default function CustomDrawerContent(props) {
               </TouchableOpacity>
 
               <TouchableOpacity activeOpacity={0.9} disabled={loadingLogout} onPress={executeLogout} style={{ flex: 1 }}>
-                <LinearGradient colors={["#EF4444", "#B91C1C"]} style={styles.confirmButton}>
+                <LinearGradient colors={[Status.error, Status.errorDark]} style={styles.confirmButton}>
                   {loadingLogout ? <ActivityIndicator color="#FFF" /> : (
                     <>
                       <MaterialCommunityIcons name="logout" size={18} color="#FFF" />
@@ -141,36 +156,172 @@ export default function CustomDrawerContent(props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: 14, paddingBottom: 14, borderBottomLeftRadius: 22, borderBottomRightRadius: 22, overflow: "hidden" },
-  glow: { position: "absolute", width: 160, height: 160, borderRadius: Radius?.round || 999, backgroundColor: "rgba(255,255,255,0.08)", top: -62, right: -46 },
-  profileRow: { flexDirection: "row", alignItems: "center" },
-  profileCopy: { flex: 1, paddingHorizontal: 12 },
-  avatarWrapper: { position: "relative" },
-  avatar: { width: 58, height: 58, borderRadius: 29, borderWidth: 2, borderColor: "rgba(255,255,255,0.18)" },
-  onlineBadge: { position: "absolute", right: 1, bottom: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: Colors.success, borderWidth: 2, borderColor: "#111827" },
-  nome: { color: Colors.textPrimary, fontFamily: Typography?.bold || "System", fontSize: 16, fontWeight: "800" },
-  email: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
-  roleBadge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 30, overflow: "hidden", marginTop: 7 },
-  roleText: { color: Colors.textPrimary, fontFamily: Typography?.bold || "System", fontSize: 12, fontWeight: "600" },
-  footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 14 },
-  supportButton: { borderRadius: Radius?.md || 16, overflow: "hidden", marginBottom: 10 },
-  cityButtonGradient: { flexDirection: "row", alignItems: "center", paddingVertical: 11, paddingHorizontal: 12, borderRadius: Radius?.md || 16 },
-  cityIconWrapper: { width: 36, height: 36, borderRadius: Radius?.sm || 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(124,58,237,0.14)", marginRight: 10 },
-  supportText: { color: Colors.textPrimary, fontWeight: "700", fontSize: 13 },
-  citySubText: { color: Colors.textMuted, marginTop: 1, fontSize: 11 },
-  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(239,68,68,0.08)", paddingVertical: 12, borderRadius: Radius?.sm || 12 },
-  logoutText: { color: Colors.error, fontWeight: "700", marginLeft: 9, fontSize: 14 },
-  version: { color: Colors.textMuted, textAlign: "center", marginTop: 10, fontSize: 11 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 },
-  modalCard: { width: "100%", borderRadius: 30, overflow: "hidden", padding: 26, backgroundColor: "rgba(15,15,25,0.92)", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-  modalIcon: { width: 74, height: 74, borderRadius: 24, justifyContent: "center", alignItems: "center", alignSelf: "center", marginBottom: 20 },
-  modalTitle: { color: "#FFF", fontSize: 22, fontWeight: "bold", textAlign: "center" },
-  modalText: { color: "rgba(255,255,255,0.7)", fontSize: 15, textAlign: "center", lineHeight: 23, marginTop: 10 },
-  modalButtons: { flexDirection: "row", marginTop: 28, gap: 14 },
-  cancelButton: { flex: 1, height: 56, borderRadius: 18, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.08)", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
-  cancelText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
-  confirmButton: { height: 56, borderRadius: 18, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 },
-  confirmText: { color: "#FFF", fontWeight: "bold", fontSize: 15 },
-});
+function createDrawerStyles(c) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
+    header: {
+      paddingHorizontal: 14,
+      paddingBottom: 14,
+      borderBottomLeftRadius: 22,
+      borderBottomRightRadius: 22,
+      overflow: "hidden",
+    },
+    glow: {
+      position: "absolute",
+      width: 160,
+      height: 160,
+      borderRadius: Radius.round,
+      backgroundColor: c.glassStrong,
+      top: -62,
+      right: -46,
+    },
+    profileRow: { flexDirection: "row", alignItems: "center" },
+    profileCopy: { flex: 1, paddingHorizontal: 12 },
+    avatarWrapper: { position: "relative" },
+    avatar: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      borderWidth: 2,
+      borderColor: c.glassBorder,
+    },
+    onlineBadge: {
+      position: "absolute",
+      right: 1,
+      bottom: 1,
+      width: 13,
+      height: 13,
+      borderRadius: 7,
+      backgroundColor: c.success,
+      borderWidth: 2,
+      borderColor: c.surfaceMuted,
+    },
+    nome: {
+      color: c.onPrimary,
+      fontFamily: Typography.bold,
+      fontSize: 16,
+      fontWeight: "800",
+    },
+    email: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
+    roleBadge: {
+      alignSelf: "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      borderRadius: 30,
+      overflow: "hidden",
+      marginTop: 7,
+    },
+    roleText: {
+      color: c.onPrimary,
+      fontFamily: Typography.bold,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 14 },
+    supportButton: { borderRadius: Radius.md, overflow: "hidden", marginBottom: 10 },
+    cityButtonGradient: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 11,
+      paddingHorizontal: 12,
+      borderRadius: Radius.md,
+    },
+    cityIconWrapper: {
+      width: 36,
+      height: 36,
+      borderRadius: Radius.sm,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.primarySoft,
+      marginRight: 10,
+    },
+    supportText: { color: c.textPrimary, fontWeight: "700", fontSize: 13 },
+    citySubText: { color: c.textMuted, marginTop: 1, fontSize: 11 },
+    actionButtonsRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+    themeButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.primarySoft,
+      paddingVertical: 12,
+      borderRadius: Radius.sm,
+      gap: 6,
+    },
+    themeText: { color: c.textPrimary, fontWeight: "700", fontSize: 14 },
+    logoutButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "rgba(239,68,68,0.08)",
+      paddingVertical: 12,
+      borderRadius: Radius.sm,
+      gap: 6,
+    },
+    logoutText: { color: c.error, fontWeight: "700", fontSize: 14 },
+    version: { color: c.textMuted, textAlign: "center", marginTop: 10, fontSize: 11 },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: c.overlayStronger,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      width: "100%",
+      borderRadius: 30,
+      overflow: "hidden",
+      padding: 26,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    modalIcon: {
+      width: 74,
+      height: 74,
+      borderRadius: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      alignSelf: "center",
+      marginBottom: 20,
+    },
+    modalTitle: {
+      color: c.textPrimary,
+      fontSize: 22,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    modalText: {
+      color: c.textSecondary,
+      fontSize: 15,
+      textAlign: "center",
+      lineHeight: 23,
+      marginTop: 10,
+    },
+    modalButtons: { flexDirection: "row", marginTop: 28, gap: 14 },
+    cancelButton: {
+      flex: 1,
+      height: 56,
+      borderRadius: 18,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: c.glass,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    cancelText: { color: c.textPrimary, fontWeight: "700", fontSize: 15 },
+    confirmButton: {
+      height: 56,
+      borderRadius: 18,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 8,
+    },
+    confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 15 },
+  });
+}

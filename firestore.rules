@@ -89,7 +89,7 @@ service cloud.firestore {
       match /avaliacoes/{avaliacaoId} {
         allow read: if isOwnerOrAdmin(userId);
         allow create: if isOwner(userId)
-          && hasOnly(["avaliacaoId", "userId", "nome", "nota", "comentario", "foto", "eventoId", "tituloEvento"]);
+          && hasOnly(["avaliacaoId", "userId", "nome", "nota", "comentario", "foto", "eventoId", "tituloEvento", "createdAt"]);
         allow update, delete: if isOwnerOrAdmin(userId);
       }
 
@@ -185,7 +185,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && hasOnly(["userId", "nome", "nota", "comentario", "foto"]);
+          && hasOnly(["userId", "nome", "nota", "comentario", "foto", "createdAt"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -196,7 +196,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && hasOnly(["userId", "nome", "local", "descricao", "tipo"]);
+          && hasOnly(["userId", "nome", "local", "descricao", "tipo", "createdAt"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -718,6 +718,25 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+
+    /* =====================================================
+       📤 COMPARTILHAMENTOS
+    ===================================================== */
+
+    match /compartilhamentos/{compartilhamentoId} {
+
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasOnly([
+          "userId", "eventoId", "plataforma", "timestamp", "eventoData"
+        ]);
+
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
 
     /* =====================================================
        ✉️ EMAILS (Firebase Extensions)

@@ -28,7 +28,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useNotifications } from "../context/NotificationContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { darkThemeColors } from "../styles/Colors";
 import { NOTIFICATION_TYPES } from "../services/notificationService";
 
 // ─── Utilitários ──────────────────────────────────────────────────────────────
@@ -69,13 +71,17 @@ function getIconConfig(tipo) {
     case NOTIFICATION_TYPES.COMUNIDADE:
       return { icon: "account-group-outline", color: "#6C5CE7", bg: "rgba(108,92,231,0.15)" };
     default:
-      return { icon: "bell-outline", color: Colors.textMuted, bg: Colors.surface };
+      return {
+        icon: "bell-outline",
+        color: darkThemeColors.textMuted,
+        bg: darkThemeColors.surface,
+      };
   }
 }
 
 // ─── Componente de item ───────────────────────────────────────────────────────
 
-const NotifItem = React.memo(({ item, index, onPress, onMarcarLida }) => {
+const NotifItem = React.memo(({ item, index, onPress, onMarcarLida, s, colors }) => {
   const { icon, color, bg } = getIconConfig(item.tipo);
   const isNaoLida = !item.lida;
 
@@ -116,7 +122,7 @@ const NotifItem = React.memo(({ item, index, onPress, onMarcarLida }) => {
             onPress={(e) => { e.stopPropagation?.(); onMarcarLida(item.id); }}
             hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
           >
-            <MaterialCommunityIcons name="check-circle-outline" size={18} color={Colors.primary} />
+            <MaterialCommunityIcons name="check-circle-outline" size={18} color={colors.primary} />
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -126,7 +132,7 @@ const NotifItem = React.memo(({ item, index, onPress, onMarcarLida }) => {
 
 // ─── Separador de data ────────────────────────────────────────────────────────
 
-function DateSeparator({ label }) {
+function DateSeparator({ label, s }) {
   return (
     <View style={s.separator}>
       <View style={s.sepLine} />
@@ -168,6 +174,9 @@ function agruparPorData(notifs) {
 // ─── TELA PRINCIPAL ───────────────────────────────────────────────────────────
 
 export default function TelaNotificacoes({ navigation }) {
+  const { colors, isDark } = useTheme();
+  const s = useThemedStyles(createFeedStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const {
     notificacoes, naoLidas, carregando,
@@ -220,7 +229,7 @@ export default function TelaNotificacoes({ navigation }) {
       {/* HEADER */}
       <Animated.View entering={FadeIn.springify()} style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="chevron-left" size={28} color={Colors.textPrimary} />
+          <MaterialCommunityIcons name="chevron-left" size={28} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <View style={s.headerCenter}>
@@ -235,12 +244,12 @@ export default function TelaNotificacoes({ navigation }) {
         <View style={s.headerActions}>
           {naoLidas > 0 && (
             <TouchableOpacity style={s.headerBtn} onPress={marcarTodasLidas}>
-              <MaterialCommunityIcons name="check-all" size={20} color={Colors.primary} />
+              <MaterialCommunityIcons name="check-all" size={20} color={colors.primary} />
             </TouchableOpacity>
           )}
           {notificacoes.length > 0 && (
             <TouchableOpacity style={s.headerBtn} onPress={confirmLimpar}>
-              <MaterialCommunityIcons name="trash-can-outline" size={20} color={Colors.textMuted} />
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -254,7 +263,7 @@ export default function TelaNotificacoes({ navigation }) {
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={s.summaryGrad}
           >
-            <MaterialCommunityIcons name="bell-ring-outline" size={16} color={Colors.primary} />
+            <MaterialCommunityIcons name="bell-ring-outline" size={16} color={colors.primary} />
             <Text style={s.summaryText}>
               Você tem <Text style={s.summaryBold}>{naoLidas} notificaç{naoLidas === 1 ? "ão" : "ões"}</Text> não {naoLidas === 1 ? "lida" : "lidas"}
             </Text>
@@ -268,7 +277,7 @@ export default function TelaNotificacoes({ navigation }) {
       {/* LISTA */}
       {carregando && notificacoes.length === 0 ? (
         <View style={s.loading}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
@@ -280,12 +289,12 @@ export default function TelaNotificacoes({ navigation }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
+              tintColor={colors.primary}
             />
           }
           renderItem={({ item, index }) => {
             if (item.type === "separator") {
-              return <DateSeparator label={item.label} />;
+              return <DateSeparator label={item.label} s={s} />;
             }
             return (
               <NotifItem
@@ -293,13 +302,15 @@ export default function TelaNotificacoes({ navigation }) {
                 index={index}
                 onPress={handlePress}
                 onMarcarLida={marcarLida}
+                s={s}
+                colors={colors}
               />
             );
           }}
           ListEmptyComponent={
             <Animated.View entering={FadeIn.delay(200).springify()} style={s.empty}>
               <View style={s.emptyIcon}>
-                <MaterialCommunityIcons name="bell-sleep-outline" size={52} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="bell-sleep-outline" size={52} color={colors.textMuted} />
               </View>
               <Text style={s.emptyTitle}>Tudo em dia!</Text>
               <Text style={s.emptySub}>Nenhuma notificação por aqui ainda.</Text>
@@ -313,30 +324,31 @@ export default function TelaNotificacoes({ navigation }) {
 
 // ─── Estilos ─────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createFeedStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
 
   // HEADER
   header: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
     paddingHorizontal: 12, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
+    borderBottomWidth: 1, borderBottomColor: c.border,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surface,
+    width: 40, height: 40, borderRadius: 12, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
   },
   headerCenter: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: "800", color: c.textPrimary },
   badge: {
-    backgroundColor: Colors.primary, borderRadius: 10,
+    backgroundColor: c.primary, borderRadius: 10,
     minWidth: 20, height: 20, justifyContent: "center", alignItems: "center",
     paddingHorizontal: 5,
   },
   badgeText: { color: "#fff", fontSize: 11, fontWeight: "800" },
   headerActions: { flexDirection: "row", gap: 4 },
   headerBtn: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.surface,
+    width: 36, height: 36, borderRadius: 10, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
   },
 
@@ -347,16 +359,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     borderWidth: 1, borderColor: "rgba(108,92,231,0.2)", borderRadius: 14,
   },
-  summaryText: { flex: 1, fontSize: 13, color: Colors.textSecondary },
-  summaryBold: { fontWeight: "700", color: Colors.textPrimary },
-  summaryAction: { fontSize: 12, fontWeight: "700", color: Colors.primary },
+  summaryText: { flex: 1, fontSize: 13, color: c.textSecondary },
+  summaryBold: { fontWeight: "700", color: c.textPrimary },
+  summaryAction: { fontSize: 12, fontWeight: "700", color: c.primary },
 
   // ITEMS
   item: {
     flexDirection: "row", alignItems: "center", gap: 12,
     marginHorizontal: 14, marginVertical: 4,
-    backgroundColor: Colors.surface, borderRadius: 16, padding: 14,
-    borderWidth: 1, borderColor: Colors.border,
+    backgroundColor: c.surface, borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: c.border,
     position: "relative",
   },
   itemNaoLido: {
@@ -366,7 +378,7 @@ const s = StyleSheet.create({
   unreadDot: {
     position: "absolute", top: 14, left: 14,
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
   },
   iconBox: {
     width: 44, height: 44, borderRadius: 14,
@@ -374,25 +386,26 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   content: { flex: 1 },
-  titulo: { fontSize: 13, color: Colors.textSecondary, fontWeight: "600", marginBottom: 3 },
-  tituloNaoLido: { color: Colors.textPrimary, fontWeight: "700" },
-  corpo: { fontSize: 13, color: Colors.textMuted, lineHeight: 18 },
-  tempo: { fontSize: 11, color: Colors.textMuted, marginTop: 5 },
+  titulo: { fontSize: 13, color: c.textSecondary, fontWeight: "600", marginBottom: 3 },
+  tituloNaoLido: { color: c.textPrimary, fontWeight: "700" },
+  corpo: { fontSize: 13, color: c.textMuted, lineHeight: 18 },
+  tempo: { fontSize: 11, color: c.textMuted, marginTop: 5 },
   markBtn: { padding: 4 },
 
   // SEPARATOR
   separator: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, marginVertical: 10, gap: 10 },
-  sepLine: { flex: 1, height: 1, backgroundColor: Colors.border },
-  sepLabel: { fontSize: 11, color: Colors.textMuted, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.6 },
+  sepLine: { flex: 1, height: 1, backgroundColor: c.border },
+  sepLabel: { fontSize: 11, color: c.textMuted, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.6 },
 
   // EMPTY
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
   empty: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 40 },
   emptyIcon: {
-    width: 90, height: 90, borderRadius: 28, backgroundColor: Colors.surface,
+    width: 90, height: 90, borderRadius: 28, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
-    borderWidth: 1, borderColor: Colors.border, marginBottom: 20,
+    borderWidth: 1, borderColor: c.border, marginBottom: 20,
   },
-  emptyTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary, marginBottom: 8 },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: "center", lineHeight: 20 },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: c.textPrimary, marginBottom: 8 },
+  emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", lineHeight: 20 },
 });
+}

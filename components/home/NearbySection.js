@@ -8,7 +8,6 @@ import {
   View,
 } from "react-native";
 
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -16,13 +15,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import EventCard from "./EventCard";
 import SectionHeader from "./SectionHeader";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function NearbySection({
   eventos = [],
   onPress,
   onViewAll,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   if (!eventos?.length) {
     return null;
   }
@@ -41,23 +43,13 @@ export default function NearbySection({
       />
 
       <View style={styles.insightsRow}>
-        <BlurView intensity={24} tint="dark" style={styles.insightCard}>
+        <View style={[styles.insightCard, styles.insightCardPrimary]}>
           <View style={styles.iconWrapper}>
-            <LinearGradient
-              colors={[
-                `${Colors.primary}40`,
-                `${Colors.primaryLight}12`,
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconGradient}
-            />
-
-            <View style={styles.insightIcon}>
+            <View style={[styles.insightIcon, styles.insightIconPrimary]}>
               <MaterialCommunityIcons
                 name="map-marker-distance"
                 size={18}
-                color={Colors.primaryLight}
+                color={colors.primary}
               />
             </View>
           </View>
@@ -71,30 +63,15 @@ export default function NearbySection({
               eventos perto agora
             </Text>
           </View>
-        </BlurView>
+        </View>
 
-        <BlurView intensity={24} tint="dark" style={styles.insightCard}>
+        <View style={[styles.insightCard, styles.insightCardLive]}>
           <View style={styles.iconWrapper}>
-            <LinearGradient
-              colors={[
-                "rgba(34,197,94,0.35)",
-                "rgba(34,197,94,0.08)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconGradient}
-            />
-
-            <View
-              style={[
-                styles.insightIcon,
-                styles.liveIcon,
-              ]}
-            >
+            <View style={[styles.insightIcon, styles.liveIcon]}>
               <MaterialCommunityIcons
                 name="access-point"
                 size={18}
-                color={Colors.success}
+                color={colors.success}
               />
             </View>
           </View>
@@ -108,7 +85,7 @@ export default function NearbySection({
               radar cultural ativo
             </Text>
           </View>
-        </BlurView>
+        </View>
       </View>
 
       <FlatList
@@ -138,8 +115,8 @@ export default function NearbySection({
       >
         <LinearGradient
           colors={[
-            Colors.primary,
-            Colors.primaryDark,
+            colors.primary,
+            colors.primaryDark,
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -152,7 +129,7 @@ export default function NearbySection({
           <MaterialCommunityIcons
             name="arrow-right"
             size={18}
-            color={Colors.textPrimary}
+            color={colors.onPrimary}
           />
         </LinearGradient>
       </TouchableOpacity>
@@ -160,7 +137,8 @@ export default function NearbySection({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginTop: 8,
     marginBottom: 10,
@@ -176,47 +154,46 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-
     padding: 16,
     marginRight: 10,
-
     borderRadius: 22,
-
-    backgroundColor: Colors.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
-
     overflow: "hidden",
+  },
+
+  insightCardPrimary: {
+    backgroundColor: c.primarySoft,
+    borderColor: c.primary,
+  },
+
+  insightCardLive: {
+    backgroundColor: "rgba(34,197,94,0.1)",
+    borderColor: "rgba(34,197,94,0.35)",
+    marginRight: 0,
   },
 
   iconWrapper: {
     position: "relative",
   },
 
-  iconGradient: {
-    position: "absolute",
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    top: -4,
-    left: -4,
-  },
-
   insightIcon: {
     width: 42,
     height: 42,
     borderRadius: 14,
-
     alignItems: "center",
     justifyContent: "center",
-
-    backgroundColor: Colors.overlayLight,
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.border,
+  },
+
+  insightIconPrimary: {
+    borderColor: c.primary,
   },
 
   liveIcon: {
-    backgroundColor: "rgba(34,197,94,0.12)",
+    backgroundColor: "rgba(34,197,94,0.14)",
+    borderColor: "rgba(34,197,94,0.35)",
   },
 
   insightContent: {
@@ -225,14 +202,14 @@ const styles = StyleSheet.create({
   },
 
   insightValue: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "800",
     letterSpacing: -0.4,
   },
 
   insightLabel: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 11,
     marginTop: 4,
     lineHeight: 15,
@@ -249,7 +226,7 @@ const styles = StyleSheet.create({
 
     borderRadius: 22,
 
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOpacity: 0.35,
     shadowRadius: 18,
     shadowOffset: {
@@ -272,9 +249,10 @@ const styles = StyleSheet.create({
   },
 
   footerButtonText: {
-    color: Colors.textPrimary,
+    color: c.onPrimary,
     fontSize: 15,
     fontWeight: "800",
     marginRight: 8,
   },
 });
+}

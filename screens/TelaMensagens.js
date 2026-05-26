@@ -11,7 +11,8 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../context/AuthContext";
 import { useConversation } from "../hooks/useDirectMessages";
 import { obterOuCriarConversa } from "../services/dmService";
@@ -19,6 +20,9 @@ import { getPublicProfile } from "../services/profileService";
 import ChatViewer from "../components/ChatViewer";
 
 const TelaMensagens = ({ navigation, route }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const { user, nome, foto } = useAuth();
   const userId = user?.uid;
   const insets = useSafeAreaInsets();
@@ -155,7 +159,7 @@ const TelaMensagens = ({ navigation, route }) => {
   if (inicializando) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Iniciando conversa...</Text>
       </View>
     );
@@ -164,7 +168,7 @@ const TelaMensagens = ({ navigation, route }) => {
   if (!conversaId) {
     return (
       <View style={[styles.container, styles.center]}>
-        <MaterialCommunityIcons name="message-outline" size={48} color={Colors.textMuted} />
+        <MaterialCommunityIcons name="message-outline" size={48} color={colors.textMuted} />
         <Text style={styles.emptyText}>Erro ao abrir conversa</Text>
       </View>
     );
@@ -189,7 +193,7 @@ const TelaMensagens = ({ navigation, route }) => {
       {/* HEADER MANUAL — compatível com headerShown: false do Stack */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={24} color={Colors.textPrimary} />
+          <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -218,7 +222,7 @@ const TelaMensagens = ({ navigation, route }) => {
             <MaterialCommunityIcons
               name="magnify"
               size={22}
-              color={buscaAberta ? Colors.primary : Colors.textMuted}
+              color={buscaAberta ? colors.primary : colors.textMuted}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -227,7 +231,7 @@ const TelaMensagens = ({ navigation, route }) => {
               Alert.alert("Chamada de vídeo", "Recurso em breve!")
             }
           >
-            <MaterialCommunityIcons name="video" size={22} color={Colors.primary} />
+            <MaterialCommunityIcons name="video" size={22} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerBtn}
@@ -235,7 +239,7 @@ const TelaMensagens = ({ navigation, route }) => {
               Alert.alert("Chamada de áudio", "Recurso em breve!")
             }
           >
-            <MaterialCommunityIcons name="phone" size={22} color={Colors.primary} />
+            <MaterialCommunityIcons name="phone" size={22} color={colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -246,12 +250,12 @@ const TelaMensagens = ({ navigation, route }) => {
           <MaterialCommunityIcons
             name="magnify"
             size={20}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <TextInput
             style={styles.inputBusca}
             placeholder="Buscar mensagens..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={termoBusca}
             onChangeText={setTermoBusca}
             autoFocus
@@ -261,7 +265,7 @@ const TelaMensagens = ({ navigation, route }) => {
               <MaterialCommunityIcons
                 name="close-circle"
                 size={18}
-                color={Colors.textMuted}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
           )}
@@ -284,10 +288,11 @@ const TelaMensagens = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   center: {
     justifyContent: "center",
@@ -296,13 +301,13 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
   },
   emptyText: {
     marginTop: 12,
     fontSize: 15,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
 
   // HEADER
@@ -311,9 +316,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 8,
     paddingVertical: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     gap: 8,
   },
   backBtn: {
@@ -333,17 +338,17 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
   },
   headerNome: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     maxWidth: 160,
   },
   headerStatus: {
     fontSize: 11,
-    color: Colors.success,
+    color: c.success,
     marginTop: 1,
   },
   headerActions: {
@@ -358,19 +363,20 @@ const styles = StyleSheet.create({
   barraBusca: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     gap: 8,
   },
   inputBusca: {
     flex: 1,
     fontSize: 14,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     paddingVertical: 4,
   },
-});
+  });
+}
 
 export default TelaMensagens;

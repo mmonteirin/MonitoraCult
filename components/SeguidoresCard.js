@@ -17,10 +17,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFollow } from "../hooks/useFollow";
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 
 // ✅ Component
 const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { user } = useAuth();
   const targetUserId =
     creator?.targetUserId ||
@@ -70,7 +74,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
       onPress={() => onNavigateProfile?.()}
     >
       <LinearGradient
-        colors={[Colors.surface, Colors.surface + "dd"]}
+        colors={[colors.surface, colors.surface + "dd"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.content}
@@ -128,7 +132,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
             <MaterialCommunityIcons
               name="check-decagram"
               size={18}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
         )}
@@ -176,7 +180,7 @@ const SeguindoList = memo(({ usuarios, title, onNavigateProfile }) => {
         <MaterialCommunityIcons
           name="account-multiple-outline"
           size={40}
-          color={Colors.textMuted}
+          color={colors.textMuted}
         />
         <Text style={styles.emptyText}>{title} vazio</Text>
       </View>
@@ -201,7 +205,7 @@ const SeguindoList = memo(({ usuarios, title, onNavigateProfile }) => {
           <MaterialCommunityIcons
             name="chevron-right"
             size={18}
-            color={Colors.primary}
+            color={colors.primary}
           />
         </TouchableOpacity>
       )}
@@ -209,7 +213,8 @@ const SeguindoList = memo(({ usuarios, title, onNavigateProfile }) => {
   );
 });
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginBottom: 12,
   },
@@ -220,7 +225,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   avatar: {
@@ -229,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     marginRight: 12,
     borderWidth: 2,
-    borderColor: Colors.primary + "33",
+    borderColor: c.primary + "33",
   },
 
   info: {
@@ -239,18 +244,18 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   categoria: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
   bio: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 4,
     lineHeight: 16,
   },
@@ -269,19 +274,19 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   statLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
   divider: {
     width: 1,
     height: 24,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
 
   verificadoBadge: {
@@ -291,7 +296,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -301,7 +306,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
@@ -323,7 +328,7 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
 
@@ -335,13 +340,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 8,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
 
   viewMoreText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   emptyContainer: {
@@ -353,9 +358,10 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 8,
     fontSize: 14,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
-});
+  });
+}
 
 export { SeguidoresCard, SeguindoList };
 export default SeguidoresCard;

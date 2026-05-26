@@ -6,281 +6,289 @@ import {
   Shadows,
   Spacing,
   Typography,
+  getShadows,
 } from "./Colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const shadowFor = (shadow) =>
   Platform.OS === "web" ? shadow.web : shadow.default;
 
-const GlobalStyles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+export const createGlobalStyles = (colors) => {
+  const shadows = getShadows(colors);
 
-  screenContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: 120,
-  },
+  return StyleSheet.create({
+    screen: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  headerBand: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xl,
-    borderBottomLeftRadius: Radius.xxl,
-    borderBottomRightRadius: Radius.xxl,
-  },
+    screenContent: {
+      paddingHorizontal: Spacing.xl,
+      paddingBottom: 120,
+    },
 
-  glassPanel: {
-    backgroundColor: Colors.glass,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    borderRadius: Radius.xl,
-    overflow: "hidden",
-  },
+    headerBand: {
+      paddingHorizontal: Spacing.xl,
+      paddingBottom: Spacing.xl,
+      borderBottomLeftRadius: Radius.xxl,
+      borderBottomRightRadius: Radius.xxl,
+    },
 
-  card: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
-    ...shadowFor(Shadows.card),
-  },
+    glassPanel: {
+      backgroundColor: colors.glass,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      borderRadius: Radius.xl,
+      overflow: "hidden",
+    },
 
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+    card: {
+      backgroundColor: colors.card,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      ...shadowFor(shadows.card),
+    },
 
-  title: {
-    color: Colors.textPrimary,
-    fontFamily: Typography.bold,
-    fontSize: 24,
-  },
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
 
-  subtitle: {
-    color: Colors.textSecondary,
-    fontFamily: Typography.regular,
-    fontSize: 14,
-  },
+    title: {
+      color: colors.textPrimary,
+      fontFamily: Typography.bold,
+      fontSize: 24,
+    },
 
-  authContainer: {
-    flexGrow: 1,
-    backgroundColor: Colors.background,
-    padding: Spacing.xl,
-    justifyContent: "center",
-  },
+    subtitle: {
+      color: colors.textSecondary,
+      fontFamily: Typography.regular,
+      fontSize: 14,
+    },
 
-  authTitle: {
-    fontSize: 24,
-    fontFamily: Typography.bold,
-    color: Colors.textPrimary,
-    marginBottom: 25,
-    textAlign: "center",
-  },
+    authContainer: {
+      flexGrow: 1,
+      backgroundColor: colors.background,
+      padding: Spacing.xl,
+      justifyContent: "center",
+    },
 
-  authLabel: {
-    color: Colors.primary,
-    marginBottom: 6,
-    fontSize: 13,
-    fontFamily: Typography.medium,
-  },
+    authTitle: {
+      fontSize: 24,
+      fontFamily: Typography.bold,
+      color: colors.textPrimary,
+      marginBottom: 25,
+      textAlign: "center",
+    },
 
-  authInput: {
-    backgroundColor: Colors.surface,
-    color: Colors.textPrimary,
-    padding: 14,
-    borderRadius: Radius.md,
-    marginBottom: 15,
-    fontSize: 14,
-    fontFamily: Typography.regular,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+    authLabel: {
+      color: colors.primary,
+      marginBottom: 6,
+      fontSize: 13,
+      fontFamily: Typography.medium,
+    },
 
-  authButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 15,
-    borderRadius: Radius.md,
-    alignItems: "center",
-    marginTop: 10,
-  },
+    authInput: {
+      backgroundColor: colors.surface,
+      color: colors.textPrimary,
+      padding: 14,
+      borderRadius: Radius.md,
+      marginBottom: 15,
+      fontSize: 14,
+      fontFamily: Typography.regular,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  authButtonText: {
-    color: "#fff",
-    fontFamily: Typography.bold,
-  },
+    authButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: 15,
+      borderRadius: Radius.md,
+      alignItems: "center",
+      marginTop: 10,
+    },
 
-  authError: {
-    color: Colors.error,
-    textAlign: "center",
-    marginBottom: 15,
-    fontSize: 13,
-  },
+    authButtonText: {
+      color: colors.onPrimary,
+      fontFamily: Typography.bold,
+    },
 
-  authLink: {
-    color: Colors.primary,
-    fontFamily: Typography.bold,
-  },
+    authError: {
+      color: colors.error,
+      textAlign: "center",
+      marginBottom: 15,
+      fontSize: 13,
+    },
 
-  profileContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    padding: Spacing.xl,
-  },
+    authLink: {
+      color: colors.primary,
+      fontFamily: Typography.bold,
+    },
 
-  profileHeader: {
-    alignItems: "center",
-    marginBottom: 30,
-    backgroundColor: Colors.surface,
-    padding: Spacing.xl,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+    profileContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      padding: Spacing.xl,
+    },
 
-  profileAvatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 50,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: Colors.primary,
-  },
+    profileHeader: {
+      alignItems: "center",
+      marginBottom: 30,
+      backgroundColor: colors.surface,
+      padding: Spacing.xl,
+      borderRadius: Radius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  profileName: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontFamily: Typography.bold,
-  },
+    profileAvatar: {
+      width: 90,
+      height: 90,
+      borderRadius: 50,
+      marginBottom: 10,
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
 
-  profileEmail: {
-    color: Colors.textSecondary,
-    fontSize: 13,
-    marginTop: 3,
-  },
+    profileName: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontFamily: Typography.bold,
+    },
 
-  profileLink: {
-    color: Colors.primary,
-    marginTop: 8,
-    fontSize: 13,
-  },
+    profileEmail: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      marginTop: 3,
+    },
 
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.lg,
-    paddingHorizontal: 15,
-    height: 55,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+    profileLink: {
+      color: colors.primary,
+      marginTop: 8,
+      fontSize: 13,
+    },
 
-  searchInput: {
-    marginLeft: 10,
-    flex: 1,
-    color: Colors.textPrimary,
-    fontSize: 14,
-    fontFamily: Typography.regular,
-  },
+    searchContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderRadius: Radius.lg,
+      paddingHorizontal: 15,
+      height: 55,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    marginBottom: 10,
-    marginTop: 10,
-    fontFamily: Typography.bold,
-  },
+    searchInput: {
+      marginLeft: 10,
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: Typography.regular,
+    },
 
-  cardCategory: {
-    backgroundColor: Colors.surface,
-    width: "48%",
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: Radius.lg,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      marginBottom: 10,
+      marginTop: 10,
+      fontFamily: Typography.bold,
+    },
 
-  eventCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.xl,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    overflow: "hidden",
-  },
+    cardCategory: {
+      backgroundColor: colors.surface,
+      width: "48%",
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRadius: Radius.lg,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
 
-  eventTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontFamily: Typography.bold,
-  },
+    eventCard: {
+      backgroundColor: colors.surface,
+      borderRadius: Radius.xl,
+      marginHorizontal: 20,
+      marginBottom: 20,
+      overflow: "hidden",
+    },
 
-  eventInfoText: {
-    color: Colors.textSecondary,
-  },
+    eventTitle: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontFamily: Typography.bold,
+    },
 
-  button: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 14,
-    borderRadius: Radius.md,
-    alignItems: "center",
-  },
+    eventInfoText: {
+      color: colors.textSecondary,
+    },
 
-  buttonText: {
-    color: "#fff",
-    fontFamily: Typography.bold,
-  },
+    button: {
+      backgroundColor: colors.primary,
+      paddingVertical: 14,
+      borderRadius: Radius.md,
+      alignItems: "center",
+    },
 
-  error: {
-    color: Colors.error,
-    textAlign: "center",
-    marginBottom: 15,
-    fontSize: 13,
-  },
+    buttonText: {
+      color: colors.onPrimary,
+      fontFamily: Typography.bold,
+    },
 
-  emptyState: {
-    color: Colors.textSecondary,
-    textAlign: "center",
-    marginTop: 50,
-  },
+    error: {
+      color: colors.error,
+      textAlign: "center",
+      marginBottom: 15,
+      fontSize: 13,
+    },
 
-  divider: {
-    height: 1,
-    backgroundColor: Colors.divider,
-    marginVertical: 15,
-  },
+    emptyState: {
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginTop: 50,
+    },
 
-  loadingSpinner: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: Colors.background,
-  },
+    divider: {
+      height: 1,
+      backgroundColor: colors.divider,
+      marginVertical: 15,
+    },
 
-  telaInicioContainer: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+    loadingSpinner: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.background,
+    },
 
-  telaInicioCardDestaque: {
-    width: SCREEN_WIDTH * 0.68,
-    height: 220,
-    borderRadius: Radius.lg,
-    overflow: "hidden",
-    backgroundColor: Colors.card,
-  },
+    telaInicioContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
 
-  telaInicioCardCompacto: {
-    width: 130,
-    height: 160,
-    borderRadius: Radius.md,
-    overflow: "hidden",
-    backgroundColor: Colors.card,
-  },
-});
+    telaInicioCardDestaque: {
+      width: SCREEN_WIDTH * 0.68,
+      height: 220,
+      borderRadius: Radius.lg,
+      overflow: "hidden",
+      backgroundColor: colors.card,
+    },
+
+    telaInicioCardCompacto: {
+      width: 130,
+      height: 160,
+      borderRadius: Radius.md,
+      overflow: "hidden",
+      backgroundColor: colors.card,
+    },
+  });
+};
+
+/** Estilos estáticos (tema escuro) — prefira `useGlobalStyles()` em telas novas */
+const GlobalStyles = createGlobalStyles(Colors);
 
 GlobalStyles.colors = Colors;
 GlobalStyles.gradients = Gradients;

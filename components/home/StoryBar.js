@@ -7,11 +7,11 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 function getBubbleVariant(index) {
   const variants = [
@@ -51,6 +51,8 @@ function getBubbleVariant(index) {
 }
 
 export default function StoryBar({ eventos = [], onPress }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   if (!eventos?.length) {
     return null;
   }
@@ -93,9 +95,9 @@ export default function StoryBar({ eventos = [], onPress }) {
             >
               <LinearGradient
                 colors={[
-                  Colors.primary,
-                  Colors.primaryDark,
-                  Colors.background,
+                  colors.primary,
+                  colors.primaryDark,
+                  colors.background,
                 ]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -108,9 +110,7 @@ export default function StoryBar({ eventos = [], onPress }) {
                   },
                 ]}
               >
-                <BlurView
-                  intensity={24}
-                  tint="dark"
+                <View
                   style={[
                     styles.card,
                     {
@@ -128,8 +128,8 @@ export default function StoryBar({ eventos = [], onPress }) {
                   <LinearGradient
                     colors={[
                       "rgba(0,0,0,0)",
-                      "rgba(0,0,0,0.18)",
-                      "rgba(0,0,0,0.85)",
+                      colors.overlayDark,
+                      "rgba(0,0,0,0.92)",
                     ]}
                     style={styles.overlay}
                   />
@@ -139,7 +139,7 @@ export default function StoryBar({ eventos = [], onPress }) {
                       <MaterialCommunityIcons
                         name="tag"
                         size={11}
-                        color={Colors.textPrimary}
+                        color={colors.onPrimary}
                       />
 
                       <Text style={styles.tagText} numberOfLines={1}>
@@ -151,7 +151,7 @@ export default function StoryBar({ eventos = [], onPress }) {
                       {item.titulo}
                     </Text>
                   </View>
-                </BlurView>
+                </View>
               </LinearGradient>
             </TouchableOpacity>
           );
@@ -161,7 +161,8 @@ export default function StoryBar({ eventos = [], onPress }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   wrapper: {
     marginTop: 26,
   },
@@ -175,13 +176,13 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 22,
     fontWeight: "800",
   },
 
   subtitle: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 13,
     marginTop: 4,
   },
@@ -192,21 +193,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.primarySoft,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.primary,
   },
 
   liveDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
     marginRight: 6,
   },
 
   liveText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1,
@@ -224,7 +225,7 @@ const styles = StyleSheet.create({
 
   gradientBorder: {
     padding: 2,
-    shadowColor: Colors.primary,
+    shadowColor: c.primary,
     shadowOpacity: 0.22,
     shadowRadius: 16,
     shadowOffset: {
@@ -237,13 +238,13 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     overflow: "hidden",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
 
   image: {
     width: "100%",
     height: "100%",
-    backgroundColor: Colors.backgroundSecondary,
+    backgroundColor: c.backgroundSecondary,
   },
 
   overlay: {
@@ -266,22 +267,23 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.glassStrong,
     marginBottom: 8,
     maxWidth: "100%",
   },
 
   tagText: {
-    color: Colors.textPrimary,
+    color: c.onPrimary,
     fontSize: 10,
     fontWeight: "700",
     marginLeft: 4,
   },
 
   eventTitle: {
-    color: Colors.textPrimary,
+    color: c.onPrimary,
     fontSize: 13,
     fontWeight: "800",
     lineHeight: 17,
   },
 });
+}

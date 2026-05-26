@@ -8,7 +8,6 @@ import {
 } from "react-native";
 
 import { Image } from "expo-image";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 
 import Animated from "react-native-reanimated";
@@ -20,7 +19,8 @@ import { WebView } from "react-native-webview";
 import EventSignalPill from "./EventSignalPill";
 import { getCountdownInfo, getTicketSignal } from "./homeUtils";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 function VideoTeaser({ url, fallback, style }) {
   if (!url) {
@@ -65,6 +65,9 @@ export default function HeroSection({
   animatedStyle,
   onPress,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   const countdown = getCountdownInfo(evento);
 
   const ticketSignal = getTicketSignal(evento);
@@ -92,8 +95,8 @@ export default function HeroSection({
       <LinearGradient
         colors={[
           "rgba(0,0,0,0)",
-          "rgba(0,0,0,0.2)",
-          Colors.overlayDark,
+          colors.overlayDark,
+          "rgba(0,0,0,0.96)",
         ]}
         style={styles.overlay}
       />
@@ -102,33 +105,21 @@ export default function HeroSection({
         <EventSignalPill
           countdown={countdown}
           ticketSignal={ticketSignal}
+          onImage
         />
 
         {!!evento.videoUrl && (
-          <BlurView
-            intensity={18}
-            tint="dark"
-            style={styles.videoBadge}
-          >
-            <LinearGradient
-              colors={[
-                Colors.primary + "33",
-                "rgba(59,130,246,0.1)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.videoBadgeGradient}
-            />
+          <View style={styles.videoBadge}>
             <MaterialCommunityIcons
               name="play"
               size={14}
-              color={Colors.textPrimary}
+              color={colors.onPrimary}
             />
 
             <Text style={styles.videoText}>
               Teaser
             </Text>
-          </BlurView>
+          </View>
         )}
       </View>
 
@@ -155,16 +146,17 @@ export default function HeroSection({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   momentCard: {
     height: 250,
     marginHorizontal: 18,
     marginTop: 6,
     borderRadius: 28,
     overflow: "hidden",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
   },
 
   mediaWrap: {
@@ -174,7 +166,7 @@ const styles = StyleSheet.create({
   momentImage: {
     width: "100%",
     height: "100%",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   overlay: {
@@ -197,26 +189,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: Colors.glass,
+    backgroundColor: "rgba(255,255,255,0.14)",
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-
-  videoBadgeGradient: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-    borderRadius: 16,
+    borderColor: "rgba(255,255,255,0.18)",
   },
 
   videoText: {
-    color: Colors.textPrimary,
+    color: c.onPrimary,
     fontSize: 11,
     fontWeight: "800",
     marginLeft: 4,
@@ -230,23 +209,29 @@ const styles = StyleSheet.create({
   },
 
   eyebrow: {
-    color: Colors.primaryLight,
+    color: c.primaryLight,
     fontSize: 11,
     fontWeight: "800",
     marginBottom: 8,
     letterSpacing: 1,
+    textShadowColor: "rgba(0,0,0,0.45)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
 
   momentTitle: {
-    color: Colors.textPrimary,
+    color: c.onPrimary,
     fontSize: 28,
     fontWeight: "800",
     letterSpacing: -1,
+    lineHeight: 32,
   },
 
   location: {
-    color: Colors.textSecondary,
+    color: "rgba(255,255,255,0.72)",
     fontSize: 14,
     marginTop: 8,
+    fontWeight: "500",
   },
 });
+}

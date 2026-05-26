@@ -38,7 +38,8 @@ import { useAuth } from "../context/AuthContext";
 
 import AppText from "../components/AppText";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 import ConfirmModal from "../components/ConfirmModal";
 
@@ -76,7 +77,10 @@ export default function CriarPost({ navigation }) {
 	};
 
 	const showModal = (title, message, type = "success") => {
-		setModalData({
+		const { colors, isDark } = useTheme();
+		const styles = useThemedStyles(createThemedScreenStyles);
+		const blurTint = isDark ? "dark" : "light";
+setModalData({
 			title,
 			message,
 			type,
@@ -230,9 +234,9 @@ export default function CriarPost({ navigation }) {
 			>
 				<LinearGradient
 					colors={[
-						Colors.backgroundSecondary,
-						Colors.surface,
-						Colors.background,
+						colors.backgroundSecondary,
+						colors.surface,
+						colors.background,
 					]}
 					style={styles.header}
 				>
@@ -242,7 +246,7 @@ export default function CriarPost({ navigation }) {
 					>
 						<BlurView
 							intensity={60}
-							tint="dark"
+							tint={blurTint}
 							style={styles.backBtn}
 						>
 							<MaterialCommunityIcons
@@ -265,12 +269,12 @@ export default function CriarPost({ navigation }) {
 					>
 						<View style={[styles.publishIconCircle, { backgroundColor: podePublicar ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.05)" }]}>
 							{loading ? (
-								<ActivityIndicator color={podePublicar ? "#7C3AED" : Colors.textMuted} size="small" />
+								<ActivityIndicator color={podePublicar ? "#7C3AED" : colors.textMuted} size="small" />
 							) : (
 								<MaterialCommunityIcons
 									name="send"
 									size={18}
-									color={podePublicar ? "#7C3AED" : Colors.textMuted}
+									color={podePublicar ? "#7C3AED" : colors.textMuted}
 								/>
 							)}
 						</View>
@@ -332,7 +336,7 @@ export default function CriarPost({ navigation }) {
 						<RefreshControl
 							refreshing={refreshing}
 							onRefresh={onRefresh}
-							tintColor={Colors.primary}
+							tintColor={colors.primary}
 						/>
 					}
 				>
@@ -435,7 +439,7 @@ export default function CriarPost({ navigation }) {
 								<MaterialCommunityIcons
 									name="text-box-outline"
 									size={20}
-									color={Colors.primary}
+									color={colors.primary}
 								/>
 
 								<AppText
@@ -448,7 +452,7 @@ export default function CriarPost({ navigation }) {
 							<TextInput
 								placeholder="Escreva algo sobre esse momento..."
 								placeholderTextColor={
-									Colors.textMuted
+									colors.textMuted
 								}
 								value={descricao}
 								onChangeText={setDescricao}
@@ -486,10 +490,11 @@ export default function CriarPost({ navigation }) {
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	header: {
@@ -511,7 +516,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	title: {
@@ -526,9 +531,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 10,
 		paddingHorizontal: 12,
 		borderRadius: 14,
-		backgroundColor: Colors.surface,
+		backgroundColor: c.surface,
 		borderWidth: 1,
-		borderColor: Colors.glassBorder,
+		borderColor: c.glassBorder,
 		gap: 8,
 		minWidth: 110,
 	},
@@ -544,11 +549,11 @@ const styles = StyleSheet.create({
 	publishLabel: {
 		fontSize: 13,
 		fontWeight: "700",
-		color: Colors.textPrimary,
+		color: c.textPrimary,
 	},
 
 	publishLabelDisabled: {
-		color: Colors.textMuted,
+		color: c.textMuted,
 	},
 
 	progressContainer: {
@@ -557,7 +562,7 @@ const styles = StyleSheet.create({
 
 	progressBarBg: {
 		height: 8,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		borderRadius: 20,
 		overflow: "hidden",
 	},
@@ -580,10 +585,10 @@ const styles = StyleSheet.create({
 		marginHorizontal: 18,
 		marginTop: 24,
 		borderRadius: 30,
-		backgroundColor: "#111827",
+		backgroundColor: c.surfaceMuted,
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 		justifyContent: "center",
 		alignItems: "center",
 	},
@@ -650,11 +655,11 @@ const styles = StyleSheet.create({
 		marginTop: 24,
 		marginHorizontal: 18,
 		marginBottom: 20,
-		backgroundColor: "#111827",
+		backgroundColor: c.surfaceMuted,
 		borderRadius: 26,
 		padding: 20,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	inputHeader: {
@@ -688,3 +693,4 @@ const styles = StyleSheet.create({
 		fontSize: 12,
 	},
 });
+}

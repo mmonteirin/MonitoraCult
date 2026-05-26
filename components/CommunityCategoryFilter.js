@@ -7,7 +7,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const CATEGORY_FILTERS = [
   {
@@ -65,6 +66,10 @@ export default function CommunityCategoryFilter({
   onCategoryToggle,
   allowMultiple = true,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const handlePress = (categoryKey) => {
     if (allowMultiple) {
       const newSelected = selectedCategories.includes(categoryKey)
@@ -110,12 +115,12 @@ export default function CommunityCategoryFilter({
               <MaterialCommunityIcons
                 name={category.icon}
                 size={16}
-                color={isSelected ? category.color : Colors.textMuted}
+                color={isSelected ? category.color : colors.textMuted}
               />
               <Text
                 style={[
                   styles.tagLabel,
-                  { color: isSelected ? category.color : Colors.textSecondary },
+                  { color: isSelected ? category.color : colors.textSecondary },
                 ]}
               >
                 {category.label}
@@ -139,7 +144,8 @@ export default function CommunityCategoryFilter({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginVertical: 12,
     paddingHorizontal: 16,
@@ -153,12 +159,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   clearBtn: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   filterScroll: {
     flexGrow: 0,
@@ -189,6 +195,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginLeft: 2,
   },
-});
+  });
+}
 
 export { CATEGORY_FILTERS };

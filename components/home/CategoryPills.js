@@ -7,13 +7,15 @@ import {
 	TouchableOpacity,
 } from "react-native";
 
-import { Colors } from "../../styles/Colors";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function CategoryPills({
 	categorias,
 	ativa,
 	onChange,
 }) {
+	const styles = useThemedStyles(createThemedScreenStyles);
+
 	return (
 		<ScrollView
 			horizontal
@@ -52,7 +54,8 @@ export default function CategoryPills({
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	categoriesContainer: {
 		paddingHorizontal: 18,
 		marginTop: 22,
@@ -63,20 +66,20 @@ const styles = StyleSheet.create({
 		paddingVertical: 11,
 		borderRadius: 22,
 
-		backgroundColor: Colors.glass,
+		backgroundColor: c.card,
 
 		borderWidth: 1,
-		borderColor: Colors.glassBorder,
+		borderColor: c.border,
 
 		marginRight: 10,
 	},
 
 	categoryActive: {
-		backgroundColor: Colors.primaryDark,
+		backgroundColor: c.primary,
 
-		borderColor: Colors.primary,
+		borderColor: c.primaryDark,
 
-		shadowColor: Colors.primary,
+		shadowColor: c.primary,
 		shadowOpacity: 0.35,
 		shadowRadius: 14,
 
@@ -84,12 +87,13 @@ const styles = StyleSheet.create({
 	},
 
 	categoryText: {
-		color: Colors.textSecondary,
+		color: c.textPrimary,
 		fontWeight: "600",
 	},
 
 	categoryTextActive: {
-		color: Colors.textPrimary,
+		color: c.onPrimary,
 		fontWeight: "700",
 	},
 });
+}

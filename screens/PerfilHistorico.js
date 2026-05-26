@@ -33,11 +33,16 @@ import { auth, db } from "../firebaseConfig";
 
 import AppText from "../components/AppText";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 
 export default function PerfilHistorico({
 	navigation,
 }) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
 	const insets =
 		useSafeAreaInsets();
 
@@ -332,7 +337,7 @@ export default function PerfilHistorico({
 		>
 			<BlurView
 				intensity={45}
-				tint="dark"
+				tint={blurTint}
 				style={styles.card}
 			>
 				{/* Glow */}
@@ -422,7 +427,7 @@ export default function PerfilHistorico({
 							name="trash-can-outline"
 							size={20}
 							color={
-								Colors.error
+								colors.error
 							}
 						/>
 					</TouchableOpacity>
@@ -558,7 +563,7 @@ export default function PerfilHistorico({
 							name="chevron-right"
 							size={18}
 							color={
-								Colors.primary
+								colors.primary
 							}
 						/>
 					</View>
@@ -684,7 +689,7 @@ export default function PerfilHistorico({
 										tab ===
 										t
 											? "#FFF"
-											: Colors.textMuted
+											: colors.textMuted
 									}
 								/>
 
@@ -717,7 +722,7 @@ export default function PerfilHistorico({
 					<ActivityIndicator
 						size="large"
 						color={
-							Colors.primary
+							colors.primary
 						}
 					/>
 				</View>
@@ -756,7 +761,7 @@ export default function PerfilHistorico({
 									}
 									size={42}
 									color={
-										Colors.primary
+										colors.primary
 									}
 								/>
 							</View>
@@ -790,8 +795,8 @@ export default function PerfilHistorico({
 	);
 }
 
-const styles =
-	StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
 		container: {
 			flex: 1,
 			backgroundColor:
@@ -879,8 +884,7 @@ const styles =
 		},
 
 		tabText: {
-			color:
-				Colors.textMuted,
+			color: c.textMuted,
 
 			fontSize: 12,
 
@@ -888,7 +892,7 @@ const styles =
 		},
 
 		activeTabText: {
-			color: "#FFF",
+			color: c.onPrimary,
 		},
 
 		list: {
@@ -1069,8 +1073,7 @@ const styles =
 		},
 
 		openText: {
-			color:
-				Colors.primary,
+			color: c.primary,
 
 			fontSize: 13,
 
@@ -1132,3 +1135,4 @@ const styles =
 			lineHeight: 22,
 		},
 	});
+}

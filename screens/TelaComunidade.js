@@ -21,7 +21,8 @@ import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useCommunity } from "../hooks/useCommunity";
 
 import CommunityGroupCard from "../components/CommunityGroupCard";
@@ -61,6 +62,9 @@ const TABS = [
 ];
 
 export default function TelaComunidade({ navigation, route }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
 
   const embedded = !!route?.params?.embedded;
@@ -260,9 +264,9 @@ export default function TelaComunidade({ navigation, route }) {
     ? {}
     : {
         colors: [
-          Colors.backgroundSecondary,
-          Colors.surface,
-          Colors.background,
+          colors.backgroundSecondary,
+          colors.surface,
+          colors.background,
         ],
       };
 
@@ -287,7 +291,7 @@ export default function TelaComunidade({ navigation, route }) {
     if (loading && !groups.length) {
       return (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       );
     }
@@ -298,7 +302,7 @@ export default function TelaComunidade({ navigation, route }) {
           <MaterialCommunityIcons
             name="account-group-outline"
             size={48}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.emptyTitle}>Nenhuma comunidade encontrada</Text>
           <Text style={styles.emptySubtitleEmbedded}>
@@ -394,12 +398,12 @@ export default function TelaComunidade({ navigation, route }) {
             <MaterialCommunityIcons
               name="magnify"
               size={20}
-              color={Colors.primary}
+              color={colors.primary}
             />
             <TextInput
               style={styles.embeddedSearchInput}
               placeholder="Buscar comunidades..."
-              placeholderTextColor={Colors.textMuted}
+              placeholderTextColor={colors.textMuted}
               value={searchText}
               onChangeText={setSearchText}
             />
@@ -408,7 +412,7 @@ export default function TelaComunidade({ navigation, route }) {
                 <MaterialCommunityIcons
                   name="close-circle"
                   size={18}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
             )}
@@ -420,7 +424,7 @@ export default function TelaComunidade({ navigation, route }) {
             activeOpacity={0.85}
           >
             <LinearGradient
-              colors={[Colors.primary, Colors.primaryDark]}
+              colors={[colors.primary, colors.primaryDark]}
               style={styles.embeddedCreateBtnGradient}
             >
               <MaterialCommunityIcons name="plus" size={22} color="#FFF" />
@@ -441,7 +445,7 @@ export default function TelaComunidade({ navigation, route }) {
                 <MaterialCommunityIcons
                   name={tab.icon}
                   size={16}
-                  color={active ? Colors.primary : Colors.textMuted}
+                  color={active ? colors.primary : colors.textMuted}
                 />
                 <Text
                   style={[
@@ -496,7 +500,7 @@ export default function TelaComunidade({ navigation, route }) {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
+              tintColor={colors.primary}
             />
           }
           contentContainerStyle={styles.embeddedScrollContent}
@@ -533,7 +537,7 @@ export default function TelaComunidade({ navigation, route }) {
                 <TextInput
                   style={styles.input}
                   placeholder="Nome da comunidade"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={createData.name}
                   onChangeText={(v) =>
                     setCreateData((d) => ({ ...d, name: v }))
@@ -545,7 +549,7 @@ export default function TelaComunidade({ navigation, route }) {
                   multiline
                   style={[styles.input, styles.textArea]}
                   placeholder="Descreva os objetivos da comunidade"
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   value={createData.description}
                   onChangeText={(v) =>
                     setCreateData((d) => ({ ...d, description: v }))
@@ -558,7 +562,7 @@ export default function TelaComunidade({ navigation, route }) {
                   disabled={creating}
                 >
                   <LinearGradient
-                    colors={[Colors.primary, Colors.primaryDark]}
+                    colors={[colors.primary, colors.primaryDark]}
                     style={styles.submitGradient}
                   >
                     {creating ? (
@@ -628,7 +632,7 @@ export default function TelaComunidade({ navigation, route }) {
         <View style={styles.heroSearchWrapper}>
           <BlurView
             intensity={40}
-            tint="dark"
+            tint={blurTint}
             style={[
               styles.heroSearch,
               embedded && styles.heroSearchEmbedded,
@@ -680,7 +684,7 @@ export default function TelaComunidade({ navigation, route }) {
             }
           >
             <LinearGradient
-              colors={[Colors.primary, Colors.primaryDark]}
+              colors={[colors.primary, colors.primaryDark]}
               style={[
                 styles.createButtonGradient,
                 embedded && styles.createButtonGradientEmbedded,
@@ -718,7 +722,7 @@ export default function TelaComunidade({ navigation, route }) {
       <View style={styles.tabsWrapper}>
         <BlurView
           intensity={30}
-          tint="dark"
+          tint={blurTint}
           style={styles.tabsContainer}
         >
           {TABS.map((tab) => {
@@ -775,7 +779,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.primary}
+                tintColor={colors.primary}
               />
             }
           >
@@ -948,7 +952,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.primary}
+                tintColor={colors.primary}
               />
             }
           >
@@ -1013,7 +1017,7 @@ export default function TelaComunidade({ navigation, route }) {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.primary}
+                tintColor={colors.primary}
               />
             }
           >
@@ -1074,7 +1078,7 @@ export default function TelaComunidade({ navigation, route }) {
           <View style={styles.modalOverlay}>
             <BlurView
               intensity={40}
-              tint="dark"
+              tint={blurTint}
               style={StyleSheet.absoluteFill}
             />
 
@@ -1191,8 +1195,8 @@ export default function TelaComunidade({ navigation, route }) {
                     size={52}
                     color={
                       createData.isPrivate
-                        ? Colors.primary
-                        : Colors.textMuted
+                        ? colors.primary
+                        : colors.textMuted
                     }
                   />
                 </TouchableOpacity>
@@ -1207,8 +1211,8 @@ export default function TelaComunidade({ navigation, route }) {
                 >
                   <LinearGradient
                     colors={[
-                      Colors.primary,
-                      Colors.primaryDark,
+                      colors.primary,
+                      colors.primaryDark,
                     ]}
                     style={
                       styles.submitGradient
@@ -1252,7 +1256,7 @@ function QuickStat({
   return (
     <BlurView
       intensity={25}
-      tint="dark"
+      tint={blurTint}
       style={styles.quickStatCard}
     >
       <MaterialCommunityIcons
@@ -1272,15 +1276,16 @@ function QuickStat({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   containerEmbedded: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   embeddedToolbar: {
@@ -1300,14 +1305,14 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   embeddedSearchInput: {
     flex: 1,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     padding: 0,
   },
@@ -1327,8 +1332,8 @@ const styles = StyleSheet.create({
   innerTabBar: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    backgroundColor: Colors.background,
+    borderBottomColor: c.border,
+    backgroundColor: c.background,
   },
 
   innerTab: {
@@ -1342,17 +1347,17 @@ const styles = StyleSheet.create({
 
   innerTabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: Colors.primary,
+    borderBottomColor: c.primary,
   },
 
   innerTabText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
 
   innerTabTextActive: {
-    color: Colors.primary,
+    color: c.primary,
   },
 
   embeddedGenreRow: {
@@ -1365,20 +1370,20 @@ const styles = StyleSheet.create({
     height: 32,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   embeddedGenreChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
 
   embeddedGenreText: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "600",
   },
 
@@ -1416,7 +1421,7 @@ const styles = StyleSheet.create({
   },
 
   emptySubtitleEmbedded: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 14,
     marginTop: 8,
     textAlign: "center",
@@ -1486,7 +1491,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   heroSearchWrapper: {
@@ -1505,7 +1510,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   heroSearchEmbedded: {
@@ -1595,7 +1600,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   tabButton: {
@@ -1609,23 +1614,23 @@ const styles = StyleSheet.create({
   },
 
   tabButtonActive: {
-    backgroundColor: "#8B5CF6",
+    backgroundColor: c.primary,
   },
 
   tabText: {
-    color: "#94A3B8",
+    color: c.textMuted,
     fontSize: 13,
     fontWeight: "700",
   },
 
   tabTextActive: {
-    color: "#FFF",
+    color: c.onPrimary,
   },
 
   stickyFilters: {
     paddingTop: 4,
     paddingBottom: 12,
-    backgroundColor: "#0B1020",
+    backgroundColor: c.background,
   },
 
   genreRow: {
@@ -1638,7 +1643,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 999,
     backgroundColor:
-      "rgba(255,255,255,0.04)",
+      c.glass,
     justifyContent: "center",
     borderWidth: 1,
     borderColor:
@@ -1646,7 +1651,7 @@ const styles = StyleSheet.create({
   },
 
   genreChipActive: {
-    backgroundColor: "#8B5CF6",
+    backgroundColor: c.primary,
     borderColor: "#8B5CF6",
   },
 
@@ -1673,7 +1678,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   quickStatValue: {
@@ -1727,14 +1732,14 @@ const styles = StyleSheet.create({
   },
 
   modalCard: {
-    backgroundColor: "#111827",
+    backgroundColor: c.surfaceMuted,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
     padding: 24,
     maxHeight: "85%",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 
   modalHeader: {
@@ -1772,12 +1777,12 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     backgroundColor:
-      "rgba(255,255,255,0.04)",
+      c.glass,
     paddingHorizontal: 16,
     color: "#FFF",
     borderWidth: 1,
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
     marginBottom: 18,
   },
 
@@ -1830,3 +1835,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+}

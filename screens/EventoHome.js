@@ -23,18 +23,18 @@ import { MotiView } from "moti";
 
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-import { Colors } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
 export default function EventoHome({ navigation }) {
 	const insets = useSafeAreaInsets();
-
 	const tabBarHeight = useBottomTabBarHeight();
+	const Colors = useColors();
 
 	return (
-		<View style={styles.container}>
-			<StatusBar barStyle="light-content" />
+		<View style={[styles.container, { backgroundColor: Colors.background }]}>
+			<StatusBar barStyle={Colors.background.includes("FFF") ? "dark-content" : "light-content"} />
 
 			<ImageBackground
 				source={require("../assets/fundoTelaLogin.png")}

@@ -4,6 +4,7 @@ import { ActivityIndicator, View, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAuth } from "../context/AuthContext";
+import { useColors } from "../context/ThemeContext";
 
 import TabNavigator from "./TabNavigator";
 import CustomDrawerContent from "./CustomDrawerNavigator"; // Aponta certinho para o visual acima
@@ -18,13 +19,14 @@ import TelaLocaisVisitados from "../screens/TelaLocaisVisitados";
 import MeusIngressos from "../screens/MeusIngressos";
 
 import DrawerAvatar from "../components/DrawerAvatar";
-import { Colors, Typography } from "../styles/Colors";
+import { Typography } from "../styles/Colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const Drawer = createDrawerNavigator();
 
 export default function DrawerNavigator() {
   const { isAdmin, loading } = useAuth();
+  const Colors = useColors();
 
   if (loading) {
     return (

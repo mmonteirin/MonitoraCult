@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
+import { Brand } from "../styles/Colors";
 
 // ─── Handler de foreground (noop na web via stub) ─────────────────────────────
 Notifications.setNotificationHandler({
@@ -59,7 +60,7 @@ export async function configurarCanaisAndroid() {
     name: "Eventos Culturais",
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#6C5CE7",
+    lightColor: Brand.primary,
     sound: "default",
     enableVibrate: true,
   });

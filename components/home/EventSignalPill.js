@@ -3,12 +3,18 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 export default function EventSignalPill({
   countdown,
   ticketSignal,
+  onImage = false,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const iconColor = onImage ? colors.onPrimary : colors.textPrimary;
+
   const live = countdown?.tone === "live";
 
   const soon = countdown?.tone === "soon";
@@ -23,6 +29,7 @@ export default function EventSignalPill({
     <View
       style={[
         styles.pill,
+        onImage && styles.pillOnImage,
         live && styles.live,
         soon && styles.soon,
       ]}
@@ -37,12 +44,12 @@ export default function EventSignalPill({
         <MaterialCommunityIcons
           name={iconName}
           size={13}
-          color={Colors.textPrimary}
+          color={iconColor}
         />
       </View>
 
       <Text
-        style={styles.text}
+        style={[styles.text, onImage && styles.textOnImage]}
         numberOfLines={1}
       >
         {ticketSignal || countdown?.label}
@@ -53,7 +60,8 @@ export default function EventSignalPill({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   pill: {
     alignSelf: "flex-start",
 
@@ -67,12 +75,17 @@ const styles = StyleSheet.create({
 
     borderRadius: 16,
 
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
 
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
 
     overflow: "hidden",
+  },
+
+  pillOnImage: {
+    backgroundColor: "rgba(0,0,0,0.45)",
+    borderColor: "rgba(255,255,255,0.18)",
   },
 
   live: {
@@ -94,19 +107,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
 
-    backgroundColor: Colors.overlayLight,
+    backgroundColor: c.overlayLight,
   },
 
   liveIcon: {
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
   },
 
   soonIcon: {
-    backgroundColor: Colors.warning,
+    backgroundColor: c.warning,
   },
 
   text: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
 
     fontSize: 11,
     fontWeight: "800",
@@ -114,6 +127,10 @@ const styles = StyleSheet.create({
     marginLeft: 7,
 
     letterSpacing: 0.2,
+  },
+
+  textOnImage: {
+    color: c.onPrimary,
   },
 
   livePulse: {
@@ -124,6 +141,7 @@ const styles = StyleSheet.create({
 
     marginLeft: 8,
 
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
   },
 });
+}

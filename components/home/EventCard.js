@@ -17,7 +17,8 @@ import Animated, {
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { Colors } from "../../styles/Colors";
+import { useTheme } from "../../context/ThemeContext";
+import { useThemedStyles } from "../../hooks/useThemedStyles";
 
 import EventSignalPill from "./EventSignalPill";
 
@@ -34,6 +35,10 @@ export default function EventCard({
   compact = false,
   reason,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const countdown = getCountdownInfo(item);
 
   const ticketSignal = getTicketSignal(item);
@@ -76,8 +81,8 @@ export default function EventCard({
         <LinearGradient
           colors={[
             "transparent",
-            "rgba(0,0,0,0.18)",
-            "rgba(0,0,0,0.94)",
+            colors.overlayDark,
+            "rgba(0,0,0,0.96)",
           ]}
           style={styles.overlay}
         />
@@ -86,106 +91,92 @@ export default function EventCard({
           <EventSignalPill
             countdown={countdown}
             ticketSignal={ticketSignal}
+            onImage
           />
         </View>
 
-        <BlurView
-          intensity={22}
-          tint="dark"
-          style={styles.footer}
-        >
+        <View style={styles.cardContent}>
           {!!reason && (
-            <View style={styles.reasonContainer}>
+            <BlurView intensity={40} tint={blurTint} style={styles.reasonBadge}>
               <MaterialCommunityIcons
                 name="star-box"
                 size={12}
-                color={Colors.primaryLight}
+                color={colors.primaryLight}
               />
-
-              <Text
-                style={styles.reason}
-                numberOfLines={1}
-              >
+              <Text style={styles.reason} numberOfLines={1}>
                 {reason}
               </Text>
-            </View>
+            </BlurView>
           )}
 
-          <Text
-            style={styles.cardTitle}
-            numberOfLines={2}
-          >
+          <Text style={styles.cardTitle} numberOfLines={2}>
             {item.titulo}
           </Text>
 
-          <Text
-            style={styles.cardLocation}
-            numberOfLines={1}
-          >
-            📍 {item.local}
-          </Text>
+          <View style={styles.locationRow}>
+            <MaterialCommunityIcons
+              name="map-marker"
+              size={14}
+              color={colors.onPrimary}
+            />
+            <Text style={styles.cardLocation} numberOfLines={1}>
+              {item.local}
+            </Text>
+          </View>
 
           <View style={styles.cardBottom}>
-            <View style={styles.distanceBadge}>
+            <View style={styles.metricBadge}>
               <MaterialCommunityIcons
                 name="map-marker-distance"
                 size={13}
-                color={Colors.textSecondary}
+                color={colors.onPrimary}
               />
-
-              <Text style={styles.distance}>
+              <Text style={styles.metricText}>
                 {formatarDistancia(item.distancia)}
               </Text>
             </View>
 
-            <View style={styles.rating}>
+            <View style={styles.metricBadge}>
               <MaterialCommunityIcons
                 name="star"
                 size={14}
-                color={Colors.warning}
+                color="#FFD166"
               />
-
-              <Text style={styles.ratingText}>
+              <Text style={styles.metricText}>
                 {totalAvaliacoes > 0
                   ? mediaAvaliacoes.toFixed(1)
                   : Math.round(item.score)}
               </Text>
             </View>
           </View>
-        </BlurView>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   card: {
     height: 250,
-
     borderRadius: 30,
-
     overflow: "hidden",
-
     marginHorizontal: 18,
     marginBottom: 18,
-
-    backgroundColor: Colors.surface,
-
-    shadowColor: Colors.shadow,
+    backgroundColor: c.surface,
+    shadowColor: c.shadow,
     shadowOpacity: 0.28,
     shadowRadius: 18,
     shadowOffset: {
       width: 0,
       height: 10,
     },
-
     elevation: 10,
   },
 
   compactCard: {
     width: 250,
     height: 300,
-
     marginHorizontal: 0,
     marginRight: 14,
   },
@@ -201,118 +192,85 @@ const styles = StyleSheet.create({
 
   topSignal: {
     position: "absolute",
-
     top: 14,
     left: 14,
     right: 14,
+    zIndex: 2,
   },
 
-  footer: {
+  cardContent: {
     position: "absolute",
-
-    left: 12,
-    right: 12,
-    bottom: 12,
-
-    padding: 16,
-
-    borderRadius: 24,
-
-    overflow: "hidden",
-
-    backgroundColor: Colors.mapOverlay,
-
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    left: 14,
+    right: 14,
+    bottom: 14,
+    zIndex: 3,
   },
 
-  reasonContainer: {
+  reasonBadge: {
+    alignSelf: "flex-start",
     flexDirection: "row",
     alignItems: "center",
-
-    marginBottom: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    overflow: "hidden",
+    marginBottom: 10,
   },
 
   reason: {
     flex: 1,
-
-    color: Colors.primaryLight,
-
+    color: c.primaryLight,
     fontSize: 11,
     fontWeight: "700",
-
     marginLeft: 6,
   },
 
   cardTitle: {
-    color: Colors.textPrimary,
-
+    color: c.onPrimary,
     fontSize: 20,
     fontWeight: "800",
-
     letterSpacing: -0.5,
+    lineHeight: 24,
+  },
+
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
   },
 
   cardLocation: {
-    color: Colors.textSecondary,
-
+    flex: 1,
+    color: "rgba(255,255,255,0.72)",
     fontSize: 13,
-
-    marginTop: 7,
+    fontWeight: "500",
+    marginLeft: 4,
   },
 
   cardBottom: {
-    marginTop: 14,
-
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
   },
 
-  distanceBadge: {
+  metricBadge: {
     flexDirection: "row",
     alignItems: "center",
-
-    backgroundColor: Colors.overlayLight,
-
-    borderRadius: 14,
-
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 7,
-
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: "rgba(255,255,255,0.12)",
   },
 
-  distance: {
-    color: Colors.textPrimary,
-
+  metricText: {
+    color: c.onPrimary,
     fontWeight: "700",
     fontSize: 12,
-
     marginLeft: 5,
   },
-
-  rating: {
-    flexDirection: "row",
-    alignItems: "center",
-
-    backgroundColor: Colors.overlayLight,
-
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-
-    borderRadius: 14,
-
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-  },
-
-  ratingText: {
-    color: Colors.textPrimary,
-
-    fontWeight: "800",
-
-    marginLeft: 4,
-  },
 });
+}

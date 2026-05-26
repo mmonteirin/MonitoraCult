@@ -34,12 +34,16 @@ import {
   getAttendedEvents,
   getPublicProfile,
 } from "../services/profileService";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const DEFAULT_IMAGE =
   "https://placehold.co/600x400?text=Evento";
 
 export default function PerfilPublico({ navigation, route }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const targetUserId =
@@ -218,7 +222,7 @@ export default function PerfilPublico({ navigation, route }) {
   if (loading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -243,7 +247,7 @@ export default function PerfilPublico({ navigation, route }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       >
@@ -253,9 +257,9 @@ export default function PerfilPublico({ navigation, route }) {
         >
           <LinearGradient
             colors={[
-              Colors.backgroundSecondary,
-              Colors.surface,
-              Colors.background,
+              colors.backgroundSecondary,
+              colors.surface,
+              colors.background,
             ]}
             style={[
               styles.header,
@@ -271,7 +275,7 @@ export default function PerfilPublico({ navigation, route }) {
               >
                 <BlurView
                   intensity={35}
-                  tint="dark"
+                  tint={blurTint}
                   style={styles.headerBlur}
                 >
                   <MaterialCommunityIcons
@@ -311,7 +315,7 @@ export default function PerfilPublico({ navigation, route }) {
               )}
             </View>
 
-            <BlurView intensity={28} tint="dark" style={styles.stats}>
+            <BlurView intensity={28} tint={blurTint} style={styles.stats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{eventos.length}</Text>
               <Text style={styles.statLabel}>eventos</Text>
@@ -354,7 +358,7 @@ export default function PerfilPublico({ navigation, route }) {
                   <MaterialCommunityIcons
                     name="ticket-confirmation-outline"
                     size={42}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
 
                   <Text style={styles.emptyText}>
@@ -409,14 +413,15 @@ export default function PerfilPublico({ navigation, route }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
   },
   loading: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -446,8 +451,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
   },
   profileBlock: {
     alignItems: "center",
@@ -458,17 +463,17 @@ const styles = StyleSheet.create({
     height: 104,
     borderRadius: 56,
     borderWidth: 3,
-    borderColor: Colors.primary,
+    borderColor: c.primary,
   },
   name: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "900",
     marginTop: 14,
     textAlign: "center",
   },
   bio: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
@@ -480,7 +485,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: c.glassStrong,
   },
   statItem: {
     flex: 1,
@@ -488,12 +493,12 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   statValue: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: "900",
   },
   statLabel: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 12,
     marginTop: 4,
   },
@@ -508,19 +513,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 20,
     fontWeight: "900",
   },
   sectionCount: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "800",
   },
   eventCard: {
     flexDirection: "row",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.06)",
+    borderColor: c.glass,
     borderRadius: 20,
     padding: 10,
     marginBottom: 12,
@@ -529,7 +534,7 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   eventInfo: {
     flex: 1,
@@ -537,17 +542,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   eventTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 15,
     fontWeight: "800",
   },
   eventMeta: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 12,
     marginTop: 6,
   },
   eventDate: {
-    color: Colors.primaryLight,
+    color: c.primaryLight,
     fontSize: 12,
     fontWeight: "800",
     marginTop: 8,
@@ -555,11 +560,11 @@ const styles = StyleSheet.create({
   emptyBox: {
     alignItems: "center",
     paddingVertical: 36,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: c.glass,
     borderRadius: 20,
   },
   emptyText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 10,
     textAlign: "center",
   },
@@ -572,12 +577,13 @@ const styles = StyleSheet.create({
     height: 42,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: "#070B14",
+    borderColor: c.background,
     marginRight: -8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   networkText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginTop: 12,
   },
 });
+}

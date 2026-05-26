@@ -15,7 +15,11 @@ export default function HomeStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="InicioHome" component={TelaInicio} />
-      <Stack.Screen name="Detalhes" component={EventoDetalhes} />
+      <Stack.Screen 
+        name="Detalhes" 
+        component={EventoDetalhes}
+        options={{ tabBarStyle: { display: 'none' } }}
+      />
       <Stack.Screen name="PerfilPublico" component={PerfilPublico} />
       <Stack.Screen name="AgendaEventos" component={TelaAgendaEventos} />
       <Stack.Screen name="TelaIngressos" component={TelaIngressos} />

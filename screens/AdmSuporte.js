@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +17,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import ConfirmModal from "../components/ConfirmModal";
 import {
   listenAdminSupportTickets,
@@ -48,21 +50,24 @@ function formatDate(value) {
   });
 }
 
-function statusColor(status) {
-  if (status === "resolvido") return Colors.success;
-  if (status === "aguardando_usuario") return Colors.warning;
-  if (status === "em_atendimento") return Colors.info;
-  return Colors.primary;
+function statusColor(status, colors) {
+  if (status === "resolvido") return colors.success;
+  if (status === "aguardando_usuario") return colors.warning;
+  if (status === "em_atendimento") return colors.info;
+  return colors.primary;
 }
 
-function priorityColor(priority) {
-  if (priority === "alta") return Colors.error;
-  if (priority === "media") return Colors.warning;
-  return Colors.success;
+function priorityColor(priority, colors) {
+  if (priority === "alta") return colors.error;
+  if (priority === "media") return colors.warning;
+  return colors.success;
 }
 
 export default function AdmSuporte({ navigation }) {
   const { user, nome, foto } = useAuth();
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   const [tickets, setTickets] = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -184,6 +189,7 @@ export default function AdmSuporte({ navigation }) {
 
   const renderTicket = ({ item }) => {
     const active = selectedTicket?.id === item.id;
+    const ticketStatusColor = statusColor(item.status, colors);
 
     return (
       <TouchableOpacity
@@ -192,11 +198,11 @@ export default function AdmSuporte({ navigation }) {
         onPress={() => setSelectedTicket(item)}
       >
         <View style={styles.ticketTop}>
-          <View style={[styles.ticketIcon, { backgroundColor: `${statusColor(item.status)}22` }]}>
+          <View style={[styles.ticketIcon, { backgroundColor: `${ticketStatusColor}22` }]}>
             <MaterialCommunityIcons
               name={item.unreadAdmin ? "message-badge-outline" : "lifebuoy"}
               size={22}
-              color={statusColor(item.status)}
+              color={ticketStatusColor}
             />
           </View>
           <View style={styles.ticketInfo}>
@@ -215,10 +221,10 @@ export default function AdmSuporte({ navigation }) {
         </Text>
 
         <View style={styles.ticketFooter}>
-          <View style={[styles.priorityDot, { backgroundColor: priorityColor(item.prioridade) }]} />
+          <View style={[styles.priorityDot, { backgroundColor: priorityColor(item.prioridade, colors) }]} />
           <Text style={styles.priorityText}>{item.prioridade || "normal"}</Text>
-          <View style={[styles.statusPill, { borderColor: statusColor(item.status) }]}>
-            <Text style={[styles.statusText, { color: statusColor(item.status) }]}>
+          <View style={[styles.statusPill, { borderColor: ticketStatusColor }]}>
+            <Text style={[styles.statusText, { color: ticketStatusColor }]}>
               {SUPPORT_STATUS[item.status] || "Aberto"}
             </Text>
           </View>
@@ -232,13 +238,12 @@ export default function AdmSuporte({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <LinearGradient colors={[Colors.background, Colors.surface]} style={styles.header}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
             <Text style={styles.title}>Atendimento de Suporte</Text>
@@ -279,7 +284,7 @@ export default function AdmSuporte({ navigation }) {
 
           {ticketsLoading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator color={Colors.primary} />
+              <ActivityIndicator color={colors.primary} />
             </View>
           ) : (
             <FlatList
@@ -289,7 +294,7 @@ export default function AdmSuporte({ navigation }) {
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
                 <View style={styles.emptyBox}>
-                  <MaterialCommunityIcons name="inbox-outline" size={42} color={Colors.textMuted} />
+                  <MaterialCommunityIcons name="inbox-outline" size={42} color={colors.textMuted} />
                   <Text style={styles.emptyTitle}>Nenhum chamado nesta fila</Text>
                 </View>
               }
@@ -307,8 +312,8 @@ export default function AdmSuporte({ navigation }) {
                     {selectedTicket.userName || selectedTicket.email} • {formatDate(selectedTicket.createdAt)}
                   </Text>
                 </View>
-                <View style={[styles.statusPill, { borderColor: statusColor(selectedTicket.status) }]}>
-                  <Text style={[styles.statusText, { color: statusColor(selectedTicket.status) }]}>
+                <View style={[styles.statusPill, { borderColor: statusColor(selectedTicket.status, colors) }]}>
+                  <Text style={[styles.statusText, { color: statusColor(selectedTicket.status, colors) }]}>
                     {SUPPORT_STATUS[selectedTicket.status] || "Aberto"}
                   </Text>
                 </View>
@@ -322,7 +327,7 @@ export default function AdmSuporte({ navigation }) {
 
               {messagesLoading ? (
                 <View style={styles.loadingBox}>
-                  <ActivityIndicator color={Colors.primary} />
+                  <ActivityIndicator color={colors.primary} />
                 </View>
               ) : (
                 <FlatList
@@ -334,11 +339,15 @@ export default function AdmSuporte({ navigation }) {
                     const admin = item.authorRole === "admin";
                     return (
                       <View style={[styles.messageBubble, admin ? styles.adminBubble : styles.userBubble]}>
-                        <Text style={styles.messageAuthor}>
+                        <Text style={admin ? styles.messageAuthorAdmin : styles.messageAuthorUser}>
                           {admin ? item.authorName || "Administrador" : item.authorName || "Participante"}
                         </Text>
-                        <Text style={styles.messageText}>{item.texto}</Text>
-                        <Text style={styles.messageTime}>{formatDate(item.createdAt)}</Text>
+                        <Text style={admin ? styles.messageTextAdmin : styles.messageTextUser}>
+                          {item.texto}
+                        </Text>
+                        <Text style={admin ? styles.messageTimeAdmin : styles.messageTimeUser}>
+                          {formatDate(item.createdAt)}
+                        </Text>
                       </View>
                     );
                   }}
@@ -350,7 +359,7 @@ export default function AdmSuporte({ navigation }) {
                   value={reply}
                   onChangeText={setReply}
                   placeholder="Responder participante..."
-                  placeholderTextColor={Colors.textMuted}
+                  placeholderTextColor={colors.textMuted}
                   multiline
                   style={styles.replyInput}
                 />
@@ -360,11 +369,11 @@ export default function AdmSuporte({ navigation }) {
                   onPress={handleSendReply}
                   disabled={!reply.trim() || sending}
                 >
-                  <View style={[styles.sendIconCircle, { backgroundColor: "rgba(108,92,231,0.2)" }]}>
+                  <View style={styles.sendIconCircle}>
                     {sending ? (
-                      <ActivityIndicator color="#6C5CE7" size="small" />
+                      <ActivityIndicator color={colors.primary} size="small" />
                     ) : (
-                      <MaterialCommunityIcons name="send" size={18} color="#6C5CE7" />
+                      <MaterialCommunityIcons name="send" size={18} color={colors.primary} />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -372,7 +381,7 @@ export default function AdmSuporte({ navigation }) {
             </>
           ) : (
             <View style={styles.chatEmpty}>
-              <MaterialCommunityIcons name="headset" size={48} color={Colors.textMuted} />
+              <MaterialCommunityIcons name="headset" size={48} color={colors.textMuted} />
               <Text style={styles.emptyTitle}>Selecione um chamado</Text>
               <Text style={styles.emptyText}>A conversa e ações de atendimento aparecem aqui.</Text>
             </View>
@@ -395,9 +404,12 @@ export default function AdmSuporte({ navigation }) {
 }
 
 function StatCard({ icon, label, value }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   return (
     <View style={styles.statCard}>
-      <MaterialCommunityIcons name={icon} size={19} color={Colors.primaryLight} />
+      <MaterialCommunityIcons name={icon} size={19} color={colors.primaryLight} />
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
@@ -405,17 +417,20 @@ function StatCard({ icon, label, value }) {
 }
 
 function StatusButton({ label, active, onPress }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   return (
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={onPress}
       style={[styles.statusButton, active && styles.statusButtonActive]}
     >
-      <View style={[styles.statusIconCircle, { backgroundColor: active ? "rgba(108,92,231,0.2)" : "rgba(255,255,255,0.05)" }]}>
+      <View style={[styles.statusIconCircle, { backgroundColor: active ? colors.primarySoft : colors.glass }]}>
         <MaterialCommunityIcons
           name={active ? "check-circle" : "circle-outline"}
           size={18}
-          color={active ? "#6C5CE7" : Colors.textMuted}
+          color={active ? colors.primary : colors.textMuted}
         />
       </View>
       <Text style={[styles.statusLabel, active && styles.statusLabelActive]}>
@@ -425,8 +440,9 @@ function StatusButton({ label, active, onPress }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     paddingTop: 55,
     paddingHorizontal: 20,
@@ -439,34 +455,36 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
   },
   headerCopy: { flex: 1 },
-  title: { fontSize: 22, fontWeight: "900", color: Colors.textPrimary },
-  subtitle: { color: Colors.textSecondary, marginTop: 4, lineHeight: 19 },
+  title: { fontSize: 22, fontWeight: "900", color: c.textPrimary },
+  subtitle: { color: c.textSecondary, marginTop: 4, lineHeight: 19 },
   statsRow: { flexDirection: "row", gap: 10, marginTop: 18 },
   statCard: {
     flex: 1,
     borderRadius: 16,
-    backgroundColor: Colors.glass,
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     padding: 12,
   },
-  statValue: { color: Colors.textPrimary, fontSize: 20, fontWeight: "900", marginTop: 6 },
-  statLabel: { color: Colors.textSecondary, fontSize: 11, marginTop: 2 },
+  statValue: { color: c.textPrimary, fontSize: 20, fontWeight: "900", marginTop: 6 },
+  statLabel: { color: c.textSecondary, fontSize: 11, marginTop: 2 },
   body: { flex: 1, padding: 16 },
   listPanel: { flex: 1 },
   chatPanel: {
     flex: 1.2,
     marginTop: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   filters: { gap: 8, paddingBottom: 12 },
@@ -474,23 +492,23 @@ const styles = StyleSheet.create({
     height: 38,
     paddingHorizontal: 14,
     borderRadius: 999,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     justifyContent: "center",
   },
-  filterChipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  filterText: { color: Colors.textSecondary, fontWeight: "700", fontSize: 12 },
-  filterTextActive: { color: "#FFF" },
+  filterChipActive: { backgroundColor: c.primary, borderColor: c.primary },
+  filterText: { color: c.textSecondary, fontWeight: "700", fontSize: 12 },
+  filterTextActive: { color: c.onPrimary },
   ticketCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     borderRadius: 18,
     padding: 14,
     marginBottom: 12,
   },
-  ticketCardActive: { borderColor: Colors.primary, backgroundColor: Colors.backgroundElevated },
+  ticketCardActive: { borderColor: c.primary, backgroundColor: c.backgroundElevated },
   ticketTop: { flexDirection: "row", alignItems: "center" },
   ticketIcon: {
     width: 42,
@@ -501,32 +519,32 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   ticketInfo: { flex: 1 },
-  ticketTitle: { color: Colors.textPrimary, fontWeight: "900", fontSize: 14 },
-  ticketMeta: { color: Colors.textMuted, fontSize: 12, marginTop: 3 },
-  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.error, marginLeft: 10 },
-  ticketMessage: { color: Colors.textSecondary, marginTop: 12, lineHeight: 19 },
+  ticketTitle: { color: c.textPrimary, fontWeight: "900", fontSize: 14 },
+  ticketMeta: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+  unreadDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.error, marginLeft: 10 },
+  ticketMessage: { color: c.textSecondary, marginTop: 12, lineHeight: 19 },
   ticketFooter: { flexDirection: "row", alignItems: "center", marginTop: 12 },
   priorityDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
-  priorityText: { color: Colors.textMuted, fontSize: 12, textTransform: "capitalize" },
+  priorityText: { color: c.textMuted, fontSize: 12, textTransform: "capitalize" },
   statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, marginLeft: "auto" },
   statusText: { fontSize: 11, fontWeight: "900" },
   chatHeader: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     flexDirection: "row",
     alignItems: "center",
   },
   chatHeaderCopy: { flex: 1, paddingRight: 10 },
-  chatTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: "900" },
-  chatSubtitle: { color: Colors.textMuted, marginTop: 3, fontSize: 12 },
+  chatTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "900" },
+  chatSubtitle: { color: c.textMuted, marginTop: 3, fontSize: 12 },
   actionsRow: {
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   statusButton: {
     flex: 1,
@@ -535,12 +553,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 12,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     gap: 8,
   },
-  statusButtonActive: { borderColor: Colors.primary, backgroundColor: Colors.backgroundElevated },
+  statusButtonActive: { borderColor: c.primary, backgroundColor: c.primarySoft },
   statusIconCircle: {
     width: 32,
     height: 32,
@@ -552,20 +570,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: "700",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
-  statusLabelActive: { color: Colors.textPrimary },
+  statusLabelActive: { color: c.textPrimary },
   messagesList: { flex: 1 },
   messagesContent: { padding: 14 },
   messageBubble: { maxWidth: "88%", padding: 12, borderRadius: 16, marginBottom: 10 },
-  adminBubble: { alignSelf: "flex-end", backgroundColor: Colors.primary },
-  userBubble: { alignSelf: "flex-start", backgroundColor: Colors.backgroundElevated },
-  messageAuthor: { color: "#FFF", fontSize: 11, fontWeight: "900", marginBottom: 4 },
-  messageText: { color: "#FFF", fontSize: 14, lineHeight: 19 },
-  messageTime: { color: "rgba(255,255,255,0.62)", fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  adminBubble: { alignSelf: "flex-end", backgroundColor: c.primary },
+  userBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  messageAuthorAdmin: { color: c.onPrimary, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextAdmin: { color: c.onPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeAdmin: { color: "rgba(255,255,255,0.72)", fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  messageAuthorUser: { color: c.textMuted, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextUser: { color: c.textPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeUser: { color: c.textMuted, fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
   replyBar: {
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
     padding: 10,
     flexDirection: "row",
     alignItems: "flex-end",
@@ -576,41 +602,43 @@ const styles = StyleSheet.create({
     minHeight: 44,
     maxHeight: 110,
     borderRadius: 14,
-    backgroundColor: Colors.background,
-    color: Colors.textPrimary,
+    backgroundColor: c.background,
+    color: c.textPrimary,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: c.border,
   },
   sendButton: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.border,
     alignItems: "center",
     justifyContent: "center",
   },
-
   sendIconCircle: {
     width: 32,
     height: 32,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: c.primarySoft,
   },
-
   disabledButton: { opacity: 0.55 },
   loadingBox: { paddingVertical: 40, alignItems: "center", justifyContent: "center" },
   emptyBox: {
     padding: 24,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     alignItems: "center",
   },
   chatEmpty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 26 },
-  emptyTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: "800", marginTop: 10, textAlign: "center" },
-  emptyText: { color: Colors.textSecondary, textAlign: "center", lineHeight: 19, marginTop: 6 },
+  emptyTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "800", marginTop: 10, textAlign: "center" },
+  emptyText: { color: c.textSecondary, textAlign: "center", lineHeight: 19, marginTop: 6 },
 });
+}

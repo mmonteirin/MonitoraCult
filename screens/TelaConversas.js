@@ -11,12 +11,16 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useAuth } from "../context/AuthContext";
 import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const embedded = !!route?.params?.embedded;
   const scrollY = route?.params?.scrollY;
   const onNovaConversaExterno = route?.params?.onNovaConversa;
@@ -106,24 +110,25 @@ const TelaConversas = ({ navigation, route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   containerEmbedded: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   header: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
@@ -144,11 +149,11 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "800",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   label: {
-    color: Colors.primary,
+    color: c.primary,
     fontSize: 11,
     fontWeight: "800",
     textTransform: "uppercase",
@@ -156,7 +161,7 @@ const styles = StyleSheet.create({
   },
 
   subtitulo: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 12,
     marginTop: 6,
     lineHeight: 16,
@@ -168,9 +173,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     marginTop: 2,
   },
-});
+  });
+}
 
 export default TelaConversas;

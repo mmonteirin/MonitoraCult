@@ -21,10 +21,9 @@ import { BlurView } from "expo-blur";
 import { MotiView } from "moti";
 
 import { useCadastro } from "../context/CadastroContext";
-import GlobalStyles from "../styles/GlobalStyles";
 import ConfirmModal from "../components/ConfirmModal";
-
-const { colors } = GlobalStyles;
+import { useGlobalStyles } from "../hooks/useGlobalStyles";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const FIELD_ORDER = [
   "nome",
@@ -35,6 +34,9 @@ const FIELD_ORDER = [
 ];
 
 export default function PerfilCadastro({ navigation }) {
+  const GlobalStyles = useGlobalStyles();
+  const colors = GlobalStyles.colors;
+  const styles = useThemedStyles(createPerfilCadastroStyles);
   const { registerUser, sendVerificationCode, verifyCode } = useCadastro();
 
   const scrollRef = useRef(null);
@@ -468,108 +470,94 @@ export default function PerfilCadastro({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 60,
-    flexGrow: 1,
-  },
-
-  backButton: {
-    marginLeft: 16,
-    marginTop: 12,
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 18,
-    gap: 12,
-  },
-
-  logo: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  title: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  subtitle: {
-    color: "rgba(255,255,255,0.6)",
-  },
-
-  card: {
-    padding: 18,
-    borderRadius: 20,
-    backgroundColor: "rgba(20,20,20,0.35)",
-    overflow: "hidden",
-  },
-
-  inputBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-
-  input: {
-    flex: 1,
-    color: "#fff",
-    marginLeft: 8,
-    paddingVertical: 4,
-  },
-
-  label: {
-    color: "rgba(255,255,255,0.7)",
-    marginBottom: 4,
-  },
-
-  row: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-
-  codeBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    overflow: "hidden",
-    marginTop: 22,
-  },
-
-  codeGrad: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  submit: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 14,
-    alignItems: "center",
-  },
-
-  error: {
-    color: "#ff6b6b",
-    marginTop: 10,
-    textAlign: "center",
-  },
-
-
-});
+function createPerfilCadastroStyles(c) {
+  return StyleSheet.create({
+    container: {
+      padding: 16,
+      paddingBottom: 60,
+      flexGrow: 1,
+    },
+    backButton: {
+      marginLeft: 16,
+      marginTop: 12,
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: c.glassStrong,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 18,
+      gap: 12,
+    },
+    logo: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    title: {
+      color: c.onPrimary,
+      fontSize: 18,
+      fontWeight: "bold",
+    },
+    subtitle: {
+      color: c.textSecondary,
+    },
+    card: {
+      padding: 18,
+      borderRadius: 20,
+      backgroundColor: c.glass,
+      overflow: "hidden",
+    },
+    inputBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 10,
+      borderRadius: 14,
+      backgroundColor: c.glass,
+    },
+    input: {
+      flex: 1,
+      color: c.textPrimary,
+      marginLeft: 8,
+      paddingVertical: 4,
+    },
+    label: {
+      color: c.textSecondary,
+      marginBottom: 4,
+    },
+    row: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+    },
+    codeBtn: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      overflow: "hidden",
+      marginTop: 22,
+    },
+    codeGrad: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    submit: {
+      marginTop: 16,
+      padding: 14,
+      borderRadius: 14,
+      alignItems: "center",
+    },
+    error: {
+      color: c.error,
+      marginTop: 10,
+      textAlign: "center",
+    },
+  });
+}

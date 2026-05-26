@@ -4,7 +4,7 @@
     "slug": "snack-76330891-d725-4703-84bd-f58504f3c860",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
 
     "icon": "./assets/icon.png",
@@ -12,7 +12,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#070B14"
     },
 
     "ios": {
@@ -27,7 +27,7 @@
       "package": "com.monitoracult.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#070B14"
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
@@ -41,7 +41,7 @@
     },
 
     "web": {
-      "favicon": "./assets/favicon.svg"
+      "favicon": "./assets/icon.png"
     },
 
     "plugins": [

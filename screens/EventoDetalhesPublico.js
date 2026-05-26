@@ -27,13 +27,24 @@ export default function EventoDetalhesPublico({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
+  // Handle both raw API structure and transformed structure
+  const eventoNormalizado = {
+    titulo: evento.titulo || evento.name || "Evento",
+    descricao: evento.descricao || evento.shortDescription || evento.description || "",
+    data: evento.data || "Em breve",
+    local: evento.local || evento.location?.name || evento.location || "Fortaleza",
+    categoria: evento.categoria || "Cultura",
+    imagem: evento.imagem || evento.files?.avatar?.url || evento.files?.header?.url || evento.files?.[0]?.url || "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+    status: evento.status || "pendente",
+  };
+
   const handleShare = async () => {
     try {
-      const message = `${evento.titulo}\n\n📅 ${evento.data}\n📍 ${evento.local}\n\n${evento.descricao}`;
+      const message = `${eventoNormalizado.titulo}\n\n📅 ${eventoNormalizado.data}\n📍 ${eventoNormalizado.local}\n\n${eventoNormalizado.descricao}`;
 
       await Share.share({
         message: message,
-        title: evento.titulo,
+        title: eventoNormalizado.titulo,
       });
     } catch (error) {
       Alert.alert("Erro", "Não foi possível compartilhar o evento.");
@@ -53,7 +64,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
         {/* HEADER COM IMAGEM */}
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: evento.imagem }}
+            source={{ uri: eventoNormalizado.imagem }}
             style={styles.headerImage}
             resizeMode="cover"
           />
@@ -76,12 +87,12 @@ export default function EventoDetalhesPublico({ route, navigation }) {
           <View style={styles.statusContainer}>
             <BlurView intensity={40} tint="dark" style={styles.statusPill}>
               <MaterialCommunityIcons
-                name={evento.status === "passado" ? "history" : evento.status === "confirmado" ? "check-circle" : "clock-outline"}
+                name={eventoNormalizado.status === "passado" ? "history" : eventoNormalizado.status === "confirmado" ? "check-circle" : "clock-outline"}
                 size={14}
                 color="#FFF"
               />
               <Text style={styles.statusText}>
-                {evento.status === "passado" ? "Passado" : evento.status === "confirmado" ? "Confirmado" : "Pendente"}
+                {eventoNormalizado.status === "passado" ? "Passado" : eventoNormalizado.status === "confirmado" ? "Confirmado" : "Pendente"}
               </Text>
             </BlurView>
           </View>
@@ -95,7 +106,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: "timing", duration: 600 }}
           >
-            <Text style={styles.title}>{evento.titulo}</Text>
+            <Text style={styles.title}>{eventoNormalizado.titulo}</Text>
           </MotiView>
 
           {/* INFORMAÇÕES */}
@@ -111,7 +122,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Data</Text>
-                  <Text style={styles.infoValue}>{evento.data}</Text>
+                  <Text style={styles.infoValue}>{eventoNormalizado.data}</Text>
                 </View>
               </View>
 
@@ -121,7 +132,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Local</Text>
-                  <Text style={styles.infoValue}>{evento.local}</Text>
+                  <Text style={styles.infoValue}>{eventoNormalizado.local}</Text>
                 </View>
               </View>
 
@@ -131,7 +142,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Categoria</Text>
-                  <Text style={styles.infoValue}>{evento.categoria}</Text>
+                  <Text style={styles.infoValue}>{eventoNormalizado.categoria}</Text>
                 </View>
               </View>
             </View>
@@ -145,7 +156,7 @@ export default function EventoDetalhesPublico({ route, navigation }) {
           >
             <View style={styles.descriptionCard}>
               <Text style={styles.sectionTitle}>Descrição</Text>
-              <Text style={styles.description}>{evento.descricao}</Text>
+              <Text style={styles.description}>{eventoNormalizado.descricao}</Text>
             </View>
           </MotiView>
 

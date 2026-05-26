@@ -15,7 +15,8 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useCommunity } from "../hooks/useCommunity";
 
 function formatDate(timestamp) {
@@ -31,6 +32,9 @@ function formatDate(timestamp) {
 }
 
 export default function ComunidadeForumDetalhes({ route, navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const { groupId, threadId } = route.params;
   const {
@@ -73,7 +77,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
     <View style={[styles.replyCard, index === 0 && { marginTop: 4 }]}>
       <View style={styles.replyAuthorRow}>
         <View style={styles.avatar}>
-          <MaterialCommunityIcons name="account" size={18} color={Colors.textMuted} />
+          <MaterialCommunityIcons name="account" size={18} color={colors.textMuted} />
         </View>
         <View>
           <Text style={styles.authorName}>{item.authorName || "Usuário"}</Text>
@@ -88,7 +92,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
     return (
       <View style={styles.loadingScreen}>
         <StatusBar barStyle="light-content" />
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -106,9 +110,9 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
       >
         <LinearGradient
           colors={[
-            Colors.backgroundSecondary,
-            Colors.surface,
-            Colors.background,
+            colors.backgroundSecondary,
+            colors.surface,
+            colors.background,
           ]}
           style={[
             styles.header,
@@ -121,7 +125,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <BlurView
                 intensity={35}
-                tint="dark"
+                tint={blurTint}
                 style={styles.headerBlur}
               >
                 <MaterialCommunityIcons name="chevron-left" size={28} color="#FFF" />
@@ -144,7 +148,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
             {/* THREAD AUTHOR */}
             <View style={styles.threadAuthorRow}>
               <View style={styles.avatarLg}>
-                <MaterialCommunityIcons name="account" size={24} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="account" size={24} color={colors.textMuted} />
               </View>
               <View>
                 <Text style={styles.threadAuthorName}>{currentThread?.authorName || "Usuário"}</Text>
@@ -159,7 +163,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
             {/* STATS */}
             <View style={styles.threadStats}>
               <View style={styles.statItem}>
-                <MaterialCommunityIcons name="comment-multiple-outline" size={16} color={Colors.textMuted} />
+                <MaterialCommunityIcons name="comment-multiple-outline" size={16} color={colors.textMuted} />
                 <Text style={styles.statText}>{threadReplies.length} respostas</Text>
               </View>
             </View>
@@ -170,7 +174,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
         }
         ListEmptyComponent={
           <View style={styles.emptyReplies}>
-            <MaterialCommunityIcons name="comment-outline" size={40} color={Colors.textMuted} />
+            <MaterialCommunityIcons name="comment-outline" size={40} color={colors.textMuted} />
             <Text style={styles.emptyText}>Nenhuma resposta ainda. Seja o primeiro!</Text>
           </View>
         }
@@ -179,7 +183,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       />
@@ -190,7 +194,7 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
           <TextInput
             style={styles.replyInput}
             placeholder="Escreva sua resposta..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             value={replyText}
             onChangeText={setReplyText}
             multiline
@@ -218,9 +222,10 @@ export default function ComunidadeForumDetalhes({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
+  loadingScreen: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.background },
   header: {
     paddingHorizontal: 20,
     paddingBottom: 18,
@@ -238,57 +243,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
   },
   headerTitle: { fontSize: 20, fontWeight: "800", color: "#FFF", flex: 1, textAlign: "center" },
   threadCard: { padding: 20 },
   threadAuthorRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   avatarLg: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surface,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
   },
-  threadAuthorName: { fontSize: 14, fontWeight: "700", color: Colors.textPrimary },
-  threadDate: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
-  threadTitle: { fontSize: 20, fontWeight: "800", color: Colors.textPrimary, lineHeight: 26, marginBottom: 12 },
-  threadDescription: { fontSize: 14, color: Colors.textSecondary, lineHeight: 21 },
+  threadAuthorName: { fontSize: 14, fontWeight: "700", color: c.textPrimary },
+  threadDate: { fontSize: 12, color: c.textMuted, marginTop: 2 },
+  threadTitle: { fontSize: 20, fontWeight: "800", color: c.textPrimary, lineHeight: 26, marginBottom: 12 },
+  threadDescription: { fontSize: 14, color: c.textSecondary, lineHeight: 21 },
   threadStats: { flexDirection: "row", marginTop: 16, gap: 16 },
   statItem: { flexDirection: "row", alignItems: "center", gap: 6 },
-  statText: { color: Colors.textMuted, fontSize: 13 },
-  divider: { height: 1, backgroundColor: Colors.border, marginVertical: 20 },
-  repliesLabel: { fontSize: 15, fontWeight: "700", color: Colors.textPrimary },
+  statText: { color: c.textMuted, fontSize: 13 },
+  divider: { height: 1, backgroundColor: c.border, marginVertical: 20 },
+  repliesLabel: { fontSize: 15, fontWeight: "700", color: c.textPrimary },
   replyCard: {
-    marginHorizontal: 16, marginBottom: 10, backgroundColor: Colors.card,
-    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: Colors.border,
+    marginHorizontal: 16, marginBottom: 10, backgroundColor: c.card,
+    borderRadius: 14, padding: 14, borderWidth: 1, borderColor: c.border,
   },
   replyAuthorRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   avatar: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: Colors.surface,
+    width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface,
     justifyContent: "center", alignItems: "center",
   },
-  authorName: { fontSize: 13, fontWeight: "700", color: Colors.textPrimary },
-  replyDate: { fontSize: 11, color: Colors.textMuted, marginTop: 1 },
-  replyContent: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
+  authorName: { fontSize: 13, fontWeight: "700", color: c.textPrimary },
+  replyDate: { fontSize: 11, color: c.textMuted, marginTop: 1 },
+  replyContent: { fontSize: 14, color: c.textSecondary, lineHeight: 20 },
   emptyReplies: { alignItems: "center", paddingVertical: 40 },
-  emptyText: { color: Colors.textMuted, fontSize: 14, marginTop: 10, textAlign: "center" },
+  emptyText: { color: c.textMuted, fontSize: 14, marginTop: 10, textAlign: "center" },
   inputArea: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     flexDirection: "row", alignItems: "flex-end", gap: 10,
     padding: 14, paddingBottom: Platform.OS === "ios" ? 30 : 14,
-    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border,
+    backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border,
   },
   replyInput: {
-    flex: 1, backgroundColor: Colors.card, borderRadius: 20, paddingHorizontal: 16,
-    paddingVertical: 10, color: Colors.textPrimary, fontSize: 14, maxHeight: 100,
-    borderWidth: 1, borderColor: Colors.border,
+    flex: 1, backgroundColor: c.card, borderRadius: 20, paddingHorizontal: 16,
+    paddingVertical: 10, color: c.textPrimary, fontSize: 14, maxHeight: 100,
+    borderWidth: 1, borderColor: c.border,
   },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
+    borderColor: c.glassBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -303,7 +308,8 @@ const styles = StyleSheet.create({
   joinBanner: {
     position: "absolute", bottom: 0, left: 0, right: 0,
     padding: 16, paddingBottom: Platform.OS === "ios" ? 30 : 16,
-    backgroundColor: Colors.surface, borderTopWidth: 1, borderTopColor: Colors.border, alignItems: "center",
+    backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.border, alignItems: "center",
   },
-  joinBannerText: { color: Colors.textMuted, fontSize: 14 },
+  joinBannerText: { color: c.textMuted, fontSize: 14 },
 });
+}

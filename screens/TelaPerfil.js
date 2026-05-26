@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
     View,
     TouchableOpacity,
@@ -17,13 +17,23 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "../context/AuthContext";
 import AppText from "../components/AppText";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Status } from "../styles/Colors";
 
 export default function TelaPerfil({ navigation }) {
     const { foto, nome, user, logout } = useAuth();
     const [loadingLogout, setLoadingLogout] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const insets = useSafeAreaInsets();
+    const { colors, isDark } = useTheme();
+    const styles = useThemedStyles(createPerfilStyles);
+    const blurTint = isDark ? "dark" : "light";
+
+    const headerGradient = useMemo(
+        () => [colors.surfaceMuted, colors.backgroundDeep, colors.backgroundSecondary],
+        [colors]
+    );
 
     const go = (screen) => {
         navigation.navigate("Perfil", { screen });
@@ -45,19 +55,11 @@ export default function TelaPerfil({ navigation }) {
         <View style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                    paddingBottom: 120,
-                }}
+                contentContainerStyle={{ paddingBottom: 120 }}
             >
-                {/* HEADER */}
                 <LinearGradient
-                    colors={["#111827", "#1E1B4B", "#0F172A"]}
-                    style={[
-                        styles.header,
-                        {
-                            paddingTop: insets.top + 10,
-                        },
-                    ]}
+                    colors={headerGradient}
+                    style={[styles.header, { paddingTop: insets.top + 10 }]}
                 >
                     <View style={styles.profileRow}>
                         <View style={styles.avatarWrapper}>
@@ -74,147 +76,110 @@ export default function TelaPerfil({ navigation }) {
                             <AppText style={styles.nome}>
                                 {nome || user?.displayName || "Usuário"}
                             </AppText>
-
                             <AppText style={styles.email}>
                                 {user?.email ?? "Email não disponível"}
                             </AppText>
-
                             <View style={styles.badge}>
                                 <MaterialCommunityIcons
                                     name="shield-check"
                                     size={14}
-                                    color="#A78BFA"
+                                    color={colors.primaryLight}
                                 />
-                                <AppText style={styles.badgeText}>
-                                    Conta ativa
-                                </AppText>
+                                <AppText style={styles.badgeText}>Conta ativa</AppText>
                             </View>
                         </View>
                     </View>
                 </LinearGradient>
 
-                {/* MENU CONTAS E ATIVIDADES */}
                 <View style={styles.menu}>
                     <AppText style={styles.section}>Conta</AppText>
 
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={styles.card}
-                        onPress={() => go("PerfilEditar")}
-                    >
-                        <View style={styles.iconBox}>
+                    {[
+                        {
+                            icon: "account-edit-outline",
+                            title: "Editar Perfil",
+                            sub: "Atualize suas informações",
+                            onPress: () => go("PerfilEditar"),
+                        },
+                        {
+                            icon: "lock-reset",
+                            title: "Alterar Senha",
+                            sub: "Mantenha sua conta segura",
+                            onPress: () => go("ResetPassword"),
+                        },
+                        {
+                            icon: "cog-outline",
+                            title: "Configurações",
+                            sub: "Privacidade, notificações e suporte",
+                            onPress: () => navigation.navigate("Configuracoes"),
+                        },
+                    ].map((item) => (
+                        <TouchableOpacity
+                            key={item.title}
+                            activeOpacity={0.85}
+                            style={styles.card}
+                            onPress={item.onPress}
+                        >
+                            <View style={styles.iconBox}>
+                                <MaterialCommunityIcons
+                                    name={item.icon}
+                                    size={22}
+                                    color={colors.primary}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <AppText style={styles.texto}>{item.title}</AppText>
+                                <AppText style={styles.subtexto}>{item.sub}</AppText>
+                            </View>
                             <MaterialCommunityIcons
-                                name="account-edit-outline"
-                                size={22}
-                                color={Colors.primary}
+                                name="chevron-right"
+                                size={24}
+                                color={colors.textMuted}
                             />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <AppText style={styles.texto}>Editar Perfil</AppText>
-                            <AppText style={styles.subtexto}>Atualize suas informações</AppText>
-                        </View>
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={24}
-                            color="rgba(255,255,255,0.35)"
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={styles.card}
-                        onPress={() => go("ResetPassword")}
-                    >
-                        <View style={styles.iconBox}>
-                            <MaterialCommunityIcons
-                                name="lock-reset"
-                                size={22}
-                                color={Colors.primary}
-                            />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <AppText style={styles.texto}>Alterar Senha</AppText>
-                            <AppText style={styles.subtexto}>Mantenha sua conta segura</AppText>
-                        </View>
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={24}
-                            color="rgba(255,255,255,0.35)"
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={styles.card}
-                        onPress={() => navigation.navigate("Configuracoes")}
-                    >
-                        <View style={styles.iconBox}>
-                            <MaterialCommunityIcons
-                                name="cog-outline"
-                                size={22}
-                                color={Colors.primary}
-                            />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <AppText style={styles.texto}>Configurações</AppText>
-                            <AppText style={styles.subtexto}>Privacidade, notificações e suporte</AppText>
-                        </View>
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={24}
-                            color="rgba(255,255,255,0.35)"
-                        />
-                    </TouchableOpacity>
+                        </TouchableOpacity>
+                    ))}
 
                     <AppText style={styles.section}>Atividade</AppText>
 
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={styles.card}
-                        onPress={() => go("Ocorrencias")}
-                    >
-                        <View style={styles.iconBox}>
+                    {[
+                        {
+                            icon: "history",
+                            title: "Histórico de Ocorrências",
+                            sub: "Visualize atividades recentes",
+                            onPress: () => go("Ocorrencias"),
+                        },
+                        {
+                            icon: "map-marker-multiple-outline",
+                            title: "Locais Visitados",
+                            sub: "Veja seus espaços culturais favoritos",
+                            onPress: () => go("LocaisVisitados"),
+                        },
+                    ].map((item) => (
+                        <TouchableOpacity
+                            key={item.title}
+                            activeOpacity={0.85}
+                            style={styles.card}
+                            onPress={item.onPress}
+                        >
+                            <View style={styles.iconBox}>
+                                <MaterialCommunityIcons
+                                    name={item.icon}
+                                    size={22}
+                                    color={colors.primary}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <AppText style={styles.texto}>{item.title}</AppText>
+                                <AppText style={styles.subtexto}>{item.sub}</AppText>
+                            </View>
                             <MaterialCommunityIcons
-                                name="history"
-                                size={22}
-                                color={Colors.primary}
+                                name="chevron-right"
+                                size={24}
+                                color={colors.textMuted}
                             />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <AppText style={styles.texto}>Histórico de Ocorrências</AppText>
-                            <AppText style={styles.subtexto}>Visualize atividades recentes</AppText>
-                        </View>
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={24}
-                            color="rgba(255,255,255,0.35)"
-                        />
-                    </TouchableOpacity>
+                        </TouchableOpacity>
+                    ))}
 
-                    <TouchableOpacity
-                        activeOpacity={0.85}
-                        style={styles.card}
-                        onPress={() => go("LocaisVisitados")}
-                    >
-                        <View style={styles.iconBox}>
-                            <MaterialCommunityIcons
-                                name="map-marker-multiple-outline"
-                                size={22}
-                                color={Colors.primary}
-                            />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <AppText style={styles.texto}>Locais Visitados</AppText>
-                            <AppText style={styles.subtexto}>Veja seus espaços culturais favoritos</AppText>
-                        </View>
-                        <MaterialCommunityIcons
-                            name="chevron-right"
-                            size={24}
-                            color="rgba(255,255,255,0.35)"
-                        />
-                    </TouchableOpacity>
-
-                    {/* BOTAO LOGOUT */}
                     <TouchableOpacity
                         activeOpacity={0.85}
                         onPress={() => setShowLogoutModal(true)}
@@ -224,18 +189,19 @@ export default function TelaPerfil({ navigation }) {
                             <MaterialCommunityIcons
                                 name="logout"
                                 size={22}
-                                color="#EF4444"
+                                color={colors.error}
                             />
                         </View>
                         <View style={{ flex: 1 }}>
                             <AppText style={styles.logoutText}>Sair da Conta</AppText>
-                            <AppText style={styles.subtexto}>Encerrar sessão do aplicativo</AppText>
+                            <AppText style={styles.subtexto}>
+                                Encerrar sessão do aplicativo
+                            </AppText>
                         </View>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
 
-            {/* 🔥 MODAL PADRONIZADO IGUAL AO DA TELA FEED */}
             <Modal
                 visible={showLogoutModal}
                 transparent
@@ -244,29 +210,26 @@ export default function TelaPerfil({ navigation }) {
                 onRequestClose={() => setShowLogoutModal(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <Pressable 
-                        style={StyleSheet.absoluteFillObject} 
-                        onPress={() => setShowLogoutModal(false)} 
+                    <Pressable
+                        style={StyleSheet.absoluteFillObject}
+                        onPress={() => setShowLogoutModal(false)}
                     />
-                    
-                    <BlurView intensity={60} tint="dark" style={styles.modalCard}>
+                    <BlurView intensity={60} tint={blurTint} style={styles.modalCard}>
                         <LinearGradient
-                            colors={["rgba(239,68,68,0.12)", "rgba(15,15,20,0)"]}
+                            colors={[`${colors.error}1F`, "transparent"]}
                             style={styles.modalGradient}
                         >
                             <View style={styles.modalIcon}>
                                 <MaterialCommunityIcons
                                     name="logout"
                                     size={34}
-                                    color="#EF4444"
+                                    color={colors.error}
                                 />
                             </View>
-
                             <AppText style={styles.modalTitle}>Sair da conta?</AppText>
                             <AppText style={styles.modalText}>
                                 Você realmente deseja encerrar sua sessão ativa no aplicativo?
                             </AppText>
-
                             <View style={styles.modalButtons}>
                                 <TouchableOpacity
                                     activeOpacity={0.8}
@@ -275,7 +238,6 @@ export default function TelaPerfil({ navigation }) {
                                 >
                                     <AppText style={styles.cancelText}>Cancelar</AppText>
                                 </TouchableOpacity>
-
                                 <TouchableOpacity
                                     activeOpacity={0.85}
                                     style={styles.confirmBtn}
@@ -283,21 +245,24 @@ export default function TelaPerfil({ navigation }) {
                                     disabled={loadingLogout}
                                 >
                                     <LinearGradient
-                                        colors={["#EF4444", "#DC2626"]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
+                                        colors={[Status.error, Status.errorDark]}
                                         style={styles.confirmGradient}
                                     >
                                         {loadingLogout ? (
-                                            <ActivityIndicator size="small" color="#FFF" />
+                                            <ActivityIndicator
+                                                size="small"
+                                                color={colors.onPrimary}
+                                            />
                                         ) : (
                                             <>
                                                 <MaterialCommunityIcons
                                                     name="logout"
                                                     size={18}
-                                                    color="#FFF"
+                                                    color={colors.onPrimary}
                                                 />
-                                                <AppText style={styles.confirmText}>Sair</AppText>
+                                                <AppText style={styles.confirmText}>
+                                                    Sair
+                                                </AppText>
                                             </>
                                         )}
                                     </LinearGradient>
@@ -311,41 +276,150 @@ export default function TelaPerfil({ navigation }) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#070B14" },
-    header: { paddingHorizontal: 20, paddingBottom: 24, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-    profileRow: { flexDirection: "row", alignItems: "center" },
-    avatarWrapper: { position: "relative" },
-    avatar: { width: 78, height: 78, borderRadius: 39, borderWidth: 3, borderColor: "#7C3AED" },
-    onlineDot: { position: "absolute", right: 2, bottom: 2, width: 14, height: 14, borderRadius: 7, backgroundColor: "#22C55E", borderWidth: 2, borderColor: "#111827" },
-    infoContainer: { marginLeft: 14, flex: 1 },
-    nome: { color: "#FFF", fontSize: 20, fontWeight: "bold" },
-    email: { color: "rgba(255,255,255,0.65)", fontSize: 13, marginTop: 2 },
-    badge: { marginTop: 10, alignSelf: "flex-start", flexDirection: "row", alignItems: "center", paddingHorizontal: 10, height: 26, borderRadius: 14, backgroundColor: "rgba(124,58,237,0.16)" },
-    badgeText: { color: "#C4B5FD", fontSize: 12, marginLeft: 6, fontWeight: "600" },
-    
-    menu: { padding: 18 },
-    section: { color: "rgba(255,255,255,0.45)", fontSize: 13, marginBottom: 12, marginTop: 8, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-    card: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.04)", padding: 16, borderRadius: 22, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.06)" },
-    iconBox: { width: 46, height: 46, borderRadius: 16, backgroundColor: "rgba(124,58,237,0.12)", justifyContent: "center", alignItems: "center", marginRight: 14 },
-    texto: { color: "#FFF", fontSize: 15, fontWeight: "600" },
-    subtexto: { color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 3 },
-    
-    logout: { marginTop: 12, flexDirection: "row", alignItems: "center", backgroundColor: "rgba(239,68,68,0.06)", padding: 16, borderRadius: 22, borderWidth: 1, borderColor: "rgba(239,68,68,0.15)" },
-    logoutIcon: { backgroundColor: "rgba(239,68,68,0.1)" },
-    logoutText: { color: "#EF4444", fontSize: 15, fontWeight: "bold" },
-
-    /* ESTILIZAÇÃO DO MODAL INTEGRADO E COMPATÍVEL */
-    modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "center", alignItems: "center", paddingHorizontal: 24 },
-    modalCard: { width: "100%", borderRadius: 28, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
-    modalGradient: { padding: 24, alignItems: "center" },
-    modalIcon: { width: 72, height: 72, borderRadius: 24, backgroundColor: "rgba(239,68,68,0.1)", justifyContent: "center", alignItems: "center", marginBottom: 16 },
-    modalTitle: { color: "#FFF", fontSize: 22, fontWeight: "bold" },
-    modalText: { color: "rgba(255,255,255,0.6)", textAlign: "center", marginTop: 10, fontSize: 14, lineHeight: 22, paddingHorizontal: 12 },
-    modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
-    cancelBtn: { flex: 1, height: 50, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.05)" },
-    cancelText: { color: "#FFF", fontWeight: "600", fontSize: 14 },
-    confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
-    confirmGradient: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 },
-    confirmText: { color: "#FFF", fontWeight: "bold", fontSize: 14 },
-});
+function createPerfilStyles(c) {
+    return StyleSheet.create({
+        container: { flex: 1, backgroundColor: c.background },
+        header: {
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            borderBottomLeftRadius: 28,
+            borderBottomRightRadius: 28,
+        },
+        profileRow: { flexDirection: "row", alignItems: "center" },
+        avatarWrapper: { position: "relative" },
+        avatar: {
+            width: 78,
+            height: 78,
+            borderRadius: 39,
+            borderWidth: 3,
+            borderColor: c.primary,
+        },
+        onlineDot: {
+            position: "absolute",
+            right: 2,
+            bottom: 2,
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            backgroundColor: c.success,
+            borderWidth: 2,
+            borderColor: c.surfaceMuted,
+        },
+        infoContainer: { marginLeft: 14, flex: 1 },
+        nome: { color: c.textPrimary, fontSize: 20, fontWeight: "bold" },
+        email: { color: c.textSecondary, fontSize: 13, marginTop: 2 },
+        badge: {
+            marginTop: 10,
+            alignSelf: "flex-start",
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 10,
+            height: 26,
+            borderRadius: 14,
+            backgroundColor: c.primarySoft,
+        },
+        badgeText: {
+            color: c.primaryLight,
+            fontSize: 12,
+            marginLeft: 6,
+            fontWeight: "600",
+        },
+        menu: { padding: 18 },
+        section: {
+            color: c.textMuted,
+            fontSize: 13,
+            marginBottom: 12,
+            marginTop: 8,
+            fontWeight: "700",
+            textTransform: "uppercase",
+            letterSpacing: 0.5,
+        },
+        card: {
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: c.glass,
+            padding: 16,
+            borderRadius: 22,
+            marginBottom: 14,
+            borderWidth: 1,
+            borderColor: c.glassBorder,
+        },
+        iconBox: {
+            width: 46,
+            height: 46,
+            borderRadius: 16,
+            backgroundColor: c.primarySoft,
+            justifyContent: "center",
+            alignItems: "center",
+            marginRight: 14,
+        },
+        texto: { color: c.textPrimary, fontSize: 15, fontWeight: "600" },
+        subtexto: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+        logout: {
+            marginTop: 12,
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "rgba(239,68,68,0.06)",
+            padding: 16,
+            borderRadius: 22,
+            borderWidth: 1,
+            borderColor: "rgba(239,68,68,0.15)",
+        },
+        logoutIcon: { backgroundColor: "rgba(239,68,68,0.1)" },
+        logoutText: { color: c.error, fontSize: 15, fontWeight: "bold" },
+        modalOverlay: {
+            flex: 1,
+            backgroundColor: c.overlayStronger,
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 24,
+        },
+        modalCard: {
+            width: "100%",
+            borderRadius: 28,
+            overflow: "hidden",
+            borderWidth: 1,
+            borderColor: c.glassBorder,
+        },
+        modalGradient: { padding: 24, alignItems: "center" },
+        modalIcon: {
+            width: 72,
+            height: 72,
+            borderRadius: 24,
+            backgroundColor: "rgba(239,68,68,0.1)",
+            justifyContent: "center",
+            alignItems: "center",
+            marginBottom: 16,
+        },
+        modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
+        modalText: {
+            color: c.textSecondary,
+            textAlign: "center",
+            marginTop: 10,
+            fontSize: 14,
+            lineHeight: 22,
+            paddingHorizontal: 12,
+        },
+        modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
+        cancelBtn: {
+            flex: 1,
+            height: 50,
+            borderRadius: 16,
+            backgroundColor: c.glass,
+            justifyContent: "center",
+            alignItems: "center",
+            borderWidth: 1,
+            borderColor: c.glassBorder,
+        },
+        cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
+        confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+        confirmGradient: {
+            flex: 1,
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 8,
+        },
+        confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
+    });
+}
