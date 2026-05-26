@@ -12,11 +12,14 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { useMapaVivo } from "../hooks/useMapaVivo";
 import CheckInCard from "../components/CheckInCard";
 
 export default function MapaVivoCheckIn({ route, navigation }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { eventId, eventTitle } = route.params;
   const {
     localizacao,
@@ -90,7 +93,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           <MaterialCommunityIcons
             name="chevron-left"
             size={28}
-            color={Colors.textPrimary}
+            color={colors.textPrimary}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Check-in</Text>
@@ -106,7 +109,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           <MaterialCommunityIcons
             name="map-marker"
             size={20}
-            color={Colors.primary}
+            color={colors.primary}
           />
           <Text style={styles.eventName} numberOfLines={2}>
             {eventTitle}
@@ -129,7 +132,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="close-circle"
                   size={32}
-                  color={Colors.error}
+                  color={colors.error}
                 />
               </TouchableOpacity>
             </View>
@@ -142,7 +145,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
               <MaterialCommunityIcons
                 name="camera-plus"
                 size={40}
-                color={Colors.primary}
+                color={colors.primary}
               />
               <Text style={styles.imagePickerText}>
                 Selecionar Foto
@@ -157,7 +160,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           <TextInput
             style={styles.captionInput}
             placeholder="Compartilhe sua experiência..."
-            placeholderTextColor={Colors.textMuted}
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={5}
             value={caption}
@@ -190,7 +193,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           <MaterialCommunityIcons
             name="lightbulb-on"
             size={20}
-            color={Colors.warning}
+            color={colors.warning}
           />
           <View style={styles.tipsContent}>
             <Text style={styles.tipsTitle}>Dicas</Text>
@@ -217,14 +220,14 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           {loading ? (
             <ActivityIndicator
               size="small"
-              color={Colors.textPrimary}
+              color={colors.textPrimary}
             />
           ) : (
             <>
               <MaterialCommunityIcons
                 name="check-circle"
                 size={20}
-                color={Colors.textPrimary}
+                color={colors.textPrimary}
               />
               <Text style={styles.submitButtonText}>
                 Confirmar Check-in
@@ -238,7 +241,7 @@ export default function MapaVivoCheckIn({ route, navigation }) {
           <MaterialCommunityIcons
             name="shield-account"
             size={16}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
           <Text style={styles.privacyText}>
             Seu check-in será compartilhado com a comunidade
@@ -249,10 +252,11 @@ export default function MapaVivoCheckIn({ route, navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
     flexDirection: "row",
@@ -261,7 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   backButton: {
     width: 40,
@@ -269,12 +273,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
     textAlign: "center",
   },
@@ -287,14 +291,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     marginBottom: 20,
   },
   eventName: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     flex: 1,
   },
   section: {
@@ -303,13 +307,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   imagePicker: {
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: Colors.primary,
+    borderColor: c.primary,
     borderRadius: 12,
     padding: 40,
     alignItems: "center",
@@ -319,7 +323,7 @@ const styles = StyleSheet.create({
   imagePickerText: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
     marginTop: 8,
   },
   imagePreview: {
@@ -330,7 +334,7 @@ const styles = StyleSheet.create({
   previewImage: {
     width: "100%",
     height: 200,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   removeImageButton: {
     position: "absolute",
@@ -338,18 +342,18 @@ const styles = StyleSheet.create({
     right: 8,
   },
   captionInput: {
-    backgroundColor: Colors.surface,
-    color: Colors.textPrimary,
+    backgroundColor: c.surface,
+    color: c.textPrimary,
     padding: 12,
     borderRadius: 10,
     fontSize: 13,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     minHeight: 100,
   },
   charCount: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 6,
     textAlign: "right",
   },
@@ -361,7 +365,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 20,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.warning,
+    borderLeftColor: c.warning,
   },
   tipsContent: {
     flex: 1,
@@ -369,12 +373,12 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: Colors.warning,
+    color: c.warning,
     marginBottom: 4,
   },
   tipsText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   submitButton: {
@@ -384,7 +388,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: Colors.success,
+    backgroundColor: c.success,
     marginBottom: 16,
   },
   submitButtonDisabled: {
@@ -393,7 +397,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   privacyNote: {
     flexDirection: "row",
@@ -401,13 +405,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     marginBottom: 20,
   },
   privacyText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     flex: 1,
   },
 });
+}

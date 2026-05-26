@@ -1,845 +1,1071 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
 import {
-	View,
-	Text,
-	StyleSheet,
-	TouchableOpacity,
-	Dimensions,
-	Linking,
-	Modal,
-	Image,
-	ScrollView,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+    Modal,
+    ScrollView,
+    Dimensions,
 } from "react-native";
 
 import Animated, {
-	FadeInDown,
-	FadeInRight,
-	useAnimatedStyle,
-	useSharedValue,
-	withSpring,
-	interpolate,
-	useAnimatedScrollHandler,
+    interpolate,
+    interpolateColor,
+    Extrapolate,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    FadeInLeft,
+    FadeInRight,
+    withSpring,
 } from "react-native-reanimated";
 
-import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useNavigation } from "@react-navigation/native";
-import { FlashList } from "@shopify/flash-list";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import * as Haptics from "expo-haptics";
+
+import {
+    getEventosApp,
+    trackUserEventInteraction,
+} from "../services/eventosAppService";
 
 import { getUserLocation } from "../services/locationService";
+
 import { calcularDistancia } from "../utils/distance";
 
-import { getEventosApp, getUserLikes } from "../services/eventosAppService";
-
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
 
-const windowWidth = Dimensions.get("window").width;
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
-const DEFAULT_IMAGE = "https://placehold.co/600x400?text=Evento";
+import CategoryPills from "../components/home/CategoryPills";
 
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+import CulturalAISection from "../components/home/CulturalAISection";
 
-const categorias = [
-	"Todos",
-	"Shows",
-	"Teatro",
-	"Arte",
-	"Gastronomia",
-	"Festival",
-];
+import ExploreCitySection from "../components/home/ExploreCitySection";
+
+import HeroSection from "../components/home/HeroSection";
+
+import LiveMapCard from "../components/home/LiveMapCard";
+
+import NearbySection from "../components/home/NearbySection";
+
+import RecommendationSection from "../components/home/RecommendationSection";
+
+import SectionHeader from "../components/home/SectionHeader";
+
+import StoryBar from "../components/home/StoryBar";
+
+import TrendingCarousel from "../components/home/TrendingCarousel";
+
+import {
+    categoriasHome,
+    normalizeEvento,
+} from "../components/home/homeUtils";
+
+import useRecomendacoes from "../hooks/useRecomendacoes";
+
+import { gerarInsightsCulturais } from "../services/aiService";
 
 export default function TelaInicio() {
-	const navigation = useNavigation();
+    const navigation = useNavigation();
 
-	const { user, nome } = useAuth();
+    const insets = useSafeAreaInsets();
 
-	const [eventos, setEventos] = useState([]);
+    const { user, nome } = useAuth();
 
-	const [loading, setLoading] = useState(true);
-
-	const [categoriaAtiva, setCategoriaAtiva] = useState("Todos");
-
-	const [location, setLocation] = useState(null);
-
-	const [showMapErrorModal, setShowMapErrorModal] = useState(false);
-
-	const [mapErrorMessage, setMapErrorMessage] = useState("");
-
-	const scrollX = useSharedValue(0);
-
-	const scrollHandler = useAnimatedScrollHandler({
-		onScroll: (event) => {
-			scrollX.value = event.contentOffset.x;
-		},
-	});
-
-	const nomeUsuario =
-		nome || user?.displayName || user?.email?.split("@")[0] || "Explorador";
-
-	// SAUDAÇÃO DINÂMICA
-	const saudacaoHorario = useMemo(() => {
-		const hora = new Date().getHours();
-
-		if (hora < 12) return "Bom dia ☀️";
-
-		if (hora < 18) return "Boa tarde 🌤️";
-
-		return "Boa noite 🌙";
-	}, []);
-
-	useEffect(() => {
-		carregarEventos();
-	}, []);
-
-	const carregarEventos = async () => {
-		try {
-			const data = await getEventosApp();
-
-			const tratados = data.map((item) => ({
-				id: item.id,
-
-				titulo: item.tituloEvento || item.name || "Evento",
-
-				imagem: item.imagemEvento || item.files?.header?.url || DEFAULT_IMAGE,
-
-				local:
-					item.localEvento || item.nomeLocal || item.location?.name || "Local",
-
-				categoria: item.categoria || item.tipoEvento || "Outros",
-
-				latitude: item.latitude ?? null,
-
-				longitude: item.longitude ?? null,
-
-				score: item.score || 0,
-
-				original: item,
-			}));
-
-			const usuario = await getUserLocation();
-
-			if (usuario) {
-				setLocation(usuario);
-			}
-
-			setEventos(tratados);
-		} catch (error) {
-			console.log(error);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const eventosComDistancia = useMemo(() => {
-		return eventos.map((item) => ({
-			...item,
-
-			distancia:
-				location && item.latitude != null && item.longitude != null
-					? calcularDistancia(
-							location.latitude,
-							location.longitude,
-							item.latitude,
-							item.longitude
-						)
-					: null,
-		}));
-	}, [eventos, location]);
-
-	const eventosFiltrados = useMemo(() => {
-		if (categoriaAtiva === "Todos") {
-			return eventosComDistancia;
-		}
-
-		return eventosComDistancia.filter((evento) =>
-			evento.categoria?.toLowerCase().includes(categoriaAtiva.toLowerCase())
-		);
-	}, [categoriaAtiva, eventosComDistancia]);
-
-	const destaques = useMemo(() => {
-		return eventosFiltrados
-			.slice()
-			.sort((a, b) => b.score - a.score)
-			.slice(0, 8);
-	}, [eventosFiltrados]);
-
-	const proximos = useMemo(() => {
-		return eventosFiltrados
-			.filter((item) => typeof item.distancia === "number")
-			.sort((a, b) => a.distancia - b.distancia)
-			.slice(0, 6);
-	}, [eventosFiltrados]);
-
-	const formatarDistancia = (distancia) => {
-		if (distancia == null) return "Distância indisponível";
-
-		if (distancia < 1) {
-			return `${Math.round(distancia * 1000)} m`;
-		}
-
-		return `${distancia.toFixed(1)} km`;
-	};
-
-	const HeroCard = ({ item, index }) => {
-		const scale = useSharedValue(1);
-
-		const animatedStyle = useAnimatedStyle(() => ({
-			transform: [
-				{
-					scale: scale.value,
-				},
-			],
-		}));
-
-		const imageStyle = useAnimatedStyle(() => {
-			const imageScale = interpolate(
-				scrollX.value,
-				[
-					(index - 1) * (windowWidth * 0.78 + 16),
-
-					index * (windowWidth * 0.78 + 16),
-
-					(index + 1) * (windowWidth * 0.78 + 16),
-				],
-				[1, 1.08, 1]
-			);
-
-			return {
-				transform: [
-					{
-						scale: imageScale,
-					},
-				],
-			};
-		});
-
-		return (
-			<Animated.View
-				entering={FadeInRight.delay(index * 100).springify()}
-				style={animatedStyle}
-			>
-				<TouchableOpacity
-					activeOpacity={0.95}
-					style={styles.heroCard}
-					onPressIn={() => {
-						scale.value = withSpring(0.97);
-					}}
-					onPressOut={() => {
-						scale.value = withSpring(1);
-					}}
-					onPress={() =>
-						navigation.navigate("Detalhes", {
-							evento: item.original,
-						})
-					}
-				>
-					<Animated.Image
-						source={{
-							uri: item.imagem,
-						}}
-						style={[styles.heroImage, imageStyle]}
-					/>
-
-					<LinearGradient
-						colors={["transparent", "rgba(0,0,0,0.95)"]}
-						style={styles.heroGradient}
-					/>
-
-					<View style={styles.heroContent}>
-						<View style={styles.heroBadge}>
-							<Text style={styles.heroBadgeText}>{item.categoria}</Text>
-						</View>
-
-						<Text style={styles.heroTitle} numberOfLines={2}>
-							{item.titulo}
-						</Text>
-
-						<Text style={styles.heroLocation}>📍 {item.local}</Text>
-					</View>
-				</TouchableOpacity>
-			</Animated.View>
-		);
-	};
-
-	const CardEvento = ({ item, index }) => {
-		return (
-			<Animated.View entering={FadeInDown.delay(index * 100).springify()}>
-				<TouchableOpacity
-					activeOpacity={0.95}
-					style={styles.card}
-					onPress={() =>
-						navigation.navigate("Detalhes", {
-							evento: item.original,
-						})
-					}
-				>
-					<Image
-						source={{
-							uri: item.imagem,
-						}}
-						style={styles.cardImage}
-					/>
-
-					<LinearGradient
-						colors={["transparent", "rgba(0,0,0,0.95)"]}
-						style={styles.cardGradient}
-					/>
-
-					<BlurView intensity={40} tint="dark" style={styles.glassFooter}>
-						<Text style={styles.cardTitle}>{item.titulo}</Text>
-
-						<Text style={styles.cardLocation}>📍 {item.local}</Text>
-
-						<View style={styles.cardFooter}>
-							<Text style={styles.distance}>
-								{formatarDistancia(item.distancia)}
-							</Text>
-
-							<View style={styles.rating}>
-								<MaterialCommunityIcons name="star" size={14} color="#FFD166" />
-
-								<Text style={styles.ratingText}>{Math.round(item.score)}</Text>
-							</View>
-						</View>
-					</BlurView>
-				</TouchableOpacity>
-			</Animated.View>
-		);
-	};
-
-	if (loading) {
-		return (
-			<View style={styles.loadingContainer}>
-				<MaterialCommunityIcons
-					name="calendar-star"
-					size={60}
-					color={Colors.primary}
-				/>
-
-				<Text style={styles.loadingText}>Carregando eventos...</Text>
-			</View>
-		);
-	}
-
-	return (
-		<View style={styles.container}>
-			{/* GLOW BACKGROUND */}
-			<View style={styles.glow1} />
-			<View style={styles.glow2} />
-
-			<Animated.ScrollView
-				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{
-					paddingBottom: 120,
-				}}
-			>
-				{/* HEADER */}
-				<LinearGradient
-					colors={["#10131F", Colors.background]}
-					style={styles.header}
-				>
-					<View>
-						<Text style={styles.saudacao}>{saudacaoHorario}</Text>
-
-						<Text style={styles.nome}>{nomeUsuario}</Text>
-
-						<Text style={styles.city}>📍 Fortaleza, CE</Text>
-					</View>
-
-					<TouchableOpacity onPress={() => navigation.navigate("EventosApp")}>
-						<BlurView intensity={25} tint="dark" style={styles.notificationBtn}>
-							<MaterialCommunityIcons
-								name="bell-outline"
-								size={22}
-								color="#FFF"
-							/>
-						</BlurView>
-					</TouchableOpacity>
-				</LinearGradient>
-
-				{/* STORIES */}
-				{/*{ <ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{
-						paddingHorizontal: 16,
-						paddingBottom: 12,
-					}}
-				>
-					{eventos.slice(0, 10).map((item) => (
-						<TouchableOpacity key={item.id} style={styles.storyItem}>
-							<LinearGradient
-								colors={["#FF0080", "#7928CA"]}
-								style={styles.storyBorder}
-							>
-								<Image
-									source={{
-										uri: item.imagem,
-									}}
-									style={styles.storyImage}
-								/>
-							</LinearGradient>
-
-							<Text numberOfLines={1} style={styles.storyText}>
-								{item.titulo}
-							</Text>
-						</TouchableOpacity>
-					))}
-				</ScrollView> */}
-
-				{/* EVENTO DO MOMENTO */}
-				{destaques[0] && (
-					<TouchableOpacity
-						activeOpacity={0.95}
-						style={styles.momentCard}
-						onPress={() =>
-							navigation.navigate("Detalhes", {
-								evento: destaques[0].original,
-							})
-						}
-					>
-						<Image
-							source={{
-								uri: destaques[0].imagem,
-							}}
-							style={styles.momentImage}
-						/>
-
-						<LinearGradient
-							colors={["transparent", "rgba(0,0,0,0.95)"]}
-							style={styles.momentOverlay}
-						/>
-
-						<View style={styles.momentContent}>
-							<Text style={styles.momentLabel}>EVENTO DO MOMENTO</Text>
-
-							<Text style={styles.momentTitle}>{destaques[0].titulo}</Text>
-						</View>
-					</TouchableOpacity>
-				)}
-
-				{/* CATEGORIAS */}
-				<ScrollView
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{
-						paddingHorizontal: 16,
-						marginTop: 20,
-					}}
-				>
-					{categorias.map((cat) => {
-						const active = categoriaAtiva === cat;
-
-						return (
-							<TouchableOpacity
-								key={cat}
-								onPress={() => setCategoriaAtiva(cat)}
-								style={[
-									styles.categoryPill,
-
-									active && styles.categoryPillActive,
-								]}
-							>
-								<Text
-									style={[
-										styles.categoryText,
-
-										active && styles.categoryTextActive,
-									]}
-								>
-									{cat}
-								</Text>
-							</TouchableOpacity>
-						);
-					})}
-				</ScrollView>
-
-				{/* DESTAQUES */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Destaques</Text>
-
-					<Text style={styles.sectionSub}>Eventos em alta agora</Text>
-				</View>
-
-				<AnimatedFlashList
-					horizontal
-					data={destaques}
-					renderItem={({ item, index }) => (
-						<HeroCard item={item} index={index} />
-					)}
-					keyExtractor={(item) => item.id.toString()}
-					estimatedItemSize={300}
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{
-						paddingHorizontal: 16,
-					}}
-					onScroll={scrollHandler}
-					scrollEventThrottle={16}
-				/>
-
-				{/* MAPA AO VIVO */}
-				<TouchableOpacity
-					style={styles.liveMapCard}
-					onPress={() => navigation.navigate("MapaVivo")}
-				>
-					<LinearGradient
-						colors={["#111827", "#1F2937"]}
-						style={styles.liveMapGradient}
-					>
-						<MaterialCommunityIcons
-							name="map-marker-radius"
-							size={28}
-							color="#8B5CF6"
-						/>
-
-						<View>
-							<Text style={styles.liveMapTitle}>Mapa Cultural Ao Vivo</Text>
-
-							<Text style={styles.liveMapSub}>Veja eventos próximos agora</Text>
-						</View>
-					</LinearGradient>
-				</TouchableOpacity>
-
-				{/* PRÓXIMOS */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Próximos de você</Text>
-
-					<Text style={styles.sectionSub}>Baseado na sua localização</Text>
-				</View>
-
-				<FlashList
-					data={proximos}
-					renderItem={({ item, index }) => (
-						<CardEvento item={item} index={index} />
-					)}
-					keyExtractor={(item) => item.id.toString()}
-					estimatedItemSize={260}
-					scrollEnabled={false}
-					contentContainerStyle={{
-						paddingHorizontal: 16,
-					}}
-				/>
-			</Animated.ScrollView>
-		</View>
-	);
+    const { colors, isDark } = useTheme();
+    const styles = useThemedStyles(createThemedScreenStyles);
+    const blurTint = isDark ? "dark" : "light";
+
+    const [eventos, setEventos] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+
+    const [categoriaAtiva, setCategoriaAtiva] =
+        useState("Todos");
+
+    const [location, setLocation] = useState(null);
+
+    const scrollY = useSharedValue(0);
+
+    const scrollX = useSharedValue(0);
+
+    const [modalAIVisivel, setModalAIVisivel] = useState(false);
+    const [insightsGerados, setInsightsGerados] = useState([]);
+    const [textoTypewriter, setTextoTypewriter] = useState("");
+    const intervalRef = useRef(null);
+
+    const gerarIntroducaoIA = (nome, termo, clima, eventosCount) => {
+        const saudacao = new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite";
+        const focoMap = {
+            orla: "focado na Orla e Praias 🏖️",
+            gratuito: "com foco em Eventos Gratuitos 🎟️",
+            show: "especial para curtir Shows e Música ao Vivo 🎸",
+            teatro: "recheado de Teatro e Artes Cênicas 🎭"
+        };
+        const focoText = focoMap[termo] || "super especial e sob medida 🎨";
+        
+        if (eventosCount === 0) {
+            return `Olá, ${nome}! ${saudacao}. Analisei o pulso cultural de Fortaleza hoje mas não encontrei eventos ativos correspondentes a essa categoria específica no momento. Que tal tentarmos outro foco? ✨`;
+        }
+
+        return `Olá, ${nome}! ${saudacao}. Analisei os eventos ativos em Fortaleza e, baseado no clima de ${clima}, montei este roteiro exclusivo ${focoText} com ${eventosCount} paradas perfeitas para você curtir hoje! 👇`;
+    };
+
+    const usuarioId = user?.uid;
+
+    const nomeUsuario =
+        nome ||
+        user?.displayName ||
+        user?.email?.split("@")[0] ||
+        "Explorador";
+
+    const saudacaoHorario = useMemo(() => {
+        const hora = new Date().getHours();
+
+        if (hora < 12) return "Bom dia";
+
+        if (hora < 18) return "Boa tarde";
+
+        return "Boa noite";
+    }, []);
+
+    useEffect(() => {
+        carregarHome();
+    }, [usuarioId]);
+
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
+    }, []);
+
+    const carregarHome = async () => {
+        try {
+            setLoading(true);
+
+            const [eventosData, usuario] =
+                await Promise.all([
+                    getEventosApp(),
+                    getUserLocation(),
+                ]);
+
+            const normalizados =
+                eventosData.map(normalizeEvento);
+
+            setEventos(normalizados);
+
+            setLocation(usuario);
+        } catch (error) {
+            console.log(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const eventosComDistancia = useMemo(() => {
+        return eventos.map((item) => ({
+            ...item,
+
+            distancia:
+                location &&
+                item.latitude != null &&
+                item.longitude != null
+                    ? calcularDistancia(
+                          location.latitude,
+                          location.longitude,
+                          item.latitude,
+                          item.longitude
+                      )
+                    : null,
+        }));
+    }, [eventos, location]);
+
+    const eventosFiltrados = useMemo(() => {
+        if (categoriaAtiva === "Todos") {
+            return eventosComDistancia;
+        }
+
+        return eventosComDistancia.filter((evento) =>
+            evento.categoria
+                ?.toLowerCase()
+                .includes(categoriaAtiva.toLowerCase())
+        );
+    }, [categoriaAtiva, eventosComDistancia]);
+
+    const {
+        recomendados,
+        sinaisUsuario,
+        loading: loadingRecomendacoes,
+        refresh: refreshRecomendacoes,
+    } = useRecomendacoes(
+        eventosFiltrados,
+        usuarioId
+    );
+
+    const destaques = useMemo(() => {
+        return eventosFiltrados
+            .slice()
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 8);
+    }, [eventosFiltrados]);
+
+    const proximos = useMemo(() => {
+        const comDistancia = eventosFiltrados.filter(
+            (item) => typeof item.distancia === "number"
+        );
+
+        return (comDistancia.length
+            ? comDistancia
+            : eventosFiltrados
+        )
+            .slice()
+            .sort((a, b) => {
+                if (a.distancia == null) return 1;
+
+                if (b.distancia == null) return -1;
+
+                return a.distancia - b.distancia;
+            })
+            .slice(0, 10);
+    }, [eventosFiltrados]);
+
+    const verticalScroll = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollY.value = event.contentOffset.y;
+        },
+    });
+
+    const horizontalScroll = useAnimatedScrollHandler({
+        onScroll: (event) => {
+            scrollX.value = event.contentOffset.x;
+        },
+    });
+
+    const headerStyle = useAnimatedStyle(() => {
+        const backgroundOpacity = interpolate(
+            scrollY.value,
+            [0, 120],
+            [0, 1],
+            Extrapolate.CLAMP
+        );
+
+        return {
+            transform: [
+                {
+                    translateY: interpolate(
+                        scrollY.value,
+                        [0, 180],
+                        [0, -12],
+                        Extrapolate.CLAMP
+                    ),
+                },
+            ],
+
+            backgroundColor: interpolateColor(
+                backgroundOpacity,
+                [0, 1],
+                ["rgba(0,0,0,0)", colors.background]
+            ),
+
+            opacity: interpolate(
+                scrollY.value,
+                [0, 120],
+                [1, 0.98],
+                Extrapolate.CLAMP
+            ),
+        };
+    }, [colors.background]);
+
+    const momentStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                {
+                    scale: interpolate(
+                        scrollY.value,
+                        [-160, 0, 250],
+                        [1.08, 1, 0.94],
+                        Extrapolate.CLAMP
+                    ),
+                },
+
+                {
+                    translateY: interpolate(
+                        scrollY.value,
+                        [0, 300],
+                        [0, 18],
+                        Extrapolate.CLAMP
+                    ),
+                },
+            ],
+
+            opacity: interpolate(
+                scrollY.value,
+                [0, 320],
+                [1, 0.85],
+                Extrapolate.CLAMP
+            ),
+        };
+    });
+
+    const abrirEvento = async (evento) => {
+        try {
+            await Haptics.selectionAsync();
+        } catch (e) {}
+
+        const original = evento.original || evento;
+
+        trackUserEventInteraction({
+            evento: {
+                ...original,
+                id: evento.id,
+            },
+
+            usuarioId,
+
+            action: "click",
+        });
+
+        navigation.navigate("Detalhes", {
+            evento: original,
+        });
+    };
+
+    const lidarComAIGerada = async (termoBusca) => {
+        try {
+            try {
+                await Haptics.impactAsync(
+                    Haptics.ImpactFeedbackStyle.Medium
+                );
+            } catch (e) {}
+
+            // 1. Gera os roteiros contextuais pela IA com sinais do usuário
+            const roteiroSugerido = await gerarInsightsCulturais(
+                termoBusca,
+                eventosFiltrados,
+                sinaisUsuario
+            );
+
+            setInsightsGerados(roteiroSugerido);
+
+            // 2. Abre o modal glassmorphic
+            setModalAIVisivel(true);
+
+            // 3. Inicia o efeito typewriter de digitação em tempo real
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+
+            const introducao = gerarIntroducaoIA(
+                nomeUsuario,
+                termoBusca,
+                "29°C",
+                roteiroSugerido.length
+            );
+
+            setTextoTypewriter("");
+            let index = 0;
+            intervalRef.current = setInterval(() => {
+                if (index < introducao.length) {
+                    setTextoTypewriter((prev) => prev + introducao.charAt(index));
+                    index++;
+                } else {
+                    clearInterval(intervalRef.current);
+                }
+            }, 10);
+        } catch (error) {
+            console.log("Erro ao gerar roteiro na IA:", error);
+        }
+    };
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+                <MaterialCommunityIcons
+                    name="calendar-star"
+                    size={60}
+                    color={colors.primary}
+                />
+
+                <Text style={styles.loadingText}>
+                    Carregando eventos...
+                </Text>
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+            <Animated.ScrollView
+                entering={FadeIn.duration(700)}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                    paddingBottom: insets.bottom + 140,
+                }}
+                onScroll={verticalScroll}
+                scrollEventThrottle={16}
+                bounces
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={() => {
+                            carregarHome();
+                            refreshRecomendacoes();
+                        }}
+                        tintColor={colors.primary}
+                    />
+                }
+            >
+                {/* HEADER */}
+                <Animated.View
+                    entering={FadeInDown.duration(700)}
+                    style={headerStyle}
+                >
+                    <LinearGradient
+                        colors={[
+                            colors.backgroundSecondary,
+                            colors.surface,
+                            colors.background,
+                        ]}
+                        style={[
+                            styles.headerContainer,
+                            {
+                                paddingTop: insets.top + 12,
+                            },
+                        ]}
+                    >
+                        <View style={styles.header}>
+                            <View style={styles.headerCopy}>
+                                <Text style={styles.greeting}>
+                                    {saudacaoHorario}
+                                </Text>
+
+                                <Text
+                                    style={styles.name}
+                                    numberOfLines={1}
+                                >
+                                    {nomeUsuario}
+                                </Text>
+
+                                <Text style={styles.city}>
+                                    Fortaleza, CE
+                                </Text>
+                            </View>
+
+                            <Animated.View
+                                entering={FadeInRight.delay(250)}
+                                style={styles.headerActions}
+                            >
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    style={styles.headerButton}
+                                    onPress={() =>
+                                        navigation.navigate(
+                                            "Busca"
+                                        )
+                                    }
+                                >
+                                    <BlurView
+                                        intensity={35}
+                                        tint={blurTint}
+                                        style={styles.headerBlur}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="magnify"
+                                            size={22}
+                                            color={colors.textPrimary}
+                                        />
+                                    </BlurView>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    style={styles.headerButton}
+                                    onPress={() =>
+                                        navigation.navigate(
+                                            "EventosApp"
+                                        )
+                                    }
+                                >
+                                    <BlurView
+                                        intensity={35}
+                                        tint={blurTint}
+                                        style={styles.headerBlur}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="bell-outline"
+                                            size={22}
+                                            color={colors.textPrimary}
+                                        />
+
+                                        <View
+                                            style={
+                                                styles.notificationDot
+                                            }
+                                        />
+                                    </BlurView>
+                                </TouchableOpacity>
+                            </Animated.View>
+                        </View>
+                    </LinearGradient>
+                </Animated.View>
+
+                {/* HERO */}
+                <Animated.View
+                    entering={FadeInUp.delay(120).springify()}
+                >
+                    <HeroSection
+                        evento={destaques[0]}
+                        animatedStyle={momentStyle}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
+
+                {/* STORIES */}
+                <Animated.View
+                    entering={FadeInLeft.delay(180).springify()}
+                >
+                    <StoryBar
+                        eventos={destaques}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
+
+                {/* CATEGORIAS */}
+                <Animated.View
+                    entering={FadeInRight.delay(220).springify()}
+                >
+                    <CategoryPills
+                        categorias={categoriasHome}
+                        ativa={categoriaAtiva}
+                        onChange={setCategoriaAtiva}
+                    />
+                </Animated.View>
+
+                {/* IA */}
+                <Animated.View
+                    entering={FadeInUp.delay(260).springify()}
+                >
+                    <CulturalAISection
+                        onPressInsight={lidarComAIGerada}
+                    />
+                </Animated.View>
+
+                {/* RECOMENDAÇÕES */}
+                <Animated.View
+                    entering={FadeInUp.delay(320).springify()}
+                >
+                    <RecommendationSection
+                        eventos={recomendados}
+                        signals={sinaisUsuario}
+                        loading={loadingRecomendacoes}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
+
+                <SectionHeader
+                    title="Destaques"
+                    subtitle="Eventos em alta agora"
+                />
+
+                {/* TRENDING */}
+                <Animated.View
+                    entering={FadeInUp.delay(380).springify()}
+                >
+                    <TrendingCarousel
+                        eventos={destaques}
+                        scrollX={scrollX}
+                        onScroll={horizontalScroll}
+                        onPress={abrirEvento}
+                    />
+                </Animated.View>
+
+                {/* MAPA */}
+                <Animated.View
+                    entering={FadeInUp.delay(440).springify()}
+                >
+                    <LiveMapCard
+                        activeCount={proximos.length}
+                        onPress={() =>
+                            navigation.navigate("MapaVivo")
+                        }
+                    />
+                </Animated.View>
+
+                {/* EXPLORE */}
+                <Animated.View
+                    entering={FadeInUp.delay(500).springify()}
+                >
+                    <ExploreCitySection
+                        eventos={eventosFiltrados}
+                        onPress={() =>
+                            navigation.navigate(
+                                "TelaExploreCidade",
+                                { eventos: eventosFiltrados }
+                            )
+                        }
+                    />
+                </Animated.View>
+
+                {/* PRÓXIMOS */}
+                <Animated.View
+                    entering={FadeInUp.delay(560).springify()}
+                >
+                    <NearbySection
+                        eventos={proximos}
+                        onPress={abrirEvento}
+                        onViewAll={() =>
+                            navigation.navigate("Busca", {
+                                screen: "BuscaHome",
+                            })
+                        }
+                    />
+                </Animated.View>
+            </Animated.ScrollView>
+
+            {/* MODAL CULTURAL AI HOLOGRÁFICO GLASSMORPHIC */}
+            <Modal
+                visible={modalAIVisivel}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => {
+                    if (intervalRef.current) clearInterval(intervalRef.current);
+                    setModalAIVisivel(false);
+                }}
+            >
+                <View style={styles.modalOverlay}>
+                    <BlurView intensity={70} tint={blurTint} style={StyleSheet.absoluteFill}>
+                        <LinearGradient
+                            colors={
+                                isDark
+                                    ? ["rgba(10, 8, 20, 0.96)", "rgba(139, 92, 246, 0.12)", "rgba(7, 11, 20, 0.98)"]
+                                    : ["rgba(255, 255, 255, 0.96)", "rgba(108, 92, 231, 0.08)", "rgba(248, 249, 250, 0.98)"]
+                            }
+                            style={StyleSheet.absoluteFill}
+                        />
+                    </BlurView>
+
+                    <Animated.View 
+                        entering={FadeInDown.springify().damping(18)}
+                        style={styles.modalContent}
+                    >
+                        {/* Header do Modal */}
+                        <View style={styles.modalHeader}>
+                            <View style={styles.modalAiBadge}>
+                                <MaterialCommunityIcons name="robot" size={16} color="#FFF" />
+                                <Text style={styles.modalAiBadgeText}>ASSISTENTE CULTURAL AI</Text>
+                            </View>
+
+                            <TouchableOpacity
+                                activeOpacity={0.8}
+                                style={styles.modalCloseButton}
+                                onPress={() => {
+                                    if (intervalRef.current) clearInterval(intervalRef.current);
+                                    setModalAIVisivel(false);
+                                }}
+                            >
+                                <BlurView intensity={25} tint={blurTint} style={styles.modalCloseBlur}>
+                                    <MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+                                </BlurView>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Efeito Typewriter */}
+                        <View style={styles.typewriterBox}>
+                            <MaterialCommunityIcons name="comment-text-multiple-outline" size={18} color="#C084FC" style={styles.quoteIcon} />
+                            <Text style={styles.typewriterText}>
+                                {textoTypewriter}
+                                <Text style={styles.cursor}>|</Text>
+                            </Text>
+                        </View>
+
+                        {/* Roteiro Carousel */}
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={styles.modalCardsScroll}
+                        >
+                            {insightsGerados.map((evento, index) => (
+                                <Animated.View
+                                    key={evento.id || index}
+                                    entering={FadeInDown.delay(200 + index * 100).springify().damping(16)}
+                                    style={styles.aiEventCardOuter}
+                                >
+                                    <TouchableOpacity
+                                        activeOpacity={0.92}
+                                        style={styles.aiEventCard}
+                                        onPress={() => {
+                                            setModalAIVisivel(false);
+                                            abrirEvento(evento);
+                                        }}
+                                    >
+                                        <LinearGradient
+                                            colors={["rgba(255, 255, 255, 0.04)", "rgba(255, 255, 255, 0.01)"]}
+                                            style={styles.aiEventGlow}
+                                        >
+                                            {/* Match Badge */}
+                                            <View style={styles.aiCardTop}>
+                                                <View style={styles.matchBadge}>
+                                                    <MaterialCommunityIcons name="heart-flash" size={12} color="#FFF" />
+                                                    <Text style={styles.matchBadgeText}>
+                                                        {evento.matchPercent || 88}% Match
+                                                    </Text>
+                                                </View>
+
+                                                <Text style={styles.aiCardCategory} numberOfLines={1}>
+                                                    {evento.categoria || "Cultura"}
+                                                </Text>
+                                            </View>
+
+                                            <Text style={styles.aiCardTitle} numberOfLines={1}>
+                                                {evento.tituloEvento || evento.titulo || evento.name || "Evento Recomendado"}
+                                            </Text>
+
+                                            <View style={styles.aiCardLocalRow}>
+                                                <MaterialCommunityIcons name="map-marker-outline" size={14} color="#C084FC" />
+                                                <Text style={styles.aiCardLocalText} numberOfLines={1}>
+                                                    {evento.localEvento || evento.local || "Fortaleza, CE"}
+                                                </Text>
+                                            </View>
+
+                                            {/* AI Reason Bubble */}
+                                            <View style={styles.aiReasonBubble}>
+                                                <Text style={styles.aiReasonText}>
+                                                    {evento.aiReason || "✨ Recomendação inteligente baseada no seu perfil."}
+                                                </Text>
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            ))}
+                        </ScrollView>
+
+                        {/* Botão de Rodapé */}
+                        <TouchableOpacity
+                            activeOpacity={0.85}
+                            style={styles.modalExploreButton}
+                            onPress={() => {
+                                setModalAIVisivel(false);
+                                navigation.navigate("Busca", {
+                                    screen: "BuscaHome",
+                                });
+                            }}
+                        >
+                            <Text style={styles.modalExploreButtonText}>
+                                Abrir no Mapa de Busca Completo 🧭
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
+        </View>
+    );
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: Colors.background,
-	},
+function createThemedScreenStyles(c) {
+    return StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: c.background,
+    },
 
-	glow1: {
-		position: "absolute",
-		width: 240,
-		height: 240,
-		borderRadius: 120,
-		backgroundColor: "#7C3AED",
-		opacity: 0.15,
-		top: -60,
-		left: -40,
-	},
+    loadingContainer: {
+        flex: 1,
+        backgroundColor: c.background,
+        alignItems: "center",
+        justifyContent: "center",
+    },
 
-	glow2: {
-		position: "absolute",
-		width: 180,
-		height: 180,
-		borderRadius: 90,
-		backgroundColor: "#EC4899",
-		opacity: 0.12,
-		top: 80,
-		right: -50,
-	},
+    loadingText: {
+        color: c.textPrimary,
+        fontSize: 15,
+        fontWeight: "600",
+        marginTop: 16,
+    },
 
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: Colors.background,
-	},
+    headerContainer: {
+        paddingBottom: 18,
+    },
 
-	loadingText: {
-		color: "#FFF",
-		marginTop: 16,
-		fontSize: 16,
-		fontWeight: "600",
-	},
+    header: {
+        paddingHorizontal: 20,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
 
-	header: {
-		paddingTop: 60,
-		paddingHorizontal: 20,
-		paddingBottom: 20,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
+    headerCopy: {
+        flex: 1,
+        paddingRight: 14,
+    },
 
-	saudacao: {
-		color: Colors.textSecondary,
-		fontSize: 16,
-	},
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
 
-	nome: {
-		color: "#FFF",
-		fontSize: 32,
-		fontWeight: "bold",
-		marginTop: 4,
-	},
+    headerButton: {
+        marginLeft: 10,
+    },
 
-	city: {
-		color: "rgba(255,255,255,0.6)",
-		marginTop: 6,
-	},
+    headerBlur: {
+        width: 52,
+        height: 52,
+        borderRadius: 18,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
+    },
 
-	notificationBtn: {
-		width: 50,
-		height: 50,
-		borderRadius: 18,
-		justifyContent: "center",
-		alignItems: "center",
-		overflow: "hidden",
-	},
+    notificationDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: c.primary,
+        position: "absolute",
+        right: 13,
+        top: 13,
+    },
 
-	storyItem: {
-		alignItems: "center",
-		marginRight: 14,
-		width: 74,
-	},
+    greeting: {
+        color: c.textSecondary,
+        fontSize: 15,
+    },
 
-	storyBorder: {
-		width: 70,
-		height: 70,
-		borderRadius: 35,
-		justifyContent: "center",
-		alignItems: "center",
-	},
+    name: {
+        color: c.textPrimary,
+        fontSize: 32,
+        fontWeight: "800",
+        marginTop: 4,
+    },
 
-	storyImage: {
-		width: 64,
-		height: 64,
-		borderRadius: 32,
-	},
+    city: {
+        color: c.textMuted,
+        fontSize: 14,
+        marginTop: 6,
+    },
 
-	storyText: {
-		color: "#FFF",
-		fontSize: 11,
-		marginTop: 6,
-		textAlign: "center",
-	},
+    /* CULTURAL AI NEW STYLES */
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingHorizontal: 20,
+        backgroundColor: c.overlayDark,
+    },
 
-	momentCard: {
-		height: 240,
-		marginHorizontal: 16,
-		borderRadius: 28,
-		overflow: "hidden",
-		marginTop: 12,
-	},
+    modalContent: {
+        width: "100%",
+        height: "82%",
+        backgroundColor: c.card,
+        borderRadius: 32,
+        padding: 22,
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+        overflow: "hidden",
+        justifyContent: "space-between",
+    },
 
-	momentImage: {
-		width: "100%",
-		height: "100%",
-	},
+    modalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
 
-	momentOverlay: {
-		...StyleSheet.absoluteFillObject,
-	},
+    modalAiBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(139, 92, 246, 0.35)",
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: "rgba(192, 132, 252, 0.2)",
+    },
 
-	momentContent: {
-		position: "absolute",
-		bottom: 24,
-		left: 24,
-		right: 24,
-	},
+    modalAiBadgeText: {
+        color: "#E9D5FF",
+        fontSize: 10,
+        fontWeight: "800",
+        letterSpacing: 1.5,
+    },
 
-	momentLabel: {
-		color: "#A78BFA",
-		fontWeight: "bold",
-		marginBottom: 10,
-	},
+    modalCloseButton: {
+        zIndex: 10,
+    },
 
-	momentTitle: {
-		color: "#FFF",
-		fontSize: 28,
-		fontWeight: "bold",
-	},
+    modalCloseBlur: {
+        width: 38,
+        height: 38,
+        borderRadius: 14,
+        justifyContent: "center",
+        alignItems: "center",
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
+    },
 
-	categoryPill: {
-		backgroundColor: "rgba(255,255,255,0.08)",
-		paddingHorizontal: 18,
-		paddingVertical: 10,
-		borderRadius: 20,
-		marginRight: 10,
-	},
+    typewriterBox: {
+        backgroundColor: c.primarySoft,
+        borderRadius: 20,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+        marginBottom: 18,
+        flexDirection: "row",
+        alignItems: "flex-start",
+    },
 
-	categoryPillActive: {
-		backgroundColor: Colors.primary,
-	},
+    quoteIcon: {
+        marginRight: 10,
+        marginTop: 2,
+    },
 
-	categoryText: {
-		color: "rgba(255,255,255,0.7)",
-		fontWeight: "600",
-	},
+    typewriterText: {
+        flex: 1,
+        color: c.textPrimary,
+        fontSize: 14,
+        lineHeight: 22,
+        fontWeight: "600",
+    },
 
-	categoryTextActive: {
-		color: "#FFF",
-	},
+    cursor: {
+        color: c.primaryLight,
+        fontWeight: "bold",
+    },
 
-	sectionHeader: {
-		paddingHorizontal: 16,
-		marginBottom: 14,
-		marginTop: 26,
-	},
+    modalCardsScroll: {
+        gap: 12,
+        paddingBottom: 16,
+    },
 
-	sectionTitle: {
-		color: "#FFF",
-		fontSize: 24,
-		fontWeight: "bold",
-	},
+    aiEventCardOuter: {
+        borderRadius: 22,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+        backgroundColor: c.glass,
+        marginBottom: 12,
+    },
 
-	sectionSub: {
-		color: Colors.textSecondary,
-		marginTop: 4,
-	},
+    aiEventCard: {
+        width: "100%",
+    },
 
-	heroCard: {
-		width: windowWidth * 0.78,
-		height: 270,
-		marginRight: 16,
-		borderRadius: 30,
-		overflow: "hidden",
-	},
+    aiEventGlow: {
+        padding: 16,
+    },
 
-	heroImage: {
-		width: "100%",
-		height: "100%",
-	},
+    aiCardTop: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8,
+    },
 
-	heroGradient: {
-		...StyleSheet.absoluteFillObject,
-	},
+    matchBadge: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#8B5CF6",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        gap: 4,
+    },
 
-	heroContent: {
-		position: "absolute",
-		bottom: 18,
-		left: 18,
-		right: 18,
-	},
+    matchBadgeText: {
+        color: "#FFF",
+        fontSize: 11,
+        fontWeight: "800",
+    },
 
-	heroBadge: {
-		alignSelf: "flex-start",
-		backgroundColor: Colors.primary,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 20,
-		marginBottom: 12,
-	},
+    aiCardCategory: {
+        color: c.textMuted,
+        fontSize: 11,
+        fontWeight: "700",
+        textTransform: "uppercase",
+    },
 
-	heroBadgeText: {
-		color: "#FFF",
-		fontSize: 11,
-		fontWeight: "bold",
-	},
+    aiCardTitle: {
+        color: c.textPrimary,
+        fontSize: 17,
+        fontWeight: "700",
+        marginBottom: 6,
+    },
 
-	heroTitle: {
-		color: "#FFF",
-		fontSize: 24,
-		fontWeight: "bold",
-		marginBottom: 8,
-	},
+    aiCardLocalRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 12,
+    },
 
-	heroLocation: {
-		color: "rgba(255,255,255,0.75)",
-	},
+    aiCardLocalText: {
+        color: c.textSecondary,
+        fontSize: 13,
+        fontWeight: "500",
+    },
 
-	liveMapCard: {
-		marginTop: 24,
-		marginHorizontal: 16,
-	},
+    aiReasonBubble: {
+        backgroundColor: c.overlayLight,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: c.glassBorder,
+    },
 
-	liveMapGradient: {
-		borderRadius: 24,
-		padding: 20,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 14,
-	},
+    aiReasonText: {
+        color: c.primaryLight,
+        fontSize: 12,
+        fontWeight: "600",
+        lineHeight: 18,
+    },
 
-	liveMapTitle: {
-		color: "#FFF",
-		fontSize: 17,
-		fontWeight: "bold",
-	},
+    modalExploreButton: {
+        backgroundColor: c.primary,
+        height: 52,
+        borderRadius: 18,
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: 12,
+        shadowColor: c.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 3,
+    },
 
-	liveMapSub: {
-		color: "rgba(255,255,255,0.65)",
-		marginTop: 4,
-	},
-
-	card: {
-		height: 260,
-		borderRadius: 28,
-		overflow: "hidden",
-		marginBottom: 18,
-	},
-
-	cardImage: {
-		width: "100%",
-		height: "100%",
-	},
-
-	cardGradient: {
-		...StyleSheet.absoluteFillObject,
-	},
-
-	glassFooter: {
-		position: "absolute",
-		left: 14,
-		right: 14,
-		bottom: 14,
-		borderRadius: 22,
-		padding: 16,
-		overflow: "hidden",
-	},
-
-	cardTitle: {
-		color: "#FFF",
-		fontSize: 20,
-		fontWeight: "bold",
-	},
-
-	cardLocation: {
-		color: "rgba(255,255,255,0.75)",
-		marginTop: 6,
-	},
-
-	cardFooter: {
-		marginTop: 14,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-
-	distance: {
-		color: "#FFF",
-		fontWeight: "600",
-	},
-
-	rating: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 4,
-		backgroundColor: "rgba(255,255,255,0.12)",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 14,
-	},
-
-	ratingText: {
-		color: "#FFF",
-		fontWeight: "bold",
-	},
+    modalExploreButtonText: {
+        color: c.onPrimary,
+        fontWeight: "bold",
+        fontSize: 14,
+    },
 });
+}

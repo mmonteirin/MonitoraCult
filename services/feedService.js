@@ -7,6 +7,8 @@ import {
 	getDocs,
 	query,
 	where,
+	orderBy,
+	onSnapshot,
 	runTransaction,
 	increment,
 } from "firebase/firestore";
@@ -117,7 +119,10 @@ export const getUserFeedLikes = async (usuarioId) => {
 		);
 
 		const likesSnapshot = await getDocs(likesQuery);
-		return likesSnapshot.docs.map((d) => d.data().eventoId);
+		return likesSnapshot.docs.map((d) => {
+			const data = d.data();
+			return `${data.itemType || "evento"}-${data.itemId || data.eventoId}`;
+		});
 	} catch (error) {
 		console.log("Erro ao buscar likes:", error);
 		return [];
@@ -125,30 +130,57 @@ export const getUserFeedLikes = async (usuarioId) => {
 };
 
 /**
- * Adicionar comentário em um evento.
+ * Escutar comentários de um item do feed.
+ */
+export const escutarFeedComentarios = (itemId, itemType, callback) => {
+	const collectionName = itemType === "post" ? "posts" : "eventos";
+
+	const comentariosQuery = query(
+		collection(db, collectionName, itemId, "comentarios"),
+		orderBy("createdAt", "asc")
+	);
+
+	return onSnapshot(comentariosQuery, (snapshot) => {
+		const comentarios = snapshot.docs.map((doc) => ({
+			id: doc.id,
+			...doc.data(),
+		}));
+
+		callback(comentarios);
+	});
+};
+
+/**
+ * Adicionar comentário em um item do feed.
  * Usa increment atômico em vez de read-then-write.
  */
-export const adicionarComentario = async (eventoId, texto) => {
+export const adicionarFeedComentario = async (
+	itemId,
+	itemType,
+	texto,
+	autor = {}
+) => {
 	const user = auth.currentUser;
 
 	if (!user) throw new Error("Usuário não autenticado");
 	if (!texto.trim()) throw new Error("Comentário não pode estar vazio");
 
+	const collectionName = itemType === "post" ? "posts" : "eventos";
+
 	try {
 		const comentarioRef = await addDoc(
-			collection(db, "eventos", eventoId, "comentarios"),
+			collection(db, collectionName, itemId, "comentarios"),
 			{
 				userId: user.uid,
-				userName: user.displayName || "Usuário",
-				userPhoto: user.photoURL || "",
+				userName: autor.nome || user.displayName || "Usuário",
+				userPhoto: autor.foto || user.photoURL || "",
 				texto: texto.trim(),
 				createdAt: serverTimestamp(),
 				likes: 0,
 			}
 		);
 
-		// Incrementar contador de forma atômica — sem read-then-write
-		await updateDoc(doc(db, "eventos", eventoId), {
+		await updateDoc(doc(db, collectionName, itemId), {
 			comentarios: increment(1),
 		});
 

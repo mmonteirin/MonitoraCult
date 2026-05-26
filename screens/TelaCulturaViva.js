@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 import {
   View,
@@ -7,356 +7,694 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
+  Dimensions,
+  ImageBackground,
 } from "react-native";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { LinearGradient } from "expo-linear-gradient";
-
-import {
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
-
 import { BlurView } from "expo-blur";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MotiView } from "moti";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors } from "../styles/Colors";
+import { getEventos } from "../services/mapaCulturalService";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
+const { width } = Dimensions.get("window");
+
+const extrairDataDaDescricao = (descricao) => {
+  if (!descricao) return null;
+
+  const padroes = [
+    /(\d{2})\/(\d{2})\/(\d{4})/g,
+    /(\d{2})\/(\d{2})\/(\d{2})/g,
+    /(\d{1,2})\sde\s(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\sde\s(\d{4})/gi,
+  ];
+
+  for (const padrao of padroes) {
+    const match = padrao.exec(descricao);
+    if (match) {
+      if (match.length === 4) {
+        const [, dia, mes, ano] = match;
+        const meses = {
+          janeiro: '01', fevereiro: '02', março: '03', abril: '04',
+          maio: '05', junho: '06', julho: '07', agosto: '08',
+          setembro: '09', outubro: '10', novembro: '11', dezembro: '12'
+        };
+        const mesNum = meses[mes.toLowerCase()] || mes;
+        const anoCompleto = ano.length === 2 ? `20${ano}` : ano;
+        return new Date(`${anoCompleto}-${mesNum}-${dia}`);
+      }
+    }
+  }
+
+  return null;
+};
+
+const getImagemPorCategoria = (categoria, imagemOriginal) => {
+  if (imagemOriginal && imagemOriginal !== "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200") {
+    return imagemOriginal;
+  }
+
+  const imagensPorCategoria = {
+    "Música": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?q=80&w=1200",
+    "Shows": "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=1200",
+    "Teatro": "https://images.unsplash.com/photo-1503095392237-43e8e5df8a7f?q=80&w=1200",
+    "Cinema": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=1200",
+    "Dança": "https://images.unsplash.com/photo-1508700929628-666bc8bd84ea?q=80&w=1200",
+    "Literatura": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=1200",
+    "Fotografia": "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?q=80&w=1200",
+    "Gastronomia": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1200",
+    "Arte": "https://images.unsplash.com/photo-1578926288207-a90a5366759d?q=80&w=1200",
+    "Esporte": "https://images.unsplash.com/photo-1461896836934- voices-8b1f6a6?q=80&w=1200",
+    "Festival": "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?q=80&w=1200",
+    "Exposição": "https://images.unsplash.com/photo-1566127444979-b3d2b654e3d7?q=80&w=1200",
+    "Cultura": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?q=80&w=1200",
+  };
+
+  for (const [key, url] of Object.entries(imagensPorCategoria)) {
+    if (categoria && categoria.toLowerCase().includes(key.toLowerCase())) {
+      return url;
+    }
+  }
+
+  return imagensPorCategoria["Cultura"];
+};
 
 export default function TelaCulturaViva({ navigation }) {
-  const eventos = [
-    {
-      titulo: "Festival de Música Urbana",
-      local: "Praia de Iracema",
-      horario: "Ao vivo agora",
-      icon: "music",
-      cor: "#8B5CF6",
-    },
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
 
-    {
-      titulo: "Feira Gastronômica",
-      local: "Benfica",
-      horario: "Começa às 19h",
-      icon: "silverware-fork-knife",
-      cor: "#F59E0B",
-    },
+  const insets = useSafeAreaInsets();
 
-    {
-      titulo: "Teatro Cultural",
-      local: "Centro",
-      horario: "Últimas vagas",
-      icon: "drama-masks",
-      cor: "#06B6D4",
-    },
-  ];
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [eventosSalvos, setEventosSalvos] = useState(new Set());
+
+  useEffect(() => {
+    carregarEventos();
+    carregarEventosSalvos();
+  }, []);
+
+  const carregarEventosSalvos = async () => {
+    try {
+      const salvos = await AsyncStorage.getItem("eventosSalvos");
+      if (salvos) {
+        setEventosSalvos(new Set(JSON.parse(salvos)));
+      }
+    } catch (error) {
+      console.log("Erro ao carregar eventos salvos:", error);
+    }
+  };
+
+  const salvarParaDepois = async (evento) => {
+    try {
+      const novosSalvos = new Set(eventosSalvos);
+      if (novosSalvos.has(evento.id)) {
+        novosSalvos.delete(evento.id);
+      } else {
+        novosSalvos.add(evento.id);
+      }
+      setEventosSalvos(novosSalvos);
+      await AsyncStorage.setItem("eventosSalvos", JSON.stringify([...novosSalvos]));
+    } catch (error) {
+      console.log("Erro ao salvar evento:", error);
+    }
+  };
+
+  async function carregarEventos() {
+    try {
+
+      const response = await getEventos();
+
+      const lista = Array.isArray(response)
+        ? response
+        : response?.data || response?.results || [];
+
+      const hoje = new Date();
+
+      const tratados = lista.map((item, index) => {
+        const occurrence = item?.occurrences?.[0];
+        const inicio = occurrence?.startDate || occurrence?.startsOn || occurrence?.start;
+        let dataEvento = inicio ? new Date(inicio) : null;
+
+        if (!dataEvento || isNaN(dataEvento.getTime())) {
+          dataEvento = extrairDataDaDescricao(item?.shortDescription || item?.description);
+        }
+
+        const linguagens = item?.terms?.linguagem || [];
+        let categoria = linguagens.length > 0 ? linguagens[0] : "Cultura";
+
+        if (categoria === "Cultura" && item?.shortDescription) {
+          const desc = item.shortDescription.toLowerCase();
+          if (desc.includes("música") || desc.includes("show") || desc.includes("concerto")) {
+            categoria = "Música";
+          } else if (desc.includes("teatro") || desc.includes("peça") || desc.includes("drama")) {
+            categoria = "Teatro";
+          } else if (desc.includes("exposição") || desc.includes("arte") || desc.includes("galeria")) {
+            categoria = "Arte";
+          } else if (desc.includes("cinema") || desc.includes("filme") || desc.includes("sala")) {
+            categoria = "Cinema";
+          } else if (desc.includes("dança") || desc.includes("ballet") || desc.includes("coreografia")) {
+            categoria = "Dança";
+          } else if (desc.includes("literatura") || desc.includes("livro") || desc.includes("leitura")) {
+            categoria = "Literatura";
+          } else if (desc.includes("gastronomia") || desc.includes("comida") || desc.includes("culinária")) {
+            categoria = "Gastronomia";
+          } else if (desc.includes("esporte") || desc.includes("competição") || desc.includes("atletismo")) {
+            categoria = "Esporte";
+          } else if (desc.includes("festival") || desc.includes("feira")) {
+            categoria = "Festival";
+          }
+        }
+
+        return {
+          id: item.id || String(index),
+          titulo: item.name || "Evento Cultural",
+          local: item?.location?.name || "Fortaleza",
+          descricao: item?.shortDescription || "Evento cultural disponível na cidade.",
+          imagem: getImagemPorCategoria(
+            categoria,
+            item?.files?.avatar?.url ||
+            item?.files?.header?.url ||
+            item?.files?.[0]?.url
+          ),
+          dataEvento: dataEvento,
+          data: dataEvento
+            ? dataEvento.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "Em breve",
+          categoria: categoria,
+        };
+      });
+
+      setEventos(tratados);
+
+    } catch (err) {
+
+      console.log("Erro API:", err);
+
+    } finally {
+
+      setLoading(false);
+
+    }
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator
+          size="large"
+          color={colors.primaryLight}
+        />
+
+        <Text style={styles.loadingText}>
+          Carregando cultura...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
+
       <StatusBar barStyle="light-content" />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+      <ImageBackground
+        source={require("../assets/fundoTelaLogin.png")}
+        resizeMode="cover"
+        style={styles.bg}
       >
+
         <LinearGradient
           colors={[
-            Colors.primary,
-            "#5B4CF0",
-            "#241B4B",
+            "rgba(5,8,18,0.97)",
+            "rgba(10,12,24,0.96)",
+            "rgba(22,14,50,0.96)",
           ]}
-          style={styles.header}
+          style={styles.overlay}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
+
+          <View style={styles.glowTop}/>
+          <View style={styles.glowBottom}/>
+
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingBottom: 40,
+            }}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={22}
-              color="#fff"
-            />
-          </TouchableOpacity>
 
-          <View style={styles.headerContent}>
-            <BlurView
-              intensity={40}
-              tint="dark"
-              style={styles.iconCircle}
-            >
-              <MaterialCommunityIcons
-                name="fire"
-                size={34}
-                color="#fff"
-              />
-            </BlurView>
+            {/* HEADER */}
 
-            <Text style={styles.title}>
-              Cultura Viva
-            </Text>
-
-            <Text style={styles.subtitle}>
-              Descubra o que está acontecendo
-              agora em Fortaleza.
-            </Text>
-          </View>
-        </LinearGradient>
-
-        {/* STATUS */}
-        <View style={styles.statusCard}>
-          <View>
-            <Text style={styles.statusLabel}>
-              Cidade agora
-            </Text>
-
-            <Text style={styles.statusTitle}>
-              🔥 Alta atividade cultural
-            </Text>
-          </View>
-
-          <View style={styles.liveBadge}>
-            <Text style={styles.liveText}>
-              AO VIVO
-            </Text>
-          </View>
-        </View>
-
-        {/* STATS */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="calendar-star"
-              size={24}
-              color="#8B5CF6"
-            />
-
-            <Text style={styles.statNumber}>
-              124
-            </Text>
-
-            <Text style={styles.statLabel}>
-              Eventos
-            </Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <MaterialCommunityIcons
-              name="map-marker-radius"
-              size={24}
-              color="#06B6D4"
-            />
-
-            <Text style={styles.statNumber}>
-              18
-            </Text>
-
-            <Text style={styles.statLabel}>
-              Próximos
-            </Text>
-          </View>
-        </View>
-
-        {/* EVENTOS */}
-        <Text style={styles.sectionTitle}>
-          🔥 Em alta hoje
-        </Text>
-
-        {eventos.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            activeOpacity={0.85}
-            style={styles.eventCard}
-          >
-            <LinearGradient
-              colors={[
-                item.cor,
-                "rgba(255,255,255,0.05)",
+            <View
+              style={[
+                styles.header,
+                {
+                  paddingTop:
+                    insets.top + 10,
+                },
               ]}
-              style={styles.eventIcon}
             >
-              <MaterialCommunityIcons
-                name={item.icon}
-                size={24}
-                color="#fff"
-              />
-            </LinearGradient>
 
-            <View style={{ flex: 1 }}>
-              <Text style={styles.eventTitle}>
-                {item.titulo}
-              </Text>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() =>
+                  navigation.goBack()
+                }
+              >
 
-              <Text style={styles.eventLocal}>
-                {item.local}
-              </Text>
+                <MaterialCommunityIcons
+                  name="arrow-left"
+                  size={22}
+                  color="#FFF"
+                />
+
+              </TouchableOpacity>
+
+              <MotiView
+                from={{
+                  opacity: 0,
+                  translateY: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  translateY: 0,
+                }}
+              >
+
+                <LinearGradient
+                  colors={[
+                    colors.primaryLight,
+                    colors.primaryDark,
+                  ]}
+                  style={styles.heroIcon}
+                >
+
+                  <MaterialCommunityIcons
+                    name="fire"
+                    size={38}
+                    color="#FFF"
+                  />
+
+                </LinearGradient>
+
+                <Text style={styles.title}>
+                  Cultura Viva
+                </Text>
+
+                <Text style={styles.subtitle}>
+                  Descubra o que está
+                  acontecendo agora em
+                  Fortaleza.
+                </Text>
+
+              </MotiView>
+
             </View>
 
-            <Text style={styles.eventTime}>
-              {item.horario}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            {/* STATUS */}
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
+            <BlurView
+              intensity={55}
+              tint={blurTint}
+              style={styles.statusCard}
+            >
+
+              <View>
+
+                <Text style={styles.statusLabel}>
+                  Cidade agora
+                </Text>
+
+                <Text style={styles.statusTitle}>
+                  🔥 Alta atividade cultural
+                </Text>
+
+              </View>
+
+              <View style={styles.liveBadge}>
+                <Text style={styles.liveText}>
+                  AO VIVO
+                </Text>
+              </View>
+
+            </BlurView>
+
+            <Text style={styles.sectionTitle}>
+              🔥 Em alta hoje
+            </Text>
+
+            {eventos.map((item, index) => (
+
+              <MotiView
+                key={item.id}
+                from={{
+                  opacity: 0,
+                  translateY: 25,
+                }}
+                animate={{
+                  opacity: 1,
+                  translateY: 0,
+                }}
+                transition={{
+                  delay: index * 80,
+                }}
+              >
+
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  style={styles.eventCard}
+                >
+
+                  <ImageBackground
+                    source={{ uri: item.imagem }}
+                    style={styles.eventImage}
+                    resizeMode="cover"
+                  >
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.92)"]}
+                      style={styles.eventImageOverlay}
+                    >
+                      <View style={styles.categoryBadge}>
+                        <MaterialCommunityIcons
+                          name="tag-outline"
+                          size={12}
+                          color="#FFF"
+                        />
+                        <Text style={styles.categoryBadgeText}>
+                          {item.categoria}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.eventTitle}>
+                        {item.titulo}
+                      </Text>
+
+                      <Text style={styles.eventLocal}>
+                        📍 {item.local}
+                      </Text>
+
+                      <View style={styles.dateHighlight}>
+                        <MaterialCommunityIcons
+                          name="calendar-outline"
+                          size={14}
+                          color={colors.primaryLight}
+                        />
+                        <Text style={styles.dateHighlightText}>
+                          {item.data}
+                        </Text>
+                      </View>
+
+                      <View style={styles.actions}>
+                        <TouchableOpacity
+                          activeOpacity={0.9}
+                          style={styles.botaoSalvar}
+                          onPress={() => salvarParaDepois(item)}
+                        >
+                          <LinearGradient
+                            colors={
+                              eventosSalvos.has(item.id)
+                                ? [colors.primaryLight, colors.primaryDark]
+                                : [colors.primarySoft, "rgba(109,40,217,0.3)"]
+                            }
+                            style={styles.gradientBtnSalvar}
+                          >
+                            <MaterialCommunityIcons
+                              name={eventosSalvos.has(item.id) ? "bookmark" : "bookmark-outline"}
+                              size={16}
+                              color={eventosSalvos.has(item.id) ? "#FFF" : colors.primaryLight}
+                            />
+                            <Text style={[
+                              styles.textoBtnSalvar,
+                              eventosSalvos.has(item.id) && styles.textoBtnSalvarActive
+                            ]}>
+                              {eventosSalvos.has(item.id) ? "Salvo" : "Salvar"}
+                            </Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </LinearGradient>
+                  </ImageBackground>
+
+                </TouchableOpacity>
+
+              </MotiView>
+
+            ))}
+
+          </ScrollView>
+
+        </LinearGradient>
+
+      </ImageBackground>
+
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+
+  container:{
+    flex:1,
+    backgroundColor:c.background,
   },
 
-  header: {
-    paddingTop: 60,
-    paddingBottom: 34,
-    paddingHorizontal: 22,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+  bg:{
+    flex:1,
   },
 
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
+  overlay:{
+    flex:1,
   },
 
-  headerContent: {
-    alignItems: "center",
+  loadingContainer:{
+    flex:1,
+    justifyContent:"center",
+    alignItems:"center",
+    backgroundColor:c.background,
   },
 
-  iconCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-    marginBottom: 18,
+  loadingText:{
+    color:"#FFF",
+    marginTop:16,
+    fontSize:16,
   },
 
-  title: {
-    color: "#fff",
-    fontSize: 30,
-    fontWeight: "800",
+  glowTop:{
+    position:"absolute",
+    top:-120,
+    right:-80,
+    width:300,
+    height:300,
+    borderRadius:200,
+    backgroundColor:c.purpleGlow,
   },
 
-  subtitle: {
-    color: "rgba(255,255,255,0.75)",
-    textAlign: "center",
-    marginTop: 10,
-    lineHeight: 22,
+  glowBottom:{
+    position:"absolute",
+    bottom:-140,
+    left:-80,
+    width:260,
+    height:260,
+    borderRadius:200,
+    backgroundColor:"rgba(34,211,238,0.10)",
   },
 
-  statusCard: {
-    margin: 18,
-    padding: 18,
-    borderRadius: 22,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+  header:{
+    paddingHorizontal:24,
+    paddingBottom:24,
   },
 
-  statusLabel: {
-    color: Colors.textMuted,
-    marginBottom: 6,
+  backButton:{
+    width:46,
+    height:46,
+    borderRadius:16,
+    justifyContent:"center",
+    alignItems:"center",
+    backgroundColor:c.glass,
+    marginBottom:24,
   },
 
-  statusTitle: {
-    color: Colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "700",
+  heroIcon:{
+    width:90,
+    height:90,
+    borderRadius:30,
+    justifyContent:"center",
+    alignItems:"center",
+    marginBottom:22,
   },
 
-  liveBadge: {
-    backgroundColor: "rgba(239,68,68,0.15)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 30,
+  title:{
+    color:"#FFF",
+    fontSize: width < 380 ? 34 : 40,
+    fontWeight:"800",
   },
 
-  liveText: {
-    color: "#EF4444",
-    fontWeight: "700",
-    fontSize: 12,
+  subtitle:{
+    color:"rgba(255,255,255,0.7)",
+    marginTop:12,
+    fontSize:15,
+    lineHeight:24,
   },
 
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 18,
+  statusCard:{
+    marginHorizontal:20,
+    marginBottom:24,
+    borderRadius:24,
+    padding:20,
+    flexDirection:"row",
+    justifyContent:"space-between",
+    alignItems:"center",
+    overflow:"hidden",
+    borderWidth:1,
+    borderColor:c.glass,
   },
 
-  statCard: {
-    width: "48%",
-    backgroundColor: Colors.surface,
-    borderRadius: 22,
-    paddingVertical: 24,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: Colors.border,
+  statusLabel:{
+    color:"rgba(255,255,255,0.55)",
+    marginBottom:6,
   },
 
-  statNumber: {
-    color: Colors.textPrimary,
-    fontSize: 28,
-    fontWeight: "800",
-    marginTop: 10,
+  statusTitle:{
+    color:"#FFF",
+    fontSize:16,
+    fontWeight:"800",
   },
 
-  statLabel: {
-    color: Colors.textMuted,
-    marginTop: 4,
+  liveBadge:{
+    backgroundColor:"rgba(239,68,68,0.15)",
+    paddingHorizontal:14,
+    paddingVertical:8,
+    borderRadius:30,
   },
 
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "800",
-    marginTop: 26,
-    marginBottom: 14,
-    paddingHorizontal: 18,
+  liveText:{
+    color:c.error,
+    fontWeight:"800",
+    fontSize:12,
   },
 
-  eventCard: {
-    backgroundColor: Colors.surface,
-    marginHorizontal: 18,
-    marginBottom: 14,
-    borderRadius: 22,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    flexDirection: "row",
-    alignItems: "center",
+  sectionTitle:{
+    color:"#FFF",
+    fontSize:22,
+    fontWeight:"800",
+    paddingHorizontal:22,
+    marginBottom:18,
   },
 
-  eventIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
+  eventCard:{
+    marginHorizontal:20,
+    marginBottom:16,
+    borderRadius:24,
+    overflow:"hidden",
+    height:220,
+    borderWidth:1,
+    borderColor:c.glass,
   },
 
-  eventTitle: {
-    color: Colors.textPrimary,
-    fontWeight: "700",
-    fontSize: 15,
+  eventImage:{
+    width:"100%",
+    height:"100%",
   },
 
-  eventLocal: {
-    color: Colors.textMuted,
-    marginTop: 4,
+  eventImageOverlay:{
+    flex:1,
+    padding:18,
+    justifyContent:"flex-end",
   },
 
-  eventTime: {
-    color: Colors.primary,
-    fontWeight: "700",
-    fontSize: 12,
+  categoryBadge:{
+    flexDirection:"row",
+    alignItems:"center",
+    paddingHorizontal:12,
+    paddingVertical:6,
+    borderRadius:16,
+    backgroundColor:c.primary,
+    alignSelf:"flex-start",
+    marginBottom:12,
+    borderWidth:1,
+    borderColor:"rgba(255,255,255,0.2)",
   },
+
+  categoryBadgeText:{
+    color:"#FFF",
+    fontSize:11,
+    fontWeight:"800",
+    marginLeft:4,
+  },
+
+  eventTitle:{
+    color:"#FFF",
+    fontSize:18,
+    fontWeight:"800",
+    marginBottom:6,
+  },
+
+  eventLocal:{
+    color:"rgba(255,255,255,0.7)",
+    fontSize:13,
+    marginBottom:12,
+  },
+
+  dateHighlight:{
+    flexDirection:"row",
+    alignItems:"center",
+    backgroundColor:c.primarySoft,
+    borderRadius:10,
+    paddingHorizontal:10,
+    paddingVertical:6,
+    marginBottom:12,
+    alignSelf:"flex-start",
+    borderWidth:1,
+    borderColor:c.primarySoft,
+  },
+
+  dateHighlightText:{
+    color:c.primaryLight,
+    fontSize:12,
+    fontWeight:"700",
+    marginLeft:6,
+  },
+
+  actions:{
+    flexDirection:"row",
+    justifyContent:"flex-end",
+  },
+
+  botaoSalvar:{
+    borderRadius:14,
+    overflow:"hidden",
+  },
+
+  gradientBtnSalvar:{
+    flexDirection:"row",
+    alignItems:"center",
+    paddingVertical:10,
+    paddingHorizontal:14,
+    borderWidth:1,
+    borderColor:c.primary,
+  },
+
+  textoBtnSalvar:{
+    color:c.primaryLight,
+    fontWeight:"800",
+    fontSize:12,
+    marginLeft:4,
+  },
+
+  textoBtnSalvarActive:{
+    color:"#FFF",
+  },
+
 });
+}

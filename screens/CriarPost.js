@@ -7,11 +7,11 @@ import {
 	TextInput,
 	StyleSheet,
 	ActivityIndicator,
-	Modal,
 	ScrollView,
 	KeyboardAvoidingView,
 	Platform,
 	StatusBar,
+	RefreshControl,
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
@@ -26,13 +26,22 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-import { MotiView } from "moti";
+import Animated, {
+	FadeIn,
+	FadeInDown,
+	FadeInUp,
+	FadeInLeft,
+	FadeInRight,
+} from "react-native-reanimated";
 
 import { useAuth } from "../context/AuthContext";
 
 import AppText from "../components/AppText";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
+import ConfirmModal from "../components/ConfirmModal";
 
 import { db } from "../firebaseConfig";
 
@@ -59,8 +68,19 @@ export default function CriarPost({ navigation }) {
 		type: "success",
 	});
 
+	const [refreshing, setRefreshing] = useState(false);
+
+	const onRefresh = async () => {
+		setRefreshing(true);
+		// Simular refresh
+		setTimeout(() => setRefreshing(false), 1000);
+	};
+
 	const showModal = (title, message, type = "success") => {
-		setModalData({
+		const { colors, isDark } = useTheme();
+		const styles = useThemedStyles(createThemedScreenStyles);
+		const blurTint = isDark ? "dark" : "light";
+setModalData({
 			title,
 			message,
 			type,
@@ -76,7 +96,11 @@ export default function CriarPost({ navigation }) {
 				await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 			if (!permission.granted) {
-				showModal("Permissão necessária", "Permita acesso à galeria.", "error");
+				showModal(
+					"Permissão necessária",
+					"Permita acesso à galeria.",
+					"error"
+				);
 
 				return;
 			}
@@ -95,20 +119,32 @@ export default function CriarPost({ navigation }) {
 		} catch (e) {
 			console.log(e);
 
-			showModal("Erro", "Não foi possível abrir a galeria.", "error");
+			showModal(
+				"Erro",
+				"Não foi possível abrir a galeria.",
+				"error"
+			);
 		}
 	};
 
 	/* PUBLICAR */
 	const publicar = async () => {
 		if (!imagem) {
-			showModal("Atenção", "Selecione uma imagem.", "error");
+			showModal(
+				"Atenção",
+				"Selecione uma imagem.",
+				"error"
+			);
 
 			return;
 		}
 
 		if (!descricao.trim()) {
-			showModal("Atenção", "Digite uma descrição.", "error");
+			showModal(
+				"Atenção",
+				"Digite uma descrição.",
+				"error"
+			);
 
 			return;
 		}
@@ -116,8 +152,10 @@ export default function CriarPost({ navigation }) {
 		try {
 			setLoading(true);
 
-			const imageUrl = await uploadImagem(imagem, user?.uid, (p) =>
-				setUploadProgress(p)
+			const imageUrl = await uploadImagem(
+				imagem,
+				user?.uid,
+				(p) => setUploadProgress(p)
 			);
 
 			await addDoc(collection(db, "posts"), {
@@ -126,9 +164,15 @@ export default function CriarPost({ navigation }) {
 				autor: {
 					uid: user?.uid,
 
-					nome: profile?.nome || user?.displayName || "Usuário",
+					nome:
+						profile?.nome ||
+						user?.displayName ||
+						"Usuário",
 
-					foto: profile?.foto || user?.photoURL || "https://i.pravatar.cc/100",
+					foto:
+						profile?.foto ||
+						user?.photoURL ||
+						"https://i.pravatar.cc/100",
 
 					email: user?.email || "",
 
@@ -139,10 +183,17 @@ export default function CriarPost({ navigation }) {
 
 				descricao: descricao.trim(),
 
+				likes: 0,
+
+				comentarios: 0,
+
 				createdAt: serverTimestamp(),
 			});
 
-			showModal("Sucesso 🎉", "Post publicado com sucesso!");
+			showModal(
+				"Sucesso 🎉",
+				"Post publicado com sucesso!"
+			);
 
 			setTimeout(() => {
 				setModalVisible(false);
@@ -152,7 +203,11 @@ export default function CriarPost({ navigation }) {
 		} catch (e) {
 			console.log(e);
 
-			showModal("Erro", "Não foi possível publicar o post.", "error");
+			showModal(
+				"Erro",
+				"Não foi possível publicar o post.",
+				"error"
+			);
 		} finally {
 			setLoading(false);
 
@@ -174,10 +229,26 @@ export default function CriarPost({ navigation }) {
 			/>
 
 			{/* HEADER */}
-			<LinearGradient colors={["#070B14", "#111827"]} style={styles.header}>
-				<View style={styles.headerRow}>
-					<TouchableOpacity onPress={() => navigation.goBack()}>
-						<BlurView intensity={60} tint="dark" style={styles.backBtn}>
+			<Animated.View
+				entering={FadeInDown.duration(700)}
+			>
+				<LinearGradient
+					colors={[
+						colors.backgroundSecondary,
+						colors.surface,
+						colors.background,
+					]}
+					style={styles.header}
+				>
+					<View style={styles.headerRow}>
+					<TouchableOpacity
+						onPress={() => navigation.goBack()}
+					>
+						<BlurView
+							intensity={60}
+							tint={blurTint}
+							style={styles.backBtn}
+						>
 							<MaterialCommunityIcons
 								name="arrow-left"
 								size={24}
@@ -186,72 +257,91 @@ export default function CriarPost({ navigation }) {
 						</BlurView>
 					</TouchableOpacity>
 
-					<AppText style={styles.title}>Novo Post</AppText>
+					<AppText style={styles.title}>
+						Novo Post
+					</AppText>
 
 					<TouchableOpacity
+						activeOpacity={0.75}
 						disabled={!podePublicar || loading}
 						onPress={publicar}
+						style={styles.publishBtn}
 					>
-						<LinearGradient
-							colors={podePublicar ? ["#7C3AED", "#5B21B6"] : ["#333", "#333"]}
-							style={styles.publishBtn}
-						>
+						<View style={[styles.publishIconCircle, { backgroundColor: podePublicar ? "rgba(124,58,237,0.2)" : "rgba(255,255,255,0.05)" }]}>
 							{loading ? (
-								<ActivityIndicator color="#FFF" size="small" />
+								<ActivityIndicator color={podePublicar ? "#7C3AED" : colors.textMuted} size="small" />
 							) : (
-								<AppText style={styles.publishText}>Publicar</AppText>
+								<MaterialCommunityIcons
+									name="send"
+									size={18}
+									color={podePublicar ? "#7C3AED" : colors.textMuted}
+								/>
 							)}
-						</LinearGradient>
+						</View>
+						<AppText style={[styles.publishLabel, !podePublicar && styles.publishLabelDisabled]}>
+							Publicar
+						</AppText>
 					</TouchableOpacity>
 				</View>
 
 				{/* PROGRESS */}
-				{loading && uploadProgress > 0 && uploadProgress < 1 && (
-					<View style={styles.progressContainer}>
-						<View style={styles.progressBarBg}>
-							<View
-								style={[
-									styles.progressBar,
-									{
-										width: `${uploadProgress * 100}%`,
-									},
-								]}
-							/>
-						</View>
+				{loading &&
+					uploadProgress > 0 &&
+					uploadProgress < 1 && (
+						<View style={styles.progressContainer}>
+							<View style={styles.progressBarBg}>
+								<View
+									style={[
+										styles.progressBar,
+										{
+											width: `${
+												uploadProgress * 100
+											}%`,
+										},
+									]}
+								/>
+							</View>
 
-						<AppText style={styles.progressText}>
-							Enviando imagem {Math.round(uploadProgress * 100)}%
-						</AppText>
-					</View>
-				)}
-			</LinearGradient>
+							<AppText
+								style={styles.progressText}
+							>
+								Enviando imagem{" "}
+								{Math.round(
+									uploadProgress * 100
+								)}
+								%
+							</AppText>
+						</View>
+					)}
+				</LinearGradient>
+			</Animated.View>
 
 			{/* CONTEÚDO */}
 			<KeyboardAvoidingView
 				style={{ flex: 1 }}
-				behavior={Platform.OS === "ios" ? "padding" : undefined}
+				behavior={
+					Platform.OS === "ios"
+						? "padding"
+						: undefined
+				}
 			>
-				<ScrollView
+				<Animated.ScrollView
+					entering={FadeIn.duration(700)}
 					showsVerticalScrollIndicator={false}
 					contentContainerStyle={{
-						paddingBottom: insets.bottom + 140,
+						paddingBottom:
+							insets.bottom + 140,
 					}}
+					refreshControl={
+						<RefreshControl
+							refreshing={refreshing}
+							onRefresh={onRefresh}
+							tintColor={colors.primary}
+						/>
+					}
 				>
-					<MotiView
-						from={{
-							opacity: 0,
-							translateY: 40,
-							scale: 0.96,
-						}}
-						animate={{
-							opacity: 1,
-							translateY: 0,
-							scale: 1,
-						}}
-						transition={{
-							type: "timing",
-							duration: 650,
-						}}
+					<Animated.View
+						entering={FadeInUp.delay(120).springify()}
 					>
 						{/* IMAGEM */}
 						<TouchableOpacity
@@ -270,27 +360,47 @@ export default function CriarPost({ navigation }) {
 									/>
 
 									<LinearGradient
-										colors={["transparent", "rgba(0,0,0,0.85)"]}
-										style={styles.imageOverlay}
+										colors={[
+											"transparent",
+											"rgba(0,0,0,0.85)",
+										]}
+										style={
+											styles.imageOverlay
+										}
 									>
-										<View style={styles.changePhoto}>
+										<View
+											style={
+												styles.changePhoto
+											}
+										>
 											<MaterialCommunityIcons
 												name="camera"
 												size={18}
 												color="#FFF"
 											/>
 
-											<AppText style={styles.changePhotoText}>
+											<AppText
+												style={
+													styles.changePhotoText
+												}
+											>
 												Alterar foto
 											</AppText>
 										</View>
 									</LinearGradient>
 								</>
 							) : (
-								<View style={styles.placeholder}>
+								<View
+									style={styles.placeholder}
+								>
 									<LinearGradient
-										colors={["#7C3AED", "#5B21B6"]}
-										style={styles.placeholderIcon}
+										colors={[
+											"#7C3AED",
+											"#5B21B6",
+										]}
+										style={
+											styles.placeholderIcon
+										}
 									>
 										<MaterialCommunityIcons
 											name="image-plus"
@@ -299,96 +409,92 @@ export default function CriarPost({ navigation }) {
 										/>
 									</LinearGradient>
 
-									<AppText style={styles.placeholderTitle}>
+									<AppText
+										style={
+											styles.placeholderTitle
+										}
+									>
 										Adicionar imagem
 									</AppText>
 
-									<AppText style={styles.placeholderText}>
-										Escolha uma imagem incrível para o seu post
+									<AppText
+										style={
+											styles.placeholderText
+										}
+									>
+										Escolha uma imagem incrível
+										para o seu post
 									</AppText>
 								</View>
 							)}
 						</TouchableOpacity>
 
 						{/* INPUT */}
-						<View style={styles.inputContainer}>
-							<View style={styles.inputHeader}>
+						<View
+							style={styles.inputContainer}
+						>
+							<View
+								style={styles.inputHeader}
+							>
 								<MaterialCommunityIcons
 									name="text-box-outline"
 									size={20}
-									color={Colors.primary}
+									color={colors.primary}
 								/>
 
-								<AppText style={styles.inputLabel}>Descrição</AppText>
+								<AppText
+									style={styles.inputLabel}
+								>
+									Descrição
+								</AppText>
 							</View>
 
 							<TextInput
 								placeholder="Escreva algo sobre esse momento..."
-								placeholderTextColor={Colors.textMuted}
+								placeholderTextColor={
+									colors.textMuted
+								}
 								value={descricao}
 								onChangeText={setDescricao}
 								multiline
+								maxLength={500}
 								style={styles.input}
 							/>
 
-							<View style={styles.counterRow}>
-								<AppText style={styles.counter}>
-									{descricao.length}
-									/500
+							<View
+								style={styles.counterRow}
+							>
+								<AppText
+									style={styles.counter}
+								>
+									{descricao.length}/500
 								</AppText>
 							</View>
 						</View>
-					</MotiView>
-				</ScrollView>
+					</Animated.View>
+				</Animated.ScrollView>
 			</KeyboardAvoidingView>
 
 			{/* MODAL */}
-			<Modal transparent animationType="fade" visible={modalVisible}>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalBox}>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor:
-										modalData.type === "success"
-											? "rgba(34,197,94,0.18)"
-											: "rgba(239,68,68,0.18)",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={
-									modalData.type === "success" ? "check-circle" : "alert-circle"
-								}
-								size={42}
-								color={modalData.type === "success" ? "#22C55E" : "#EF4444"}
-							/>
-						</View>
-
-						<AppText style={styles.modalTitle}>{modalData.title}</AppText>
-
-						<AppText style={styles.modalMessage}>{modalData.message}</AppText>
-
-						<TouchableOpacity onPress={() => setModalVisible(false)}>
-							<LinearGradient
-								colors={["#7C3AED", "#5B21B6"]}
-								style={styles.modalBtn}
-							>
-								<AppText style={styles.modalBtnText}>OK</AppText>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalData.title}
+				message={modalData.message}
+				type={modalData.type}
+				confirmText="OK"
+				onConfirm={() =>
+					setModalVisible(false)
+				}
+			/>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	header: {
@@ -410,7 +516,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	title: {
@@ -420,17 +526,34 @@ const styles = StyleSheet.create({
 	},
 
 	publishBtn: {
-		paddingHorizontal: 18,
-		paddingVertical: 12,
-		borderRadius: 16,
-		minWidth: 110,
+		flexDirection: "row",
 		alignItems: "center",
+		paddingVertical: 10,
+		paddingHorizontal: 12,
+		borderRadius: 14,
+		backgroundColor: c.surface,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+		gap: 8,
+		minWidth: 110,
 	},
 
-	publishText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 14,
+	publishIconCircle: {
+		width: 32,
+		height: 32,
+		borderRadius: 10,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+
+	publishLabel: {
+		fontSize: 13,
+		fontWeight: "700",
+		color: c.textPrimary,
+	},
+
+	publishLabelDisabled: {
+		color: c.textMuted,
 	},
 
 	progressContainer: {
@@ -439,7 +562,7 @@ const styles = StyleSheet.create({
 
 	progressBarBg: {
 		height: 8,
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 		borderRadius: 20,
 		overflow: "hidden",
 	},
@@ -459,23 +582,14 @@ const styles = StyleSheet.create({
 
 	imageBox: {
 		height: 340,
-
 		marginHorizontal: 18,
-
 		marginTop: 24,
-
 		borderRadius: 30,
-
-		backgroundColor: "#111827",
-
+		backgroundColor: c.surfaceMuted,
 		overflow: "hidden",
-
 		borderWidth: 1,
-
-		borderColor: "rgba(255,255,255,0.08)",
-
+		borderColor: c.glassStrong,
 		justifyContent: "center",
-
 		alignItems: "center",
 	},
 
@@ -539,20 +653,13 @@ const styles = StyleSheet.create({
 
 	inputContainer: {
 		marginTop: 24,
-
 		marginHorizontal: 18,
-
 		marginBottom: 20,
-
-		backgroundColor: "#111827",
-
+		backgroundColor: c.surfaceMuted,
 		borderRadius: 26,
-
 		padding: 20,
-
 		borderWidth: 1,
-
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: c.glassStrong,
 	},
 
 	inputHeader: {
@@ -585,58 +692,5 @@ const styles = StyleSheet.create({
 		color: "rgba(255,255,255,0.45)",
 		fontSize: 12,
 	},
-
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0,0,0,0.7)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-
-	modalBox: {
-		width: "100%",
-		backgroundColor: "#111827",
-		borderRadius: 30,
-		padding: 28,
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
-	},
-
-	modalIcon: {
-		width: 84,
-		height: 84,
-		borderRadius: 30,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 18,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-		fontSize: 22,
-		fontWeight: "800",
-		marginBottom: 10,
-	},
-
-	modalMessage: {
-		color: "rgba(255,255,255,0.72)",
-		fontSize: 15,
-		lineHeight: 24,
-		textAlign: "center",
-		marginBottom: 24,
-	},
-
-	modalBtn: {
-		paddingHorizontal: 40,
-		paddingVertical: 14,
-		borderRadius: 18,
-	},
-
-	modalBtnText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 15,
-	},
 });
+}

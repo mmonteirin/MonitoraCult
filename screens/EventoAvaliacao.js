@@ -14,13 +14,11 @@ import {
 
 import {
   collection,
-  addDoc,
   onSnapshot,
   query,
   orderBy,
   where,
   getDocs,
-  serverTimestamp,
 } from "firebase/firestore";
 
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,12 +30,15 @@ import { auth, db } from "../firebaseConfig";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Colors } from "../styles/Colors";
+import {
+  adicionarAvaliacaoEvento,
+} from "../services/avaliacaoService";
 
 export default function EventoAvaliacao({
   route,
   navigation,
 }) {
-  const { eventoId } = route.params;
+  const { eventoId, evento } = route.params;
 
   const insets =
     useSafeAreaInsets();
@@ -142,6 +143,11 @@ export default function EventoAvaliacao({
   /* ⭐ CHECK USER */
   useEffect(() => {
     const check = async () => {
+      if (!auth.currentUser?.uid) {
+        setJaAvaliou(false);
+        return;
+      }
+
       const q = query(
         collection(
           db,
@@ -183,34 +189,20 @@ export default function EventoAvaliacao({
         const user =
           auth.currentUser;
 
-        await addDoc(
-          collection(
-            db,
-            "eventos",
-            eventoId,
-            "avaliacoes"
-          ),
-          {
-            userId: user.uid,
+        if (!user?.uid) {
+          return;
+        }
 
-            nome:
-              user.displayName ||
-              "Anônimo",
-
-            nota:
-              notaSelecionada,
-
-            comentario:
-              comentario.trim(),
-
-            foto:
-              user.photoURL ||
-              "https://i.pravatar.cc/100",
-
-            createdAt:
-              serverTimestamp(),
-          }
-        );
+        await adicionarAvaliacaoEvento({
+          eventoId,
+          user,
+          nota: notaSelecionada,
+          comentario,
+          tituloEvento:
+            evento?.tituloEvento ||
+            evento?.titulo ||
+            "Evento",
+        });
 
         setComentario("");
         setNotaSelecionada(0);

@@ -8,15 +8,33 @@ import {
   Image,
   ActivityIndicator,
   Share,
+  StatusBar,
+  RefreshControl,
 } from "react-native";
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  FadeInLeft,
+  FadeInRight,
+} from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+  const insets = useSafeAreaInsets();
   const { newsId } = route.params;
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadNewsData();
@@ -31,6 +49,12 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
       console.error("Erro ao carregar notícia:", error);
       setLoading(false);
     }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadNewsData();
+    setRefreshing(false);
   };
 
   const handleShare = async () => {
@@ -50,18 +74,25 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
+          <BlurView
+            intensity={35}
+            tint={blurTint}
+            style={styles.headerBlur}
+          >
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={28}
+              color="#FFF"
+            />
+          </BlurView>
         </TouchableOpacity>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </View>
     );
@@ -69,31 +100,71 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={28}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notícia</Text>
-        <TouchableOpacity style={styles.moreButton}>
-          <MaterialCommunityIcons
-            name="dots-vertical"
-            size={24}
-            color={Colors.textPrimary}
-          />
-        </TouchableOpacity>
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      <ScrollView
+      {/* HEADER */}
+      <Animated.View
+        entering={FadeInDown.duration(700)}
+      >
+        <LinearGradient
+          colors={[
+            colors.backgroundSecondary,
+            colors.surface,
+            colors.background,
+          ]}
+          style={[
+            styles.header,
+            {
+              paddingTop: insets.top + 12,
+            },
+          ]}
+        >
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+            >
+              <BlurView
+                intensity={35}
+                tint={blurTint}
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={28}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Notícia</Text>
+            <TouchableOpacity style={styles.moreButton}>
+              <BlurView
+                intensity={35}
+                tint={blurTint}
+                style={styles.headerBlur}
+              >
+                <MaterialCommunityIcons
+                  name="dots-vertical"
+                  size={24}
+                  color="#FFF"
+                />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      <Animated.ScrollView
+        entering={FadeIn.duration(700)}
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* FEATURED IMAGE */}
         <View style={styles.imageContainer}>
@@ -101,7 +172,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
             <MaterialCommunityIcons
               name="newspaper"
               size={80}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
         </View>
@@ -125,7 +196,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="account"
                   size={24}
-                  color={Colors.primary}
+                  color={colors.primary}
                 />
               </View>
               <View>
@@ -143,7 +214,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="eye"
                 size={16}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>0 visualizações</Text>
             </View>
@@ -151,7 +222,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="heart"
                 size={16}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>0 curtidas</Text>
             </View>
@@ -192,7 +263,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name={isLiked ? "heart" : "heart-outline"}
                 size={20}
-                color={isLiked ? Colors.error : Colors.textSecondary}
+                color={isLiked ? colors.error : colors.textSecondary}
               />
               <Text
                 style={[
@@ -212,7 +283,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="share-outline"
                 size={20}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.actionButtonText}>
                 Compartilhar
@@ -226,7 +297,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
               <MaterialCommunityIcons
                 name="bookmark-outline"
                 size={20}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.actionButtonText}>Salvar</Text>
             </TouchableOpacity>
@@ -250,7 +321,7 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                   <MaterialCommunityIcons
                     name="newspaper"
                     size={24}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </View>
                 <View style={styles.relatedNewsInfo}>
@@ -267,53 +338,63 @@ export default function ComunidadeNoticiaDetalhes({ route, navigation }) {
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={20}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
             ))}
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
   },
-  backButton: {
-    width: 40,
-    height: 40,
+  headerBlur: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: c.glassStrong,
+    backgroundColor: c.glass,
+  },
+  backButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Colors.textPrimary,
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFF",
     flex: 1,
     textAlign: "center",
   },
   moreButton: {
-    width: 40,
-    height: 40,
-    justifyContent: "center",
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
-    borderRadius: 12,
-    backgroundColor: Colors.surface,
+    justifyContent: "center",
   },
   loadingContainer: {
     flex: 1,
@@ -325,7 +406,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     height: 220,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   imagePlaceholder: {
     flex: 1,
@@ -346,12 +427,12 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 11,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 16,
     lineHeight: 28,
   },
@@ -367,18 +448,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
   authorName: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   publishDate: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   statsBar: {
@@ -393,16 +474,16 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
     marginVertical: 16,
   },
   articleContent: {
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 20,
   },
   actionButtons: {
@@ -417,7 +498,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   actionButtonActive: {
     backgroundColor: "rgba(239, 68, 68, 0.1)",
@@ -425,15 +506,15 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   actionButtonTextActive: {
-    color: Colors.error,
+    color: c.error,
   },
   relatedTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
   relatedNewsItem: {
@@ -442,13 +523,13 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
   relatedNewsImage: {
     width: 50,
     height: 50,
     borderRadius: 8,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -458,11 +539,12 @@ const styles = StyleSheet.create({
   relatedNewsTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   relatedNewsDate: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
 });
+}

@@ -1,4 +1,23 @@
-import React, { useEffect, useState, useCallback, memo } from "react";
+/**
+ * screens/TelaFeed.js
+ *
+ * Hub Social — layout visual idêntico à TelaInicio:
+ *  • Header com gradiente + saudação + botões BlurView
+ *  • Scroll animado com parallax no hero
+ *  • StoryBar reutilizado com os posts recentes
+ *  • CategoryPills para filtrar o feed
+ *  • SectionHeader + TrendingCarousel para destaques
+ *  • Cards de feed (posts + eventos) abaixo
+ *  • Abas sociais (Mensagens, Grupos, Pessoas) acessíveis pelo header
+ */
+
+import React, {
+	useEffect,
+	useMemo,
+	useState,
+	useCallback,
+	memo,
+} from "react";
 
 import {
 	View,
@@ -9,42 +28,57 @@ import {
 	ActivityIndicator,
 	StyleSheet,
 	StatusBar,
-	Dimensions,
 	Modal,
+	TextInput,
+	KeyboardAvoidingView,
+	Platform,
+	Share,
+	RefreshControl,
+	ScrollView,
 } from "react-native";
 
 import Animated, {
-	FadeInDown,
-	FadeInUp,
-	FadeInRight,
+	interpolate,
+	Extrapolate,
+	useAnimatedScrollHandler,
+	useAnimatedStyle,
 	useSharedValue,
 	withSpring,
-	useAnimatedStyle,
+	FadeIn,
+	FadeInDown,
+	FadeInUp,
+	FadeInLeft,
+	FadeInRight,
 } from "react-native-reanimated";
 
+import * as Clipboard from "expo-clipboard";
 import { LinearGradient } from "expo-linear-gradient";
-
 import { BlurView } from "expo-blur";
-
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Haptics from "expo-haptics";
 
 import {
 	collection,
-	deleteDoc,
-	doc,
 	orderBy,
 	limit,
 	getDocs,
+	getDoc,
+	doc,
 	query,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
-import { Colors } from "../styles/Colors";
+import {
+	adicionarFeedComentario,
+	escutarFeedComentarios,
+	getUserFeedLikes,
+	toggleFeedLike,
+} from "../services/feedService";
 
 import {
 	subscribeToEvent,
@@ -52,338 +86,394 @@ import {
 	getSubscribedEvents,
 } from "../services/subscribedEventsService";
 
-import { getUserFeedLikes, toggleFeedLike } from "../services/feedService";
+// Componentes reutilizados da TelaInicio
+import CategoryPills    from "../components/home/CategoryPills";
+import SectionHeader    from "../components/home/SectionHeader";
+import StoryBar         from "../components/home/StoryBar";
+import TrendingCarousel from "../components/home/TrendingCarousel";
+import NotificationBell from "../components/NotificationBell";
+import { categoriasHome } from "../components/home/homeUtils";
 
-const { width } = Dimensions.get("window");
+// Telas sociais embutidas
+import TelaConversas     from "./TelaConversas";
+import TelaBuscaUsuarios from "./TelaBuscaUsuarios";
+import TelaComunidade    from "./TelaComunidade";
 
-const PAGE_SIZE = 10;
+// ─── Constantes ───────────────────────────────────────────────────────────────
 
-const DEFAULT_EVENT_IMAGE =
-	"https://placehold.co/600x600/1B1D26/6C5CE7?text=Evento";
+const PAGE_SIZE = 14;
+const DEFAULT_IMG = "https://placehold.co/600x600/1B1D26/6C5CE7?text=Post";
 
-const LikeButton = memo(({ isLiked, onPress }) => {
+const SOCIAL_TABS = [
+	{ key: "descubra",   label: "Descubra",  icon: "compass-outline",        iconOn: "compass" },
+	{ key: "feed",       label: "Feed",      icon: "view-dashboard-outline", iconOn: "view-dashboard" },
+	{ key: "mensagens",  label: "Mensagens", icon: "message-outline",        iconOn: "message" },
+	{ key: "comunidade", label: "Grupos",    icon: "account-group-outline",  iconOn: "account-group" },
+	{ key: "pessoas",    label: "Pessoas",   icon: "account-search-outline", iconOn: "account-search" },
+];
+
+const getFeedKey = (id, type) => `${type}-${id}`;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatarData(timestamp) {
+	if (!timestamp) return "Agora";
+	const data = timestamp.toDate?.() || new Date(timestamp);
+	const diff = Date.now() - data.getTime();
+	const min = Math.floor(diff / 60000);
+	const h   = Math.floor(diff / 3600000);
+	const d   = Math.floor(diff / 86400000);
+	if (min < 1) return "Agora";
+	if (min < 60) return `${min}m`;
+	if (h < 24)   return `${h}h`;
+	if (d < 7)    return `${d}d`;
+	return data.toLocaleDateString("pt-BR");
+}
+
+function formatarNum(n) {
+	if (!n) return "0";
+	if (n >= 1000) return (n / 1000).toFixed(1) + "K";
+	return String(n);
+}
+
+// ─── Botão de like animado ────────────────────────────────────────────────────
+
+const LikeButton = memo(({ isLiked, onPress, s, colors }) => {
 	const scale = useSharedValue(1);
-
-	const animatedStyle = useAnimatedStyle(() => ({
-		transform: [
-			{
-				scale: scale.value,
-			},
-		],
-	}));
+	const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
 	const handlePress = () => {
-		scale.value = withSpring(1.3);
-
-		setTimeout(() => {
-			scale.value = withSpring(1);
-		}, 120);
-
+		scale.value = withSpring(1.35, {}, () => { scale.value = withSpring(1); });
 		onPress();
 	};
 
 	return (
-		<TouchableOpacity
-			style={styles.actionBtn}
-			onPress={handlePress}
-			activeOpacity={0.7}
-		>
-			<Animated.View style={animatedStyle}>
+		<TouchableOpacity style={s.actionBtn} onPress={handlePress} activeOpacity={0.7}>
+			<Animated.View style={anim}>
 				<MaterialCommunityIcons
 					name={isLiked ? "heart" : "heart-outline"}
-					size={27}
-					color={isLiked ? "#A855F7" : Colors.textPrimary}
+					size={26}
+					color={isLiked ? colors.primary : colors.textPrimary}
 				/>
 			</Animated.View>
 		</TouchableOpacity>
 	);
 });
 
-const EventoCard = memo(
-	({
-		item,
-		index,
-		isLiked,
-		isAdmin,
-		currentUserId,
-		formatarNumero,
-		formatarData,
-		onToggleLike,
-		toggleNotification,
-		subscribedEvents,
-		onNavigate,
-	}) => {
-		const scale = useSharedValue(1);
+// ─── Card de post/evento ──────────────────────────────────────────────────────
 
-		const animatedStyle = useAnimatedStyle(() => ({
-			transform: [
-				{
-					scale: scale.value,
-				},
-			],
-		}));
+const FeedCard = memo(({ item, index, isLiked, subscribedEvents, onLike, onComment, onShare, onNotify, onNavigate, onPerfil, s, colors, blurTint }) => {
+	const scale = useSharedValue(1);
+	const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
-		return (
-			<Animated.View entering={FadeInUp.delay(index * 80).springify()}>
-				<Animated.View style={animatedStyle}>
-					<TouchableOpacity
-						activeOpacity={0.95}
-						onPressIn={() => {
-							scale.value = withSpring(0.98);
-						}}
-						onPressOut={() => {
-							scale.value = withSpring(1);
-						}}
-						style={styles.card}
-					>
-						{/* HEADER */}
-						<View style={styles.cardHeader}>
-							<View style={styles.userInfo}>
-								<Image
-									source={{
-										uri: item.fotoUsuario || "https://i.pravatar.cc/150",
-									}}
-									style={styles.avatar}
+	return (
+		<Animated.View entering={FadeInUp.delay(index * 60).springify()} style={anim}>
+			<TouchableOpacity
+				activeOpacity={1}
+				onPressIn={() => { scale.value = withSpring(0.985); }}
+				onPressOut={() => { scale.value = withSpring(1); }}
+				style={s.card}
+			>
+				{/* ── HEADER DO CARD ── */}
+				<TouchableOpacity style={s.cardHeader} onPress={() => onPerfil(item)} activeOpacity={0.8}>
+					<Image
+						source={{ uri: item.fotoUsuario || undefined }}
+						style={s.avatar}
+					/>
+					<View style={{ flex: 1 }}>
+						<Text numberOfLines={1} style={s.cardAutor}>{item.nomeUsuario || "Usuário"}</Text>
+						{item.localEvento ? (
+							<View style={s.localRow}>
+								<MaterialCommunityIcons name="map-marker" size={11} color={colors.primary} />
+								<Text numberOfLines={1} style={s.localText}>{item.localEvento}</Text>
+							</View>
+						) : null}
+					</View>
+					<BlurView intensity={40} tint={blurTint} style={s.datePill}>
+						<Text style={s.dateText}>{formatarData(item.createdAt)}</Text>
+					</BlurView>
+				</TouchableOpacity>
+
+				{/* ── IMAGEM ── */}
+				<TouchableOpacity activeOpacity={0.93} onPress={() => onNavigate(item)} style={s.imgWrapper}>
+					<Image
+						source={{ uri: item.imagemFeed || DEFAULT_IMG }}
+						style={s.cardImg}
+						resizeMode="cover"
+					/>
+					<LinearGradient colors={["transparent", "rgba(0,0,0,0.92)"]} style={s.imgOverlay}>
+						{item.dataEvento ? (
+							<BlurView intensity={40} tint={blurTint} style={s.eventDatePill}>
+								<MaterialCommunityIcons name="calendar" size={11} color="#fff" />
+								<Text style={s.eventDateText}>{item.dataEvento}</Text>
+							</BlurView>
+						) : null}
+
+						{item.type === "evento" ? (
+							<View style={s.ticketPill}>
+								<MaterialCommunityIcons
+									name={item.gratuito || Number(item.precoInteira || 0) === 0 ? "ticket-confirmation" : "cash"}
+									size={11} color="#fff"
 								/>
-
-								<View
-									style={{
-										flex: 1,
-									}}
-								>
-									<Text numberOfLines={1} style={styles.userName}>
-										{item.nomeUsuario || "Organizador"}
-									</Text>
-
-									{item.type === "evento" && (
-										<View style={styles.locationRow}>
-											<MaterialCommunityIcons
-												name="map-marker"
-												size={12}
-												color={Colors.primary}
-											/>
-
-											<Text numberOfLines={1} style={styles.locationText}>
-												{item.localEvento ||
-													item.nomeLocal ||
-													"Local não informado"}
-											</Text>
-										</View>
-									)}
-								</View>
-							</View>
-
-							<View style={styles.headerActions}>
-								<BlurView intensity={40} tint="dark" style={styles.dateBadge}>
-									<Text style={styles.dateText}>
-										{formatarData(item.createdAt)}
-									</Text>
-								</BlurView>
-							</View>
-						</View>
-
-						{/* IMAGE */}
-						<TouchableOpacity
-							activeOpacity={0.92}
-							onPress={() => onNavigate(item)}
-							style={styles.imageWrapper}
-						>
-							<Image
-								source={{
-									uri: item.imagemFeed || DEFAULT_EVENT_IMAGE,
-								}}
-								style={styles.mainImage}
-								resizeMode="cover"
-							/>
-
-							<LinearGradient
-								colors={["transparent", "rgba(0,0,0,0.95)"]}
-								style={styles.imageOverlay}
-							>
-								{item.dataEvento && (
-									<BlurView
-										intensity={40}
-										tint="dark"
-										style={styles.eventDateBadge}
-									>
-										<MaterialCommunityIcons
-											name="calendar"
-											size={12}
-											color="#fff"
-										/>
-
-										<Text style={styles.eventDateText}>{item.dataEvento}</Text>
-									</BlurView>
-								)}
-
-								{item.type === "evento" && (
-									<Text numberOfLines={2} style={styles.eventTitle}>
-										{item.tituloEvento || "Evento"}
-									</Text>
-								)}
-
-								<Text numberOfLines={2} style={item.type === "evento" ? styles.description : styles.eventTitle}>
-									{item.descricao}
+								<Text style={s.ticketText}>
+									{item.gratuito || Number(item.precoInteira || 0) === 0 ? "Gratuito" : "Pago"}
 								</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-
-						{/* ACTIONS */}
-						<View style={styles.actions}>
-							<View style={styles.leftActions}>
-								<LikeButton
-									isLiked={isLiked}
-									onPress={() => onToggleLike(item.id, item.type)}
-								/>
-
-								<TouchableOpacity
-									style={styles.actionBtn}
-									onPress={() => onNavigate(item)}
-								>
-									<MaterialCommunityIcons
-										name="comment-outline"
-										size={25}
-										color={Colors.textPrimary}
-									/>
-								</TouchableOpacity>
-
-								<TouchableOpacity style={styles.actionBtn}>
-									<MaterialCommunityIcons
-										name="share-variant-outline"
-										size={24}
-										color={Colors.textPrimary}
-									/>
-								</TouchableOpacity>
 							</View>
+						) : null}
 
-							{item.type === "evento" && (
-								<View style={styles.rightActions}>
-									<TouchableOpacity onPress={() => toggleNotification(item)}>
-										<MaterialCommunityIcons
-											name={
-												subscribedEvents[item.id] ? "bell-ring" : "bell-outline"
-											}
-											size={24}
-											color={
-												subscribedEvents[item.id]
-													? Colors.primary
-													: Colors.textMuted
-											}
-										/>
-									</TouchableOpacity>
-								</View>
-							)}
-						</View>
+						<Text numberOfLines={2} style={s.cardTitle}>
+							{item.tituloEvento || item.descricao || ""}
+						</Text>
+						{item.type === "evento" && item.descricao ? (
+							<Text numberOfLines={2} style={s.cardDesc}>{item.descricao}</Text>
+						) : null}
+					</LinearGradient>
+				</TouchableOpacity>
 
-						<View style={styles.metricsContainer}>
-							<Text style={styles.likesText}>
-								{formatarNumero(item.likes || 0)} curtidas
+				{/* ── AÇÕES ── */}
+				<View style={s.actions}>
+					<View style={s.actionsLeft}>
+						<LikeButton isLiked={isLiked} onPress={() => onLike(item.id, item.type)} s={s} colors={colors} />
+						<TouchableOpacity style={s.actionBtn} onPress={() => onComment(item)}>
+							<MaterialCommunityIcons name="comment-outline" size={24} color={colors.textPrimary} />
+						</TouchableOpacity>
+						<TouchableOpacity style={s.actionBtn} onPress={() => onShare(item)}>
+							<MaterialCommunityIcons name="share-variant-outline" size={23} color={colors.textPrimary} />
+						</TouchableOpacity>
+					</View>
+					{item.type === "evento" ? (
+						<TouchableOpacity
+							style={[s.notifBtn, subscribedEvents[item.id] && s.notifBtnActive]}
+							onPress={() => onNotify(item)}
+						>
+							<MaterialCommunityIcons
+								name={subscribedEvents[item.id] ? "bell-ring" : "bell-plus-outline"}
+								size={16}
+								color={subscribedEvents[item.id] ? colors.primary : colors.textSecondary}
+							/>
+							<Text style={[s.notifBtnText, subscribedEvents[item.id] && s.notifBtnTextActive]}>
+								{subscribedEvents[item.id] ? "Inscrito" : "Notificar"}
+							</Text>
+						</TouchableOpacity>
+					) : null}
+				</View>
+
+				{/* ── MÉTRICAS ── */}
+				<View style={s.metrics}>
+					<Text style={s.metricsLikes}>{formatarNum(item.likes || 0)} curtidas</Text>
+					<TouchableOpacity onPress={() => onComment(item)}>
+						<Text style={s.metricsComments}>
+							{formatarNum(item.comentarios || item.commentsCount || 0)} comentários
+						</Text>
+					</TouchableOpacity>
+				</View>
+			</TouchableOpacity>
+		</Animated.View>
+	);
+});
+
+// ─── Modal de comentários ─────────────────────────────────────────────────────
+
+function ModalComentarios({ item, comentarios, loading, text, setText, sending, onSend, onClose, foto, nome, insets, s, colors }) {
+	const formatarData_ = formatarData;
+	return (
+		<Modal visible={!!item} transparent animationType="slide" onRequestClose={onClose}>
+			<KeyboardAvoidingView style={s.modalWrap} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+				<TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={onClose} />
+				<View style={[s.sheet, { paddingBottom: insets.bottom + 14 }]}>
+					<View style={s.handle} />
+
+					<View style={s.sheetHeader}>
+						<View style={{ flex: 1, paddingRight: 10 }}>
+							<Text style={s.sheetTitle}>Comentários</Text>
+							<Text style={s.sheetSub} numberOfLines={1}>
+								{item?.tituloEvento || item?.descricao || "Publicação"}
 							</Text>
 						</View>
-					</TouchableOpacity>
-				</Animated.View>
-			</Animated.View>
-		);
-	}
-);
+						<TouchableOpacity style={s.sheetClose} onPress={onClose}>
+							<MaterialCommunityIcons name="close" size={20} color={colors.textPrimary} />
+						</TouchableOpacity>
+					</View>
 
-export default function TelaFeed({ navigation }) {
+					{loading ? (
+						<View style={s.sheetLoading}>
+							<ActivityIndicator color={colors.primary} />
+						</View>
+					) : (
+						<FlatList
+							data={comentarios}
+							keyExtractor={(c) => c.id}
+							contentContainerStyle={s.commentList}
+							showsVerticalScrollIndicator={false}
+							ListEmptyComponent={
+								<View style={s.emptyComment}>
+									<MaterialCommunityIcons name="comment-text-outline" size={36} color={colors.textMuted} />
+									<Text style={s.emptyCommentText}>Seja o primeiro a comentar</Text>
+								</View>
+							}
+							renderItem={({ item: c }) => (
+								<View style={s.commentRow}>
+									<Image
+										source={{ uri: c.userPhoto || c.foto || "https://i.pravatar.cc/100" }}
+										style={s.commentAvatar}
+									/>
+									<View style={s.commentBubble}>
+										<View style={s.commentTop}>
+											<Text style={s.commentAuthor} numberOfLines={1}>{c.userName || c.nome || "Usuário"}</Text>
+											<Text style={s.commentDate}>{formatarData_(c.createdAt)}</Text>
+										</View>
+										<Text style={s.commentBody}>{c.texto}</Text>
+									</View>
+								</View>
+							)}
+						/>
+					)}
+
+					<View style={s.composer}>
+						<Image source={{ uri: foto || "https://i.pravatar.cc/100" }} style={s.composerAvatar} />
+						<View style={s.composerInput}>
+							<TextInput
+								value={text}
+								onChangeText={setText}
+								placeholder={`Comentar como ${nome || "você"}…`}
+								placeholderTextColor={colors.textMuted}
+								style={s.composerText}
+								multiline
+								maxLength={500}
+							/>
+							<TouchableOpacity
+								style={[s.sendBtn, (!text.trim() || sending) && s.sendBtnOff]}
+								disabled={!text.trim() || sending}
+								onPress={onSend}
+							>
+								{sending
+									? <ActivityIndicator size="small" color={colors.onPrimary} />
+									: <MaterialCommunityIcons name="send" size={16} color={colors.onPrimary} />}
+							</TouchableOpacity>
+						</View>
+					</View>
+				</View>
+			</KeyboardAvoidingView>
+		</Modal>
+	);
+}
+
+// ─── Aba Feed (conteúdo principal) ───────────────────────────────────────────
+
+function AbaFeed({ navigation, user, nome, foto, scrollY, scrollX, mode = "feed" }) {
+	const { colors, isDark } = useTheme();
+	const s = useThemedStyles(createFeedStyles);
+	const blurTint = isDark ? "dark" : "light";
+
+	const [items,            setItems]            = useState([]);
+	const [loading,          setLoading]          = useState(true);
+	const [refreshing,       setRefreshing]       = useState(false);
+	const [likedIds,         setLikedIds]         = useState([]);
+	const [subscribedEvents, setSubscribedEvents] = useState({});
+	const [categoriaAtiva,   setCategoriaAtiva]   = useState("Todos");
+
+	// Comentários
+	const [selectedItem,    setSelectedItem]    = useState(null);
+	const [comentarios,     setComentarios]     = useState([]);
+	const [commentsLoading, setCommentsLoading] = useState(false);
+	const [commentText,     setCommentText]     = useState("");
+	const [sending,         setSending]         = useState(false);
+
 	const insets = useSafeAreaInsets();
 
-	const { user, isAdmin } = useAuth();
-
-	const [eventos, setEventos] = useState([]);
-
-	const [loading, setLoading] = useState(true);
-
-	const [refreshing, setRefreshing] = useState(false);
-
-	const [likedIds, setLikedIds] = useState([]);
-
-	const [subscribedEvents, setSubscribedEvents] = useState({});
-
+	// ── Carregar ──────────────────────────────────────────────────────────────
 	useEffect(() => {
-		carregarFeed();
-		carregarLikes();
-		carregarSubscribedEvents();
+		carregarTudo();
 	}, []);
 
-	const carregarLikes = async () => {
-		try {
-			if (!user?.uid) return;
+	useEffect(() => {
+		if (!selectedItem?.id) return;
+		setCommentsLoading(true);
+		const unsub = escutarFeedComentarios(selectedItem.id, selectedItem.type, (lista) => {
+			setComentarios(lista);
+			setCommentsLoading(false);
+		});
+		return unsub;
+	}, [selectedItem?.id, selectedItem?.type]);
 
-			const likes = await getUserFeedLikes(user.uid);
-
-			setLikedIds(likes);
-		} catch (e) {
-			console.log(e);
-		}
+	const carregarTudo = async () => {
+		await Promise.all([carregarFeed(), carregarLikes(), carregarSubscribed()]);
 	};
 
 	const carregarFeed = async () => {
 		try {
-			const eventosQuery = query(
-				collection(db, "eventos"),
-				orderBy("createdAt", "desc"),
-				limit(PAGE_SIZE)
-			);
-
-			const postsQuery = query(
-				collection(db, "posts"),
-				orderBy("createdAt", "desc"),
-				limit(PAGE_SIZE)
-			);
-
-			const [eventosSnap, postsSnap] = await Promise.all([
-				getDocs(eventosQuery),
-				getDocs(postsQuery),
+			const [evSnap, postSnap] = await Promise.all([
+				getDocs(query(collection(db, "eventos"), orderBy("createdAt", "desc"), limit(PAGE_SIZE))),
+				getDocs(query(collection(db, "posts"),   orderBy("createdAt", "desc"), limit(PAGE_SIZE))),
 			]);
 
-			const eventosLista = eventosSnap.docs.map((doc) => {
-				const data = doc.data();
+			// Coleta UIDs únicos para buscar fotos atualizadas em /users/{uid}
+			const uidsSet = new Set();
+			evSnap.docs.forEach((d) => {
+				const uid = d.data().uidEvento || d.data().organizador?.uid;
+				if (uid) uidsSet.add(uid);
+			});
+			postSnap.docs.forEach((d) => {
+				const uid = d.data().userId || d.data().autor?.uid;
+				if (uid) uidsSet.add(uid);
+			});
 
+			// Busca todos os perfis em paralelo
+			const perfilMap = {};
+			await Promise.all(
+				[...uidsSet].map(async (uid) => {
+					try {
+						const snap = await getDoc(doc(db, "users", uid));
+						if (snap.exists()) perfilMap[uid] = snap.data();
+					} catch {}
+				})
+			);
+
+			const resolverFoto = (uid, fallbackFoto) => {
+				const perfil = perfilMap[uid];
+				return (
+					perfil?.fotoUrl ||
+					perfil?.foto ||
+					perfil?.photoURL ||
+					fallbackFoto ||
+					null
+				);
+			};
+
+			const resolverNome = (uid, fallbackNome) => {
+				const perfil = perfilMap[uid];
+				return perfil?.nome || perfil?.displayName || fallbackNome || "Usuário";
+			};
+
+			const evs = evSnap.docs.map((d) => {
+				const data = d.data();
+				const uid = data.uidEvento || data.organizador?.uid;
 				return {
-					id: doc.id,
-					type: "evento",
-
-					...data,
-
-					nomeUsuario: data.organizador?.nome || "Organizador",
-
-					fotoUsuario: data.organizador?.foto || "https://i.pravatar.cc/150",
-
-					imagemFeed: data.imagemEvento || DEFAULT_EVENT_IMAGE,
+					id: d.id, type: "evento", ...data,
+					nomeUsuario: resolverNome(uid, data.organizador?.nome || "Organizador"),
+					fotoUsuario: resolverFoto(uid, data.organizador?.foto),
+					imagemFeed:  data.imagemEvento || DEFAULT_IMG,
 				};
 			});
 
-			const postsLista = postsSnap.docs.map((doc) => {
-				const data = doc.data();
-
+			const posts = postSnap.docs.map((d) => {
+				const data = d.data();
+				const uid = data.userId || data.autor?.uid;
 				return {
-					id: doc.id,
-					type: "post",
-
-					...data,
-
-					nomeUsuario: data.autor?.nome || "Usuário",
-
-					fotoUsuario: data.autor?.foto || "https://i.pravatar.cc/150",
-
-					imagemFeed: data.imagemUrl || DEFAULT_EVENT_IMAGE,
+					id: d.id, type: "post", ...data,
+					nomeUsuario: resolverNome(uid, data.autor?.nome || "Usuário"),
+					fotoUsuario: resolverFoto(uid, data.autor?.foto),
+					imagemFeed:  data.imagemUrl || DEFAULT_IMG,
 				};
 			});
 
-			const feedCompleto = [...eventosLista, ...postsLista];
-
-			feedCompleto.sort((a, b) => {
-				const dateA = a.createdAt?.toDate?.() || new Date(0);
-
-				const dateB = b.createdAt?.toDate?.() || new Date(0);
-
-				return dateB - dateA;
+			const merged = [...evs, ...posts].sort((a, b) => {
+				const ta = a.createdAt?.toDate?.() || new Date(0);
+				const tb = b.createdAt?.toDate?.() || new Date(0);
+				return tb - ta;
 			});
 
-			setEventos(feedCompleto);
+			setItems(merged);
 		} catch (e) {
 			console.log(e);
 		} finally {
@@ -391,572 +481,775 @@ export default function TelaFeed({ navigation }) {
 		}
 	};
 
-	const onRefresh = async () => {
+	const carregarLikes = async () => {
+		if (!user?.uid) return;
 		try {
-			setRefreshing(true);
-
-			await Promise.all([
-				carregarFeed(),
-				carregarLikes(),
-				carregarSubscribedEvents(),
-			]);
-		} catch (error) {
-			console.log(error);
-		} finally {
-			setRefreshing(false);
-		}
+			const ids = await getUserFeedLikes(user.uid);
+			setLikedIds(ids);
+		} catch (e) { console.log(e); }
 	};
 
-	const carregarSubscribedEvents = async () => {
+	const carregarSubscribed = async () => {
+		if (!user?.uid) return;
 		try {
-			if (!user?.uid) return;
-
-			const eventos = await getSubscribedEvents(user.uid);
-
+			const lista = await getSubscribedEvents(user.uid);
 			const mapa = {};
-
-			eventos.forEach((evento) => {
-				mapa[evento.id] = true;
-			});
-
+			lista.forEach((ev) => { mapa[ev.id] = true; });
 			setSubscribedEvents(mapa);
-		} catch (error) {
-			console.log(error);
-		}
+		} catch (e) { console.log(e); }
 	};
 
-	const toggleLike = useCallback(
-		async (itemId, itemType) => {
-			try {
-				const liked = await toggleFeedLike(itemId, itemType, user.uid);
+	const onRefresh = async () => {
+		setRefreshing(true);
+		await carregarTudo();
+		setRefreshing(false);
+	};
 
-				if (liked) {
-					setLikedIds((prev) => [...prev, itemId]);
-				} else {
-					setLikedIds((prev) => prev.filter((id) => id !== itemId));
-				}
-			} catch (e) {
-				console.log(e);
-			}
-		},
-		[user]
-	);
+	// ── Filtro por categoria ──────────────────────────────────────────────────
+	const itemsFiltrados = useMemo(() => {
+		if (categoriaAtiva === "Todos") return items;
+		return items.filter((item) =>
+			(item.categoria || item.tipoEvento || "")
+				.toLowerCase()
+				.includes(categoriaAtiva.toLowerCase())
+		);
+	}, [items, categoriaAtiva]);
 
-	async function toggleNotification(evento) {
+	// StoryBar e TrendingCarousel usam os mais recentes (máx 8)
+	const destaques = useMemo(() =>
+		itemsFiltrados.slice(0, 8).map((item) => ({
+			...item,
+			// normaliza campos esperados por HeroSection / StoryBar / TrendingCarousel
+			titulo:    item.tituloEvento || item.descricao || "Post",
+			imagem:    item.imagemFeed || DEFAULT_IMG,
+			local:     item.localEvento || item.nomeLocal || "",
+			categoria: item.categoria || item.tipoEvento || "Post",
+			score:     item.likes || 0,
+			gratuito:  item.gratuito ?? (Number(item.precoInteira || 0) === 0),
+			dataInicio: item.createdAt?.toDate?.() ?? null,
+		})),
+	[itemsFiltrados]);
+
+	// ── Ações ─────────────────────────────────────────────────────────────────
+	const handleLike = useCallback(async (itemId, itemType) => {
+		if (!user?.uid) return;
 		try {
-			const isSubscribed = subscribedEvents[evento.id];
+			const liked = await toggleFeedLike(itemId, itemType, user.uid);
+			const key = getFeedKey(itemId, itemType);
+			setLikedIds((prev) =>
+				liked ? [...prev.filter((k) => k !== key), key] : prev.filter((k) => k !== key)
+			);
+			setItems((prev) => prev.map((item) => {
+				if (item.id !== itemId || item.type !== itemType) return item;
+				return { ...item, likes: liked ? (item.likes || 0) + 1 : Math.max(0, (item.likes || 0) - 1) };
+			}));
+		} catch (e) { console.log(e); }
+	}, [user]);
 
-			if (isSubscribed) {
+	const handleShare = useCallback(async (item) => {
+		const titulo = item.tituloEvento || "Post de " + item.nomeUsuario;
+		const texto  = `${titulo}\n\n${item.descricao || ""}`;
+		const url    = item.imagemFeed || "https://monitoracult.com";
+
+		if (Platform.OS === "web") {
+			if (navigator.share) {
+				try { await navigator.share({ title: titulo, text: item.descricao, url }); return; } catch (_) {}
+			}
+			try { await Clipboard.setStringAsync(`${texto}\n\n${url}`); } catch (_) {}
+			return;
+		}
+		try {
+			await Share.share({
+				title: titulo,
+				message: Platform.OS === "android" ? `${texto}\n\n${url}` : texto,
+				url,
+			});
+		} catch (e) { console.log(e); }
+	}, []);
+
+	const handleNotify = useCallback(async (evento) => {
+		if (!user?.uid) return;
+		try {
+			if (subscribedEvents[evento.id]) {
 				await unsubscribeFromEvent(user.uid, evento.id);
-
-				setSubscribedEvents((prev) => ({
-					...prev,
-					[evento.id]: false,
-				}));
+				setSubscribedEvents((prev) => ({ ...prev, [evento.id]: false }));
 			} else {
 				await subscribeToEvent(user.uid, evento);
-
-				setSubscribedEvents((prev) => ({
-					...prev,
-					[evento.id]: true,
-				}));
+				setSubscribedEvents((prev) => ({ ...prev, [evento.id]: true }));
 			}
-		} catch (error) {
-			console.log(error);
+		} catch (e) { console.log(e); }
+	}, [user, subscribedEvents]);
+
+	const abrirComentarios = useCallback((item) => {
+		setSelectedItem(item);
+		setComentarios([]);
+		setCommentText("");
+	}, []);
+
+	const fecharComentarios = useCallback(() => {
+		setSelectedItem(null);
+		setComentarios([]);
+		setCommentText("");
+		setCommentsLoading(false);
+	}, []);
+
+	const enviarComentario = useCallback(async () => {
+		if (!selectedItem || !commentText.trim()) return;
+		setSending(true);
+		try {
+			await adicionarFeedComentario(selectedItem.id, selectedItem.type, commentText.trim(), { nome, foto });
+			setCommentText("");
+			setItems((prev) => prev.map((item) => {
+				if (item.id !== selectedItem.id || item.type !== selectedItem.type) return item;
+				const c = item.comentarios || item.commentsCount || 0;
+				return { ...item, comentarios: c + 1, commentsCount: c + 1 };
+			}));
+		} catch (e) { console.log(e); } finally { setSending(false); }
+	}, [commentText, nome, foto, selectedItem]);
+
+	const abrirEvento = useCallback(async (item) => {
+		try { await Haptics.selectionAsync(); } catch (_) {}
+		const target = item.original || item;
+		if (item.type === "evento") {
+			navigation.navigate("Detalhes", { evento: target });
+		} else {
+			abrirComentarios(item);
 		}
-	}
+	}, [navigation, abrirComentarios]);
 
-	const formatarNumero = (num) => {
-		if (!num) return "0";
+	const verticalScroll = useAnimatedScrollHandler({
+		onScroll: (e) => { scrollY.value = e.contentOffset.y; },
+	});
+	const horizontalScroll = useAnimatedScrollHandler({
+		onScroll: (e) => { scrollX.value = e.contentOffset.x; },
+	});
 
-		if (num >= 1000) {
-			return (num / 1000).toFixed(1) + "K";
-		}
-
-		return num.toString();
-	};
-
-	const formatarData = (timestamp) => {
-		if (!timestamp) return "Agora";
-
-		const data = timestamp.toDate?.() || new Date(timestamp);
-
-		const diff = Date.now() - data.getTime();
-
-		const min = Math.floor(diff / 60000);
-
-		const h = Math.floor(diff / 3600000);
-
-		const d = Math.floor(diff / 86400000);
-
-		if (min < 1) return "Agora";
-
-		if (min < 60) return `${min}m`;
-
-		if (h < 24) return `${h}h`;
-
-		if (d < 7) return `${d}d`;
-
-		return data.toLocaleDateString("pt-BR");
-	};
+	// ── Parallax do "hero" (StoryBar) na scroll ───────────────────────────────
+	const heroStyle = useAnimatedStyle(() => ({
+		transform: [
+			{ scale: interpolate(scrollY.value, [-160, 0, 250], [1.08, 1, 0.94], Extrapolate.CLAMP) },
+			{ translateY: interpolate(scrollY.value, [0, 300], [0, 18], Extrapolate.CLAMP) },
+		],
+		opacity: interpolate(scrollY.value, [0, 320], [1, 0.85], Extrapolate.CLAMP),
+	}));
 
 	if (loading) {
 		return (
-			<View style={styles.loadingContainer}>
-				<ActivityIndicator size="large" color={Colors.primary} />
+			<View style={[s.loading, { backgroundColor: colors.background }]}>
+				<MaterialCommunityIcons name="compass-rose" size={54} color={colors.primary} />
+				<Text style={s.loadingText}>Carregando social...</Text>
 			</View>
 		);
 	}
 
 	return (
-		<View style={styles.container}>
-			<StatusBar barStyle="light-content" />
+		<>
+			<Animated.ScrollView
+				entering={FadeIn.duration(600)}
+				showsVerticalScrollIndicator={false}
+				onScroll={verticalScroll}
+				scrollEventThrottle={16}
+				bounces
+				style={{ flex: 1, backgroundColor: colors.background }}
+				refreshControl={
+					<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+				}
+				contentContainerStyle={{ paddingBottom: 140, backgroundColor: colors.background }}
+			>
+				{mode === "descubra" && (
+					<>
+						{/* AGORA NA CIDADE */}
+						{destaques.length > 0 && (
+							<Animated.View entering={FadeInLeft.delay(120).springify()} style={heroStyle}>
+								<StoryBar eventos={destaques} onPress={abrirEvento} />
+							</Animated.View>
+						)}
 
-			{/* HEADER */}
-			<LinearGradient
-				colors={["#18122B", "#10131F", Colors.background]}
+						{/* FILTROS DE CATEGORIA */}
+						<Animated.View entering={FadeInRight.delay(160).springify()}>
+							<CategoryPills
+								categorias={categoriasHome}
+								ativa={categoriaAtiva}
+								onChange={setCategoriaAtiva}
+							/>
+						</Animated.View>
+
+						{/* EM ALTA AGORA */}
+						{destaques.length > 0 ? (
+							<Animated.View entering={FadeInUp.delay(200).springify()}>
+								<SectionHeader
+									title="Em alta agora"
+									subtitle="Posts e eventos que movimentam a cidade"
+								/>
+								<TrendingCarousel
+									eventos={destaques}
+									scrollX={scrollX}
+									onScroll={horizontalScroll}
+									onPress={abrirEvento}
+								/>
+							</Animated.View>
+						) : (
+							<View style={s.empty}>
+								<MaterialCommunityIcons name="compass-outline" size={52} color={colors.textMuted} />
+								<Text style={s.emptyTitle}>Nada em destaque ainda</Text>
+								<Text style={s.emptySub}>Quando a cidade se movimentar, aparece aqui.</Text>
+							</View>
+						)}
+					</>
+				)}
+
+				{mode === "feed" && (
+					<>
+						{/* FILTROS DE CATEGORIA */}
+						<Animated.View entering={FadeInRight.delay(160).springify()}>
+							<CategoryPills
+								categorias={categoriasHome}
+								ativa={categoriaAtiva}
+								onChange={setCategoriaAtiva}
+							/>
+						</Animated.View>
+
+						{/* SEÇÃO: FEED COMPLETO */}
+						<Animated.View entering={FadeInUp.delay(260).springify()}>
+							<SectionHeader
+								title="Feed Social"
+								subtitle={`${itemsFiltrados.length} publicações`}
+								actionLabel="Criar"
+								onAction={() => navigation.navigate("CriarPost")}
+							/>
+						</Animated.View>
+
+						{itemsFiltrados.length === 0 ? (
+							<View style={s.empty}>
+								<MaterialCommunityIcons name="post-outline" size={52} color={colors.textMuted} />
+								<Text style={s.emptyTitle}>Nenhuma publicação</Text>
+								<Text style={s.emptySub}>Seja o primeiro a publicar algo!</Text>
+							</View>
+						) : (
+							itemsFiltrados.map((item, index) => (
+								<FeedCard
+									key={getFeedKey(item.id, item.type)}
+									item={item}
+									index={index}
+									isLiked={likedIds.includes(getFeedKey(item.id, item.type))}
+									subscribedEvents={subscribedEvents}
+									onLike={handleLike}
+									onComment={abrirComentarios}
+									onShare={handleShare}
+									onNotify={handleNotify}
+									onNavigate={abrirEvento}
+									onPerfil={(it) => {
+										const uid = it.userId || it.organizador?.uid;
+										if (uid) navigation.navigate("PerfilPublico", { userId: uid });
+									}}
+									s={s}
+									colors={colors}
+									blurTint={blurTint}
+								/>
+							))
+						)}
+					</>
+				)}
+			</Animated.ScrollView>
+
+			<ModalComentarios
+				item={selectedItem}
+				comentarios={comentarios}
+				loading={commentsLoading}
+				text={commentText}
+				setText={setCommentText}
+				sending={sending}
+				onSend={enviarComentario}
+				onClose={fecharComentarios}
+				foto={foto}
+				nome={nome}
+				insets={insets}
+				s={s}
+				colors={colors}
+			/>
+		</>
+	);
+}
+
+// ─── TELA PRINCIPAL ───────────────────────────────────────────────────────────
+
+export default function TelaFeed({ navigation, route }) {
+	const { colors, isDark } = useTheme();
+	const s = useThemedStyles(createFeedStyles);
+	const blurTint = isDark ? "dark" : "light";
+
+	const insets = useSafeAreaInsets();
+	const { user, nome, foto } = useAuth();
+
+	const [activeTab, setActiveTab] = useState(route?.params?.initialTab || "descubra");
+
+	// Shared values passados à AbaFeed (scroll animado do header)
+	const scrollY = useSharedValue(0);
+	const scrollX = useSharedValue(0);
+
+	const saudacao = useMemo(() => {
+		const h = new Date().getHours();
+		if (h < 12) return "Bom dia";
+		if (h < 18) return "Boa tarde";
+		return "Boa noite";
+	}, []);
+
+	const nomeUsuario = nome || user?.displayName || user?.email?.split("@")[0] || "Explorador";
+
+	useEffect(() => {
+		if (route?.params?.initialTab) {
+			if (route.params.initialTab === "comunidade") {
+				navigation.navigate("TelaComunidade");
+			} else {
+				setActiveTab(route.params.initialTab);
+			}
+		}
+	}, [route?.params?.initialTab]);
+
+	useEffect(() => {
+		scrollY.value = 0;
+	}, [activeTab]);
+
+	const headerFullHeight = insets.top + 12 + 62 + 38 + 6;
+	const headerMinHeight = insets.top + 12 + 38 + 6;
+
+	const contentInsetStyle = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				paddingTop: headerFullHeight,
+			};
+		}
+		return {
+			paddingTop: interpolate(
+				scrollY.value,
+				[0, 72],
+				[headerFullHeight, headerMinHeight],
+				Extrapolate.CLAMP
+			),
+		};
+	});
+
+	const headerRowCollapse = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				opacity: 1,
+			};
+		}
+		return {
+			opacity: interpolate(scrollY.value, [0, 48], [1, 0], Extrapolate.CLAMP),
+		};
+	});
+
+	const headerAnim = useAnimatedStyle(() => {
+		if (activeTab === "comunidade") {
+			return {
+				transform: [{ translateY: 0 }],
+			};
+		}
+		return {
+			transform: [{
+				translateY: interpolate(scrollY.value, [0, 100], [0, -8], Extrapolate.CLAMP),
+			}],
+		};
+	});
+
+	const socialScrollParams = useMemo(
+		() => ({ embedded: true, scrollY }),
+		[scrollY]
+	);
+
+	return (
+		<View
+			key={isDark ? "feed-dark" : "feed-light"}
+			style={[s.container, { backgroundColor: colors.background }]}
+		>
+			<StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+			<Animated.View
 				style={[
-					styles.header,
-					{
-						paddingTop: insets.top + 10,
-					},
+					s.contentArea,
+					contentInsetStyle,
+					{ backgroundColor: colors.background },
 				]}
 			>
-				<Animated.View
-					entering={FadeInDown.springify()}
-					style={styles.headerContent}
-				>
-					<View>
-						<Text style={styles.logo}>MonitoraCult</Text>
-
-						<Text style={styles.subtitle}>Descubra eventos incríveis ✨</Text>
-					</View>
-
-					<View style={styles.headerRight}>
-						<TouchableOpacity
-							style={styles.headerIconBtn}
-							onPress={() => navigation.navigate("CriarPost")}
-						>
-							<MaterialCommunityIcons
-								name="plus-box-outline"
-								size={26}
-								color="#FFF"
-							/>
-						</TouchableOpacity>
-
-						<TouchableOpacity
-							style={styles.headerIconBtn}
-							onPress={() => navigation.navigate("EventosApp")}
-						>
-							<MaterialCommunityIcons
-								name="bell-outline"
-								size={25}
-								color="#FFF"
-							/>
-						</TouchableOpacity>
-					</View>
-				</Animated.View>
-			</LinearGradient>
-
-			{/* FEED */}
-			<FlatList
-				data={eventos}
-				refreshing={refreshing}
-				onRefresh={onRefresh}
-				keyExtractor={(item) => `${item.type}-${item.id}`}
-				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{
-					paddingBottom: insets.bottom + 120,
-					paddingTop: 16,
-				}}
-				renderItem={({ item, index }) => (
-					<EventoCard
-						item={item}
-						index={index}
-						isLiked={likedIds.includes(item.id)}
-						isAdmin={isAdmin}
-						currentUserId={user?.uid}
-						formatarNumero={formatarNumero}
-						formatarData={formatarData}
-						onToggleLike={toggleLike}
-						toggleNotification={toggleNotification}
-						subscribedEvents={subscribedEvents}
-						onNavigate={(item) => {
-							if (item.type === "evento") {
-								navigation.navigate("Detalhes", {
-									evento: item,
-								});
-							} else {
-								navigation.navigate("DetalhesPost", {
-									post: item,
-								});
-							}
+				{activeTab === "descubra" && (
+					<AbaFeed
+						navigation={navigation}
+						user={user}
+						nome={nomeUsuario}
+						foto={foto}
+						scrollY={scrollY}
+						scrollX={scrollX}
+						mode="descubra"
+					/>
+				)}
+				{activeTab === "feed" && (
+					<AbaFeed
+						navigation={navigation}
+						user={user}
+						nome={nomeUsuario}
+						foto={foto}
+						scrollY={scrollY}
+						scrollX={scrollX}
+						mode="feed"
+					/>
+				)}
+				{activeTab === "mensagens" && (
+					<TelaConversas
+						navigation={navigation}
+						route={{
+							params: {
+								...socialScrollParams,
+								onNovaConversa: () => setActiveTab("pessoas"),
+							},
 						}}
 					/>
 				)}
-			/>
+				{activeTab === "pessoas" && (
+					<TelaBuscaUsuarios
+						navigation={navigation}
+						route={{ params: socialScrollParams }}
+					/>
+				)}
+				{activeTab === "comunidade" && (
+					<TelaComunidade
+						navigation={navigation}
+						route={{ params: { ...socialScrollParams, embedded: true } }}
+					/>
+				)}
+			</Animated.View>
+
+			<Animated.View
+				pointerEvents="box-none"
+				style={[s.headerOverlay, headerAnim]}
+			>
+				<LinearGradient
+					colors={[colors.backgroundSecondary, colors.surface, colors.background]}
+					style={[s.headerGrad, { paddingTop: insets.top + 12 }]}
+				>
+					<Animated.View style={headerRowCollapse}>
+						<View style={s.headerRow}>
+						<Image
+							source={{
+								uri:
+									foto ||
+									`https://ui-avatars.com/api/?name=${encodeURIComponent(
+										nomeUsuario
+									)}&background=6C5CE7&color=fff`,
+							}}
+							style={s.headerAvatar}
+						/>
+
+						<View style={s.headerCopy}>
+							<View style={s.headerTitleRow}>
+								<Text style={s.greeting} numberOfLines={1}>
+									{saudacao},{" "}
+									<Text style={s.nameInline}>{nomeUsuario}</Text>
+								</Text>
+								<View style={s.socialBadge}>
+									<MaterialCommunityIcons
+										name="account-group"
+										size={11}
+										color={colors.primaryLight}
+									/>
+									<Text style={s.socialBadgeText}>Social</Text>
+								</View>
+							</View>
+							<Text style={s.city} numberOfLines={1}>
+								{SOCIAL_TABS.find((t) => t.key === activeTab)?.label ||
+									"Descubra"}
+							</Text>
+						</View>
+
+						<Animated.View entering={FadeInRight.delay(150)} style={s.headerBtns}>
+							{activeTab === "feed" && (
+								<TouchableOpacity
+									activeOpacity={0.8}
+									style={s.headerBtn}
+									onPress={() => navigation.navigate("CriarPost")}
+								>
+									<BlurView intensity={35} tint={blurTint} style={s.headerBlur}>
+										<MaterialCommunityIcons
+											name="pencil-plus-outline"
+											size={20}
+											color={colors.textPrimary}
+										/>
+									</BlurView>
+								</TouchableOpacity>
+							)}
+
+							{activeTab === "mensagens" && (
+								<TouchableOpacity
+									activeOpacity={0.8}
+									style={s.headerBtn}
+									onPress={() => setActiveTab("pessoas")}
+								>
+									<BlurView intensity={35} tint={blurTint} style={s.headerBlur}>
+										<MaterialCommunityIcons
+											name="message-plus-outline"
+											size={20}
+											color={colors.textPrimary}
+										/>
+									</BlurView>
+								</TouchableOpacity>
+							)}
+
+							<NotificationBell
+								onPress={() => navigation.navigate("Notificacoes")}
+								size={20}
+								style={s.headerBtn}
+							/>
+						</Animated.View>
+					</View>
+					</Animated.View>
+
+					<ScrollView
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={s.tabRow}
+					>
+						{SOCIAL_TABS.map((tab) => {
+							const active = activeTab === tab.key;
+							return (
+								<TouchableOpacity
+									key={tab.key}
+									style={[s.tab, active && s.tabActive]}
+									onPress={() => {
+										setActiveTab(tab.key);
+									}}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name={active ? tab.iconOn : tab.icon}
+										size={14}
+										color={active ? colors.onPrimary : colors.textMuted}
+									/>
+									<Text style={[s.tabLabel, active && s.tabLabelActive]}>
+										{tab.label}
+									</Text>
+								</TouchableOpacity>
+							);
+						})}
+					</ScrollView>
+				</LinearGradient>
+			</Animated.View>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: Colors.background,
-	},
+// ─── Estilos ──────────────────────────────────────────────────────────────────
 
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: Colors.background,
-	},
+function createFeedStyles(c) {
+	return StyleSheet.create({
+	container: { flex: 1, backgroundColor: c.background },
 
-	header: {
-		paddingBottom: 22,
-	},
+	contentArea: { flex: 1, backgroundColor: c.background },
 
-	headerContent: {
-		paddingHorizontal: 18,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-
-	logo: {
-		color: "#FFF",
-		fontSize: 32,
-		fontWeight: "bold",
-	},
-
-	subtitle: {
-		color: Colors.textSecondary,
-		marginTop: 6,
-	},
-
-	headerRight: {
-		flexDirection: "row",
-		gap: 6,
-	},
-
-	headerIconBtn: {
-		width: 44,
-		height: 44,
-		borderRadius: 22,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: "rgba(255,255,255,0.08)",
-	},
-
-	storiesBar: {
-		paddingHorizontal: 16,
-		paddingTop: 24,
-	},
-
-	storyItem: {
-		alignItems: "center",
-		marginRight: 16,
-	},
-
-	storyRing: {
-		width: 72,
-		height: 72,
-		borderRadius: 36,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-
-	storyAvatar: {
-		width: 64,
-		height: 64,
-		borderRadius: 32,
-		backgroundColor: Colors.surface,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-
-	storyLabel: {
-		color: Colors.textSecondary,
-		marginTop: 7,
-		fontSize: 12,
-	},
-
-	card: {
-		backgroundColor: Colors.surface,
-		marginHorizontal: 16,
-		marginBottom: 22,
-		borderRadius: 28,
-		overflow: "hidden",
-	},
-
-	cardHeader: {
-		padding: 14,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-	},
-
-	userInfo: {
-		flexDirection: "row",
-		alignItems: "center",
-		flex: 1,
-	},
-
-	avatar: {
-		width: 48,
-		height: 48,
-		borderRadius: 24,
-		marginRight: 12,
-	},
-
-	userName: {
-		color: Colors.textPrimary,
-		fontWeight: "700",
-		fontSize: 15,
-	},
-
-	locationRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginTop: 4,
-	},
-
-	locationText: {
-		color: Colors.textMuted,
-		fontSize: 12,
-		marginLeft: 4,
-	},
-
-	headerActions: {
-		alignItems: "flex-end",
-	},
-
-	dateBadge: {
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 14,
-		overflow: "hidden",
-	},
-
-	dateText: {
-		color: "#FFF",
-		fontSize: 11,
-		fontWeight: "700",
-	},
-
-	deleteBtn: {
-		paddingTop: 8,
-	},
-
-	imageWrapper: {
-		width: "100%",
-		height: 420,
-		backgroundColor: "#000",
-	},
-
-	mainImage: {
-		width: "100%",
-		height: "100%",
-	},
-
-	imageOverlay: {
+	headerOverlay: {
 		position: "absolute",
+		top: 0,
 		left: 0,
 		right: 0,
-		bottom: 0,
-		padding: 18,
+		zIndex: 20,
 	},
 
-	eventDateBadge: {
-		alignSelf: "flex-start",
+	headerGrad: { paddingBottom: 2 },
+	headerRow: {
+		paddingHorizontal: 20,
 		flexDirection: "row",
 		alignItems: "center",
-		paddingHorizontal: 12,
-		paddingVertical: 7,
-		borderRadius: 20,
-		overflow: "hidden",
-		marginBottom: 10,
+		paddingBottom: 10,
+		gap: 10,
 	},
-
-	eventDateText: {
-		color: "#FFF",
-		marginLeft: 5,
-		fontSize: 11,
-		fontWeight: "700",
+	headerAvatar: {
+		width: 42,
+		height: 42,
+		borderRadius: 14,
+		borderWidth: 1.5,
+		borderColor: "rgba(139,124,255,0.35)",
+		backgroundColor: c.card,
 	},
-
-	eventTitle: {
-		color: "#FFF",
-		fontSize: 26,
-		fontWeight: "bold",
-	},
-
-	description: {
-		color: "rgba(255,255,255,0.75)",
-		marginTop: 10,
-		lineHeight: 20,
-		fontSize: 13,
-	},
-
-	actions: {
-		paddingHorizontal: 8,
-		paddingVertical: 10,
+	headerCopy: { flex: 1, minWidth: 0 },
+	headerTitleRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
-	},
-
-	leftActions: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-
-	rightActions: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginRight: 8,
-	},
-
-	actionBtn: {
-		padding: 8,
-	},
-
-	ingressoBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: Colors.primary,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderRadius: 20,
-		marginRight: 6,
-	},
-
-	ingressoBtnText: {
-		color: "#fff",
-		fontWeight: "700",
-		fontSize: 13,
-		marginLeft: 5,
-	},
-
-	metricsContainer: {
-		paddingHorizontal: 16,
-		paddingBottom: 16,
-	},
-
-	likesText: {
-		color: Colors.textPrimary,
-		fontWeight: "700",
-		fontSize: 13,
-	},
-
-	/* MODAL */
-	modalOverlay: {
-		flex: 1,
-
-		backgroundColor: "rgba(0,0,0,0.65)",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		paddingHorizontal: 24,
-	},
-
-	modalCard: {
-		width: "100%",
-		borderRadius: 30,
-		overflow: "hidden",
-
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.08)",
-	},
-
-	modalGradient: {
-		padding: 28,
-		alignItems: "center",
-	},
-
-	modalIcon: {
-		width: 78,
-		height: 78,
-
-		borderRadius: 30,
-
-		backgroundColor: "rgba(239,68,68,0.12)",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		marginBottom: 18,
-	},
-
-	modalTitle: {
-		color: "#FFF",
-		fontSize: 22,
-		fontWeight: "bold",
-	},
-
-	modalText: {
-		color: "rgba(255,255,255,0.65)",
-
-		textAlign: "center",
-
-		marginTop: 10,
-
-		fontSize: 14,
-		lineHeight: 22,
-	},
-
-	modalButtons: {
-		flexDirection: "row",
-
-		marginTop: 26,
-
-		width: "100%",
-	},
-
-	cancelBtn: {
-		flex: 1,
-
-		height: 52,
-
-		borderRadius: 18,
-
-		backgroundColor: "rgba(255,255,255,0.06)",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		marginRight: 10,
-	},
-
-	cancelText: {
-		color: "#FFF",
-		fontWeight: "600",
-	},
-
-	confirmBtn: {
-		flex: 1,
-	},
-
-	confirmGradient: {
-		height: 52,
-
-		borderRadius: 18,
-
-		flexDirection: "row",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
 		gap: 8,
 	},
-
-	confirmText: {
-		color: "#FFF",
-		fontWeight: "bold",
+	greeting: {
+		flex: 1,
+		color: c.textSecondary,
+		fontSize: 13,
+		fontWeight: "500",
 	},
+	nameInline: {
+		color: c.textPrimary,
+		fontSize: 15,
+		fontWeight: "800",
+	},
+	socialBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 999,
+		backgroundColor: "rgba(108,92,231,0.14)",
+		borderWidth: 1,
+		borderColor: "rgba(139,124,255,0.22)",
+	},
+	socialBadgeText: {
+		color: c.primaryLight,
+		fontSize: 10,
+		fontWeight: "700",
+	},
+	city: {
+		color: c.textMuted,
+		fontSize: 11,
+		marginTop: 3,
+	},
+	headerBtns: { flexDirection: "row", alignItems: "center", gap: 10 },
+	headerBtn: {
+		width: 52,
+		height: 52,
+		borderRadius: 18,
+		backgroundColor: c.glass,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	headerBlur: {
+		width: 52,
+		height: 52,
+		borderRadius: 18,
+		justifyContent: "center",
+		alignItems: "center",
+		overflow: "hidden",
+		backgroundColor: c.glass,
+	},
+
+	tabRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		paddingHorizontal: 20,
+		paddingBottom: 10,
+		gap: 8,
+	},
+	tab: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 5,
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+		borderRadius: 18,
+		backgroundColor: c.glass,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+	},
+	tabActive: {
+		backgroundColor: c.primaryDark,
+		borderColor: c.primary,
+		shadowColor: c.primary,
+		shadowOpacity: 0.35,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 0 },
+		elevation: 6,
+	},
+	tabLabel: { fontSize: 11, color: c.textMuted, fontWeight: "600" },
+	tabLabelActive: { color: c.onPrimary },
+
+	// LOADING
+	loading: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.background },
+	loadingText: { color: c.textPrimary, fontSize: 15, fontWeight: "600", marginTop: 14 },
+
+	// CARD
+	card: {
+		backgroundColor: c.surface,
+		marginHorizontal: 16, marginBottom: 20,
+		borderRadius: 28, overflow: "hidden",
+	},
+	cardHeader: {
+		padding: 14, flexDirection: "row",
+		alignItems: "center", gap: 12,
+	},
+	avatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: c.card },
+	cardAutor: { color: c.textPrimary, fontWeight: "700", fontSize: 14 },
+	localRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
+	localText: { color: c.textMuted, fontSize: 11 },
+	datePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
+	dateText: { color: c.textPrimary, fontSize: 11, fontWeight: "700" },
+	imgWrapper: { width: "100%", height: 400, backgroundColor: "#000" },
+	cardImg: { width: "100%", height: "100%" },
+	imgOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 16 },
+	eventDatePill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, overflow: "hidden", marginBottom: 8 },
+	eventDateText: { color: "#fff", marginLeft: 4, fontSize: 11, fontWeight: "700" },
+	ticketPill: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, backgroundColor: "rgba(108,92,231,0.85)", marginBottom: 8, gap: 4 },
+	ticketText: { color: "#fff", fontSize: 11, fontWeight: "800" },
+	cardTitle: { color: "#fff", fontSize: 24, fontWeight: "800", lineHeight: 30 },
+	cardDesc: { color: "rgba(255,255,255,0.7)", marginTop: 6, fontSize: 13, lineHeight: 19 },
+	actions: { paddingHorizontal: 6, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+	actionsLeft: { flexDirection: "row", alignItems: "center" },
+	actionBtn: { padding: 8 },
+	notifBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: c.glass,
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+		paddingHorizontal: 14,
+		paddingVertical: 9,
+		borderRadius: 20,
+		gap: 6,
+	},
+	notifBtnActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
+	notifBtnText: { color: c.textPrimary, fontWeight: "600", fontSize: 13 },
+	notifBtnTextActive: { color: c.primary },
+	metrics: { paddingHorizontal: 16, paddingBottom: 14 },
+	metricsLikes: { color: c.textPrimary, fontWeight: "700", fontSize: 13 },
+	metricsComments: { color: c.textSecondary, fontSize: 13, marginTop: 4 },
+
+	// EMPTY
+	empty: { alignItems: "center", paddingVertical: 64 },
+	emptyTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "700", marginTop: 14 },
+	emptySub: { color: c.textMuted, fontSize: 13, marginTop: 6 },
+
+	// MODAL
+	modalWrap: { flex: 1, justifyContent: "flex-end" },
+	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: c.overlayStronger },
+	sheet: { maxHeight: "82%", minHeight: "55%", backgroundColor: c.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28, borderWidth: 1, borderColor: c.glassBorder, overflow: "hidden" },
+	handle: { alignSelf: "center", width: 44, height: 5, borderRadius: 3, backgroundColor: c.border, marginTop: 10, marginBottom: 10 },
+	sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: c.border },
+	sheetTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "800" },
+	sheetSub: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+	sheetClose: { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center", backgroundColor: c.glass },
+	sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
+	commentList: { paddingHorizontal: 16, paddingVertical: 12, flexGrow: 1 },
+	emptyComment: { alignItems: "center", paddingVertical: 44 },
+	emptyCommentText: { color: c.textMuted, fontSize: 13, marginTop: 10 },
+	commentRow: { flexDirection: "row", marginBottom: 12 },
+	commentAvatar: { width: 34, height: 34, borderRadius: 17, marginRight: 10, backgroundColor: c.background },
+	commentBubble: { flex: 1, padding: 11, borderRadius: 16, backgroundColor: c.surfaceMuted },
+	commentTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
+	commentAuthor: { flex: 1, color: c.textPrimary, fontSize: 12, fontWeight: "800", paddingRight: 8 },
+	commentDate: { color: c.textMuted, fontSize: 11 },
+	commentBody: { color: c.textSecondary, fontSize: 13, lineHeight: 18 },
+	composer: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: c.border },
+	composerAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10, marginBottom: 3, backgroundColor: c.background },
+	composerInput: {
+		flex: 1,
+		flexDirection: "row",
+		alignItems: "flex-end",
+		borderRadius: 22,
+		backgroundColor: c.surface,
+		borderWidth: 1,
+		borderColor: c.border,
+		paddingLeft: 14,
+		paddingRight: 5,
+		paddingVertical: 5,
+	},
+	composerText: { flex: 1, color: c.textPrimary, fontSize: 14, maxHeight: 96, paddingTop: 8, paddingBottom: 8 },
+	sendBtn: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: c.primary, marginLeft: 6 },
+	sendBtnOff: { opacity: 0.4 },
 });
+}

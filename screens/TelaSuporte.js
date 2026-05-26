@@ -1,141 +1,254 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Alert,
-  ScrollView,
-  Modal,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from "react-native";
 
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-
-import * as Haptics from "expo-haptics";
-
-import { db } from "../firebaseConfig";
 import { useAuth } from "../context/AuthContext";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import {
+  createSupportTicket,
+  listenSupportMessages,
+  listenUserSupportTickets,
+  markSupportTicketRead,
+  sendSupportMessage,
+  SUPPORT_CATEGORIES,
+  SUPPORT_STATUS,
+  getSupportPriority,
+} from "../services/supportService";
+
+function formatDate(value) {
+  if (!value) return "Agora";
+  const date = value?.toDate ? value.toDate() : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Agora";
+
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function statusColor(status, colors) {
+  if (status === "resolvido") return colors.success;
+  if (status === "aguardando_usuario") return colors.warning;
+  if (status === "em_atendimento") return colors.info;
+  return colors.primary;
+}
+
+function priorityColor(priority, colors) {
+  if (priority === "alta") return colors.error;
+  if (priority === "media") return colors.warning;
+  return colors.success;
+}
 
 export default function TelaSuporte({ navigation }) {
-  const { user } = useAuth();
+  const { user, nome, foto } = useAuth();
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
+  const [tickets, setTickets] = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const [categoria, setCategoria] = useState(null);
   const [mensagem, setMensagem] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
+  const [reply, setReply] = useState("");
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
+  const [newTicketVisible, setNewTicketVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const categoriaSelecionada = useMemo(
+    () => SUPPORT_CATEGORIES.find((item) => item.id === categoria),
+    [categoria]
+  );
 
-  const categorias = [
-    {
-      id: "login",
-      label: "Problema com Login",
-      icon: "account-alert-outline",
-    },
-    {
-      id: "evento",
-      label: "Problema com Evento",
-      icon: "calendar-alert",
-    },
-    {
-      id: "pagamento",
-      label: "Pagamento",
-      icon: "credit-card-outline",
-    },
-    {
-      id: "bug",
-      label: "Bug no App",
-      icon: "bug-outline",
-    },
-    {
-      id: "outro",
-      label: "Outro",
-      icon: "help-circle-outline",
-    },
-  ];
+  const prioridade = useMemo(
+    () => getSupportPriority(categoria),
+    [categoria]
+  );
 
-  const categoriaSelecionada = useMemo(() => {
-    return categorias.find((item) => item.id === categoria);
-  }, [categoria]);
+  useEffect(() => {
+    if (!user?.uid) {
+      setTicketsLoading(false);
+      return () => {};
+    }
 
-  const prioridade = useMemo(() => {
-    if (categoria === "pagamento") return "alta";
-    if (categoria === "bug") return "media";
+    setTicketsLoading(true);
+    const unsubscribe = listenUserSupportTickets(
+      user.uid,
+      (items) => {
+        setTickets(items);
+        setTicketsLoading(false);
 
-    return "normal";
-  }, [categoria]);
+        setSelectedTicket((current) => {
+          if (!current) return current;
+          return items.find((item) => item.id === current.id) || current;
+        });
+      },
+      (error) => {
+        console.log("Erro ao ouvir chamados:", error);
+        setTicketsLoading(false);
+      }
+    );
 
-  const handleSubmit = async () => {
+    return unsubscribe;
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!selectedTicket?.id) {
+      setMessages([]);
+      return () => {};
+    }
+
+    setMessagesLoading(true);
+    markSupportTicketRead(selectedTicket.id, "user").catch(() => {});
+
+    const unsubscribe = listenSupportMessages(
+      selectedTicket.id,
+      (items) => {
+        setMessages(items);
+        setMessagesLoading(false);
+      },
+      (error) => {
+        console.log("Erro ao ouvir mensagens:", error);
+        setMessagesLoading(false);
+      }
+    );
+
+    return unsubscribe;
+  }, [selectedTicket?.id]);
+
+  const resetForm = () => {
+    setCategoria(null);
+    setMensagem("");
+    setNewTicketVisible(false);
+  };
+
+  const handleCreateTicket = async () => {
     if (!categoria || !mensagem.trim()) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Preencha categoria e mensagem."
-      );
-
+      Alert.alert("Campos obrigatórios", "Escolha uma categoria e descreva o problema.");
       return;
     }
 
     try {
-      setLoading(true);
-
+      setSubmitting(true);
       await Haptics.selectionAsync();
 
-      await addDoc(collection(db, "supportTickets"), {
-        uid: user?.uid || null,
-        email: user?.email || null,
-
+      const ticketId = await createSupportTicket({
+        uid: user?.uid,
+        email: user?.email,
+        userName: nome || user?.displayName || "Usuário",
+        userPhoto: foto || user?.photoURL || "",
         categoria,
         categoriaLabel: categoriaSelecionada?.label,
-
-        mensagem: mensagem.trim(),
-
-        status: "aberto",
-        prioridade,
-
-        respostaAdmin: "",
-
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        mensagem,
       });
 
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success
-      );
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      resetForm();
 
-      Alert.alert(
-        "Solicitação enviada 🎉",
-        "Nossa equipe irá analisar seu chamado."
-      );
-
-      setCategoria(null);
-      setMensagem("");
+      const created = tickets.find((item) => item.id === ticketId);
+      if (created) setSelectedTicket(created);
     } catch (error) {
-      console.log(error);
-
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Error
-      );
-
-      Alert.alert(
-        "Erro",
-        "Não foi possível enviar sua solicitação."
-      );
+      console.log("Erro ao criar chamado:", error);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro", error.message || "Não foi possível abrir o chamado.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
+  };
+
+  const handleSendReply = async () => {
+    if (!selectedTicket?.id || !reply.trim()) return;
+
+    try {
+      setSending(true);
+
+      await sendSupportMessage(selectedTicket.id, {
+        texto: reply,
+        authorId: user?.uid,
+        authorName: nome || user?.displayName || "Usuário",
+        authorPhoto: foto || user?.photoURL || "",
+        authorRole: "user",
+      });
+
+      setReply("");
+    } catch (error) {
+      console.log("Erro ao responder chamado:", error);
+      Alert.alert("Erro", error.message || "Não foi possível enviar a mensagem.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderTicket = ({ item }) => {
+    const active = selectedTicket?.id === item.id;
+    const ticketStatusColor = statusColor(item.status, colors);
+
+    return (
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={[styles.ticketCard, active && styles.ticketCardActive]}
+        onPress={() => setSelectedTicket(item)}
+      >
+        <View style={styles.ticketTop}>
+          <View style={[styles.ticketIcon, { backgroundColor: `${ticketStatusColor}22` }]}>
+            <MaterialCommunityIcons
+              name={item.unreadUser ? "message-alert-outline" : "lifebuoy"}
+              size={22}
+              color={ticketStatusColor}
+            />
+          </View>
+
+          <View style={styles.ticketInfo}>
+            <Text style={styles.ticketTitle} numberOfLines={1}>
+              {item.categoriaLabel || "Suporte"}
+            </Text>
+            <Text style={styles.ticketMeta} numberOfLines={1}>
+              {formatDate(item.updatedAt || item.createdAt)}
+            </Text>
+          </View>
+
+          <View style={[styles.statusPill, { borderColor: ticketStatusColor }]}>
+            <Text style={[styles.statusText, { color: ticketStatusColor }]}>
+              {SUPPORT_STATUS[item.status] || "Aberto"}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.ticketMessage} numberOfLines={2}>
+          {item.lastMessage || item.mensagem}
+        </Text>
+
+        <View style={styles.ticketFooter}>
+          <View style={[styles.priorityDot, { backgroundColor: priorityColor(item.prioridade, colors) }]} />
+          <Text style={styles.priorityText}>Prioridade {item.prioridade || "normal"}</Text>
+          {item.unreadUser ? <Text style={styles.unreadText}>Nova resposta</Text> : null}
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -143,535 +256,562 @@ export default function TelaSuporte({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* HEADER */}
-      <LinearGradient
-        colors={[Colors.background, Colors.surface]}
-        style={styles.header}
-      >
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity
-            onPress={() => {
-              if (navigation.canGoBack()) {
-                navigation.goBack();
-              } else {
-                navigation.navigate("Inicio");
-              }
-            }}
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Inicio"))}
             style={styles.backButton}
           >
-            <MaterialCommunityIcons
-              name="arrow-left"
-              size={24}
-              color={Colors.primary}
-            />
+            <MaterialCommunityIcons name="arrow-left" size={24} color={colors.primary} />
           </TouchableOpacity>
 
-          <View>
-            <Text style={styles.title}>
-              Central de Suporte
-            </Text>
-
-            <Text style={styles.subtitle}>
-              Nossa equipe está pronta para ajudar
-            </Text>
+          <View style={styles.headerCopy}>
+            <Text style={styles.title}>Central de Suporte</Text>
+            <Text style={styles.subtitle}>Acompanhe seus chamados e converse com a equipe</Text>
           </View>
         </View>
 
-        {/* CARD INFO */}
-        <View style={styles.infoCard}>
-          <MaterialCommunityIcons
-            name="clock-outline"
-            size={24}
-            color={Colors.primary}
-          />
-
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.infoTitle}>
-              Tempo médio de resposta
-            </Text>
-
-            <Text style={styles.infoText}>
-              Aproximadamente 2 horas
-            </Text>
-          </View>
-        </View>
+        <TouchableOpacity
+          activeOpacity={0.86}
+          style={styles.newTicketButton}
+          onPress={() => setNewTicketVisible(true)}
+        >
+          <MaterialCommunityIcons name="plus-circle-outline" size={20} color={colors.onPrimary} />
+          <Text style={styles.newTicketText}>Novo chamado</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* FAQ */}
-        <Text style={styles.sectionTitle}>
-          Perguntas Frequentes
-        </Text>
+      <View style={styles.body}>
+        <View style={styles.listPanel}>
+          <Text style={styles.sectionTitle}>Meus chamados</Text>
 
-        <View style={styles.faqContainer}>
-          <FaqItem
-            icon="account-lock-outline"
-            text="Não consigo acessar minha conta"
-          />
-
-          <FaqItem
-            icon="ticket-confirmation-outline"
-            text="Como cancelar minha inscrição?"
-          />
-
-          <FaqItem
-            icon="cash-refund"
-            text="Como solicitar reembolso?"
-          />
-        </View>
-
-        {/* CATEGORIA */}
-        <Text style={styles.label}>
-          Tipo de problema
-        </Text>
-
-        <TouchableOpacity
-          style={styles.select}
-          onPress={() => setModalVisible(true)}
-        >
-          <View style={styles.selectContent}>
-            <MaterialCommunityIcons
-              name={
-                categoriaSelecionada?.icon ||
-                "shape-outline"
-              }
-              size={20}
-              color={Colors.primary}
-            />
-
-            <Text
-              style={{
-                color: categoria
-                  ? Colors.textPrimary
-                  : Colors.textMuted,
-                marginLeft: 10,
-              }}
-            >
-              {categoriaSelecionada?.label ||
-                "Selecione uma categoria"}
-            </Text>
-          </View>
-
-          <MaterialCommunityIcons
-            name="chevron-down"
-            size={22}
-            color={Colors.primary}
-          />
-        </TouchableOpacity>
-
-        {/* PRIORIDADE */}
-        {categoria && (
-          <View style={styles.priorityCard}>
-            <MaterialCommunityIcons
-              name="alert-circle-outline"
-              size={18}
-              color={
-                prioridade === "alta"
-                  ? Colors.error
-                  : prioridade === "media"
-                  ? "#f1c40f"
-                  : Colors.success
-              }
-            />
-
-            <Text style={styles.priorityText}>
-              Prioridade: {prioridade}
-            </Text>
-          </View>
-        )}
-
-        {/* MENSAGEM */}
-        <Text style={styles.label}>
-          Descreva o problema
-        </Text>
-
-        <View
-          style={[
-            styles.textareaContainer,
-            focused && {
-              borderColor: Colors.primary,
-            },
-          ]}
-        >
-          <TextInput
-            placeholder="Digite aqui todos os detalhes..."
-            placeholderTextColor={Colors.textMuted}
-            multiline
-            maxLength={500}
-            value={mensagem}
-            onChangeText={setMensagem}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            style={styles.textarea}
-          />
-
-          <Text style={styles.counter}>
-            {mensagem.length}/500
-          </Text>
-        </View>
-
-        {/* BOTÃO */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          disabled={loading}
-          style={[
-            styles.button,
-            loading && { opacity: 0.7 },
-          ]}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
+          {ticketsLoading ? (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
           ) : (
-            <>
-              <MaterialCommunityIcons
-                name="send"
-                size={18}
-                color="#fff"
-              />
-
-              <Text style={styles.buttonText}>
-                Enviar solicitação
-              </Text>
-            </>
+            <FlatList
+              data={tickets}
+              keyExtractor={(item) => item.id}
+              renderItem={renderTicket}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.emptyBox}>
+                  <MaterialCommunityIcons name="headset" size={42} color={colors.textMuted} />
+                  <Text style={styles.emptyTitle}>Nenhum chamado aberto</Text>
+                  <Text style={styles.emptyText}>Quando precisar, abra um chamado e acompanhe tudo por aqui.</Text>
+                </View>
+              }
+            />
           )}
-        </TouchableOpacity>
+        </View>
 
-        <View style={{ height: 50 }} />
-      </ScrollView>
+        <View style={styles.chatPanel}>
+          {selectedTicket ? (
+            <>
+              <View style={styles.chatHeader}>
+                <View>
+                  <Text style={styles.chatTitle}>{selectedTicket.categoriaLabel || "Chamado"}</Text>
+                  <Text style={styles.chatSubtitle}>
+                    {SUPPORT_STATUS[selectedTicket.status] || "Aberto"} • {formatDate(selectedTicket.createdAt)}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons
+                  name="shield-account-outline"
+                  size={26}
+                  color={colors.primaryLight}
+                />
+              </View>
 
-      {/* MODAL */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-      >
-        <BlurView
-          intensity={40}
-          tint="dark"
-          style={styles.modalOverlay}
-        >
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>
-              Escolha uma categoria
-            </Text>
-
-            {categorias.map((item) => {
-              const ativo = categoria === item.id;
-
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() => {
-                    setCategoria(item.id);
-                    setModalVisible(false);
+              {messagesLoading ? (
+                <View style={styles.loadingBox}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : (
+                <FlatList
+                  data={messages}
+                  keyExtractor={(item) => item.id}
+                  style={styles.messagesList}
+                  contentContainerStyle={styles.messagesContent}
+                  renderItem={({ item }) => {
+                    const mine = item.authorId === user?.uid;
+                    return (
+                      <View style={[styles.messageBubble, mine ? styles.myBubble : styles.adminBubble]}>
+                        <Text style={mine ? styles.messageAuthorMine : styles.messageAuthorOther}>
+                          {mine ? "Você" : item.authorName || "Suporte"}
+                        </Text>
+                        <Text style={mine ? styles.messageTextMine : styles.messageTextOther}>
+                          {item.texto}
+                        </Text>
+                        <Text style={mine ? styles.messageTimeMine : styles.messageTimeOther}>
+                          {formatDate(item.createdAt)}
+                        </Text>
+                      </View>
+                    );
                   }}
-                  style={[
-                    styles.option,
-                    ativo && styles.optionActive,
-                  ]}
+                />
+              )}
+
+              <View style={styles.replyBar}>
+                <TextInput
+                  value={reply}
+                  onChangeText={setReply}
+                  placeholder="Responder ao suporte..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  style={styles.replyInput}
+                />
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={[styles.sendButton, (!reply.trim() || sending) && styles.disabledButton]}
+                  onPress={handleSendReply}
+                  disabled={!reply.trim() || sending}
                 >
-                  <View style={styles.optionContent}>
-                    <MaterialCommunityIcons
-                      name={item.icon}
-                      size={20}
-                      color={
-                        ativo
-                          ? "#fff"
-                          : Colors.primary
-                      }
-                    />
-
-                    <Text
-                      style={[
-                        styles.optionText,
-                        ativo &&
-                          styles.optionTextActive,
-                      ]}
-                    >
-                      {item.label}
-                    </Text>
-                  </View>
-
-                  {ativo && (
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={20}
-                      color="#fff"
-                    />
+                  {sending ? (
+                    <ActivityIndicator color={colors.onPrimary} size="small" />
+                  ) : (
+                    <MaterialCommunityIcons name="send" size={19} color={colors.onPrimary} />
                   )}
                 </TouchableOpacity>
-              );
-            })}
+              </View>
+            </>
+          ) : (
+            <View style={styles.chatEmpty}>
+              <MaterialCommunityIcons name="message-text-outline" size={46} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>Selecione um chamado</Text>
+              <Text style={styles.emptyText}>As mensagens com a equipe aparecem aqui em tempo real.</Text>
+            </View>
+          )}
+        </View>
+      </View>
 
-            <TouchableOpacity
-              style={styles.cancel}
-              onPress={() => setModalVisible(false)}
+      <Modal
+        visible={newTicketVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={resetForm}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <Pressable style={StyleSheet.absoluteFillObject} onPress={resetForm} />
+          <View style={styles.modalCard}>
+            <LinearGradient
+              colors={[colors.primarySoft, "transparent"]}
+              style={styles.modalAccent}
+            />
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalScrollContent}
             >
-              <Text style={styles.cancelText}>
-                Cancelar
-              </Text>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}>
+                  <View style={styles.modalIconWrap}>
+                    <MaterialCommunityIcons name="lifebuoy" size={22} color={colors.primary} />
+                  </View>
+                  <Text style={styles.modalTitle}>Novo chamado</Text>
+                </View>
+                <TouchableOpacity onPress={resetForm} style={styles.closeButton}>
+                  <MaterialCommunityIcons name="close" size={22} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.label}>Tipo de problema</Text>
+              <TouchableOpacity style={styles.select} onPress={() => setCategoryModalVisible(true)}>
+                <View style={styles.selectContent}>
+                  <MaterialCommunityIcons
+                    name={categoriaSelecionada?.icon || "shape-outline"}
+                    size={20}
+                    color={colors.primary}
+                  />
+                  <Text style={[styles.selectText, !categoria && { color: colors.textMuted }]}>
+                    {categoriaSelecionada?.label || "Selecione uma categoria"}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-down" size={22} color={colors.primary} />
+              </TouchableOpacity>
+
+              {categoria ? (
+                <View style={styles.priorityCard}>
+                  <View style={[styles.priorityDot, { backgroundColor: priorityColor(prioridade, colors) }]} />
+                  <Text style={styles.priorityText}>Prioridade {prioridade}</Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.label}>Mensagem</Text>
+              <TextInput
+                placeholder="Conte o que aconteceu com o máximo de detalhes..."
+                placeholderTextColor={colors.textMuted}
+                multiline
+                maxLength={700}
+                value={mensagem}
+                onChangeText={setMensagem}
+                style={styles.textarea}
+              />
+
+              <TouchableOpacity
+                onPress={handleCreateTicket}
+                disabled={submitting}
+                style={[styles.submitButton, submitting && styles.disabledButton]}
+              >
+                {submitting ? (
+                  <ActivityIndicator color={colors.onPrimary} />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="send" size={18} color={colors.onPrimary} />
+                    <Text style={styles.submitButtonText}>Abrir chamado</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal
+        visible={categoryModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setCategoryModalVisible(false)}
+          />
+          <View style={styles.categoryCard}>
+            <Text style={styles.modalTitle}>Escolha uma categoria</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.categoryList}>
+              {SUPPORT_CATEGORIES.map((item) => {
+                const active = categoria === item.id;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => {
+                      setCategoria(item.id);
+                      setCategoryModalVisible(false);
+                    }}
+                    style={[styles.option, active && styles.optionActive]}
+                  >
+                    <View style={styles.selectContent}>
+                      <MaterialCommunityIcons
+                        name={item.icon}
+                        size={20}
+                        color={active ? colors.onPrimary : colors.primary}
+                      />
+                      <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                        {item.label}
+                      </Text>
+                    </View>
+                    {active ? (
+                      <MaterialCommunityIcons name="check-circle" size={20} color={colors.onPrimary} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setCategoryModalVisible(false)}>
+              <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
-        </BlurView>
+        </View>
       </Modal>
     </KeyboardAvoidingView>
   );
 }
 
-/* FAQ */
-function FaqItem({ icon, text }) {
-  return (
-    <TouchableOpacity style={styles.faqItem}>
-      <MaterialCommunityIcons
-        name={icon}
-        size={20}
-        color={Colors.primary}
-      />
-
-      <Text style={styles.faqText}>
-        {text}
-      </Text>
-
-      <MaterialCommunityIcons
-        name="chevron-right"
-        size={20}
-        color={Colors.textMuted}
-      />
-    </TouchableOpacity>
-  );
-}
-
-/* STYLES */
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.background },
   header: {
     paddingTop: 55,
     paddingHorizontal: 20,
-    paddingBottom: 25,
+    paddingBottom: 20,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
-
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
+  headerRow: { flexDirection: "row", alignItems: "center" },
   backButton: {
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 14,
-  },
-
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: Colors.textPrimary,
-  },
-
-  subtitle: {
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
-
-  infoCard: {
-    marginTop: 20,
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
-
-  infoTitle: {
-    color: Colors.textPrimary,
-    fontWeight: "bold",
-  },
-
-  infoText: {
-    color: Colors.textSecondary,
-    marginTop: 2,
-    fontSize: 13,
-  },
-
-  content: {
-    padding: 20,
-  },
-
-  sectionTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
-  },
-
-  faqContainer: {
-    marginBottom: 25,
-  },
-
-  faqItem: {
-    backgroundColor: Colors.surface,
+  headerCopy: { flex: 1 },
+  title: { fontSize: 22, fontWeight: "800", color: c.textPrimary },
+  subtitle: { color: c.textSecondary, marginTop: 4, lineHeight: 19 },
+  newTicketButton: {
+    marginTop: 18,
+    height: 50,
     borderRadius: 16,
-    padding: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    backgroundColor: c.primary,
     flexDirection: "row",
     alignItems: "center",
-  },
-
-  faqText: {
-    flex: 1,
-    color: Colors.textPrimary,
-    marginLeft: 12,
-  },
-
-  label: {
-    color: Colors.textPrimary,
-    marginBottom: 10,
-    fontWeight: "600",
-  },
-
-  select: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  selectContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  priorityCard: {
-    marginTop: 12,
-    marginBottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  priorityText: {
-    color: Colors.textSecondary,
-    marginLeft: 8,
-    textTransform: "capitalize",
-  },
-
-  textareaContainer: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    minHeight: 170,
-  },
-
-  textarea: {
-    color: Colors.textPrimary,
-    minHeight: 120,
-    textAlignVertical: "top",
-    fontSize: 15,
-  },
-
-  counter: {
-    color: Colors.textMuted,
-    alignSelf: "flex-end",
-    marginTop: 10,
-    fontSize: 12,
-  },
-
-  button: {
-    marginTop: 25,
-    backgroundColor: Colors.primary,
-    borderRadius: 18,
-    paddingVertical: 16,
     justifyContent: "center",
+    gap: 8,
+  },
+  newTicketText: { color: c.onPrimary, fontWeight: "800", fontSize: 15 },
+  body: { flex: 1, padding: 16 },
+  listPanel: { flex: 1 },
+  chatPanel: {
+    flex: 1.15,
+    marginTop: 14,
+    backgroundColor: c.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: c.border,
+    overflow: "hidden",
+  },
+  sectionTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "800", marginBottom: 12 },
+  ticketCard: {
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+  },
+  ticketCardActive: { borderColor: c.primary, backgroundColor: c.backgroundElevated },
+  ticketTop: { flexDirection: "row", alignItems: "center" },
+  ticketIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  ticketInfo: { flex: 1 },
+  ticketTitle: { color: c.textPrimary, fontWeight: "800", fontSize: 14 },
+  ticketMeta: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+  statusPill: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5 },
+  statusText: { fontSize: 11, fontWeight: "800" },
+  ticketMessage: { color: c.textSecondary, marginTop: 12, lineHeight: 19 },
+  ticketFooter: { flexDirection: "row", alignItems: "center", marginTop: 12 },
+  priorityDot: { width: 8, height: 8, borderRadius: 4, marginRight: 7 },
+  priorityText: { color: c.textMuted, fontSize: 12, textTransform: "capitalize" },
+  unreadText: { color: c.primaryLight, fontSize: 12, fontWeight: "800", marginLeft: "auto" },
+  chatHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: c.border,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 15,
-    marginLeft: 10,
+  chatTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "900" },
+  chatSubtitle: { color: c.textMuted, marginTop: 3, fontSize: 12 },
+  messagesList: { flex: 1 },
+  messagesContent: { padding: 14 },
+  messageBubble: { maxWidth: "88%", padding: 12, borderRadius: 16, marginBottom: 10 },
+  myBubble: { alignSelf: "flex-end", backgroundColor: c.primary },
+  adminBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.border,
   },
-
+  messageAuthorMine: { color: c.onPrimary, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextMine: { color: c.onPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeMine: { color: "rgba(255,255,255,0.72)", fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  messageAuthorOther: { color: c.textMuted, fontSize: 11, fontWeight: "900", marginBottom: 4 },
+  messageTextOther: { color: c.textPrimary, fontSize: 14, lineHeight: 19 },
+  messageTimeOther: { color: c.textMuted, fontSize: 10, marginTop: 6, alignSelf: "flex-end" },
+  replyBar: {
+    borderTopWidth: 1,
+    borderTopColor: c.border,
+    padding: 10,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  replyInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 110,
+    borderRadius: 14,
+    backgroundColor: c.background,
+    color: c.textPrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: c.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disabledButton: { opacity: 0.55 },
+  loadingBox: { paddingVertical: 40, alignItems: "center", justifyContent: "center" },
+  emptyBox: {
+    padding: 24,
+    backgroundColor: c.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: c.border,
+    alignItems: "center",
+  },
+  chatEmpty: { flex: 1, alignItems: "center", justifyContent: "center", padding: 26 },
+  emptyTitle: { color: c.textPrimary, fontSize: 16, fontWeight: "800", marginTop: 10 },
+  emptyText: { color: c.textSecondary, textAlign: "center", lineHeight: 19, marginTop: 6 },
   modalOverlay: {
     flex: 1,
+    backgroundColor: c.overlayStronger,
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    paddingHorizontal: 22,
   },
-
-  modalBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: 24,
-    padding: 18,
+  modalCard: {
+    width: "100%",
+    maxHeight: "88%",
+    borderRadius: 28,
+    overflow: "hidden",
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
+    shadowColor: c.shadow,
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 12,
   },
-
-  modalTitle: {
-    color: Colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 15,
+  modalAccent: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 80,
   },
-
-  option: {
-    padding: 15,
+  modalScrollContent: {
+    padding: 20,
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+  },
+  modalTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    paddingRight: 12,
+  },
+  modalIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: c.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  modalTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "900", flex: 1 },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: c.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: c.border,
+  },
+  label: { color: c.textPrimary, marginBottom: 9, marginTop: 8, fontWeight: "700" },
+  select: {
+    backgroundColor: c.surface,
     borderRadius: 16,
-    marginBottom: 10,
-    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: c.border,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectContent: { flexDirection: "row", alignItems: "center", flex: 1 },
+  selectText: { color: c.textPrimary, marginLeft: 10, flex: 1 },
+  priorityCard: { marginTop: 12, flexDirection: "row", alignItems: "center" },
+  textarea: {
+    backgroundColor: c.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: c.border,
+    color: c.textPrimary,
+    minHeight: 150,
+    textAlignVertical: "top",
+    padding: 14,
+    fontSize: 14,
+  },
+  submitButton: {
+    marginTop: 18,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: c.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  submitButtonText: { color: c.onPrimary, fontWeight: "900" },
+  categoryCard: {
+    width: "100%",
+    maxHeight: "75%",
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: c.border,
+    padding: 20,
+    backgroundColor: c.card,
+    shadowColor: c.shadow,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+  },
+  categoryList: {
+    maxHeight: 320,
+    marginTop: 8,
+  },
+  option: {
+    padding: 14,
+    borderRadius: 15,
+    marginTop: 10,
+    backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-
-  optionActive: {
-    backgroundColor: Colors.primary,
-  },
-
-  optionContent: {
-    flexDirection: "row",
+  optionActive: { backgroundColor: c.primary, borderColor: c.primary },
+  optionText: { color: c.textPrimary, marginLeft: 10, fontSize: 15 },
+  optionTextActive: { color: c.onPrimary },
+  cancelButton: {
+    marginTop: 14,
+    height: 50,
+    borderRadius: 15,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.border,
     alignItems: "center",
+    justifyContent: "center",
   },
-
-  optionText: {
-    color: Colors.textPrimary,
-    marginLeft: 10,
-  },
-
-  optionTextActive: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-
-  cancel: {
-    marginTop: 10,
-    alignItems: "center",
-    padding: 12,
-  },
-
-  cancelText: {
-    color: Colors.textSecondary,
-  },
+  cancelText: { color: c.textPrimary, fontWeight: "700" },
 });
+}

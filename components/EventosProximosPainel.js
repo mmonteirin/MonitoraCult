@@ -7,7 +7,8 @@ import {
   FlatList,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { formatarDistancia } from "../services/mapaVivoService";
 
 const formatarHorario = (date) => {
@@ -29,7 +30,10 @@ export default function EventosProximosPainel({
   onPress,
   onCheckIn,
   onDetalhes,
+  onDirections,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const ordenados = [...eventos]
     .filter((evento) => evento?.location)
     .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999))
@@ -41,7 +45,7 @@ export default function EventosProximosPainel({
         <MaterialCommunityIcons
           name="map-search-outline"
           size={34}
-          color={Colors.textMuted}
+          color={colors.textMuted}
         />
         <Text style={styles.emptyTitle}>Nenhum evento próximo agora</Text>
         <Text style={styles.emptyText}>
@@ -69,7 +73,7 @@ export default function EventosProximosPainel({
             <View
               style={[
                 styles.eventAccent,
-                { backgroundColor: item.coverColor || Colors.primary },
+                { backgroundColor: item.coverColor || colors.primary },
               ]}
             />
 
@@ -82,7 +86,7 @@ export default function EventosProximosPainel({
                   <MaterialCommunityIcons
                     name="map-marker-distance"
                     size={12}
-                    color={Colors.primary}
+                    color={colors.primary}
                   />
                   <Text style={styles.distanceText}>
                     {formatarDistancia(item.distance)}
@@ -94,7 +98,7 @@ export default function EventosProximosPainel({
                 <MaterialCommunityIcons
                   name="tag-outline"
                   size={13}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.metaText} numberOfLines={1}>
                   {item.genre || "Cultura"}
@@ -102,7 +106,7 @@ export default function EventosProximosPainel({
                 <MaterialCommunityIcons
                   name="clock-outline"
                   size={13}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                   style={styles.metaIcon}
                 />
                 <Text style={styles.metaText} numberOfLines={1}>
@@ -115,7 +119,7 @@ export default function EventosProximosPainel({
                   <MaterialCommunityIcons
                     name="check-circle-outline"
                     size={14}
-                    color={Colors.success}
+                    color={colors.success}
                   />
                   <Text style={styles.checkInText}>
                     {item.checkInsCount || 0} check-ins
@@ -125,13 +129,13 @@ export default function EventosProximosPainel({
                 <View style={styles.actions}>
                   <TouchableOpacity
                     style={styles.iconButton}
-                    onPress={() => onDetalhes?.(item)}
+                    onPress={() => onDirections?.(item)}
                     activeOpacity={0.8}
                   >
                     <MaterialCommunityIcons
-                      name="information-outline"
+                      name="directions"
                       size={18}
-                      color={Colors.textPrimary}
+                      color={colors.textPrimary}
                     />
                   </TouchableOpacity>
 
@@ -156,7 +160,8 @@ export default function EventosProximosPainel({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   listContent: {
     paddingHorizontal: 14,
     paddingBottom: 26,
@@ -164,14 +169,14 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     flexDirection: "row",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   eventCardSelected: {
-    borderColor: Colors.primary,
+    borderColor: c.primary,
   },
   eventAccent: {
     width: 4,
@@ -187,7 +192,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     flex: 1,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     fontFamily: "PoppinsSemiBold",
   },
@@ -201,7 +206,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(108,92,231,0.14)",
   },
   distanceText: {
-    color: Colors.primary,
+    color: c.primary,
     fontSize: 11,
     fontFamily: "PoppinsSemiBold",
   },
@@ -214,7 +219,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   metaText: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 11,
     marginLeft: 4,
     flexShrink: 1,
@@ -232,7 +237,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   checkInText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 11,
     fontFamily: "PoppinsRegular",
   },
@@ -246,13 +251,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   checkInButton: {
-    backgroundColor: Colors.success,
-    borderColor: Colors.success,
+    backgroundColor: c.success,
+    borderColor: c.success,
   },
   emptyState: {
     alignItems: "center",
@@ -261,13 +266,13 @@ const styles = StyleSheet.create({
     paddingTop: 34,
   },
   emptyTitle: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 14,
     marginTop: 10,
     fontFamily: "PoppinsSemiBold",
   },
   emptyText: {
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontSize: 12,
     textAlign: "center",
     marginTop: 6,
@@ -275,3 +280,4 @@ const styles = StyleSheet.create({
     fontFamily: "PoppinsRegular",
   },
 });
+}

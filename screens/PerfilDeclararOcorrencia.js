@@ -49,9 +49,10 @@ import {
 
 import AppText from "../components/AppText";
 
-import {
-	Colors,
-} from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Status } from "../styles/Colors";
+
 
 const PALAVROES = [
 	"porra",
@@ -114,6 +115,9 @@ export default function PerfilDeclararOcorrencia({
 	navigation,
 	route,
 }) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
 
 	const {
 		eventoId,
@@ -418,7 +422,7 @@ export default function PerfilDeclararOcorrencia({
 				>
 					<BlurView
 						intensity={40}
-						tint="dark"
+						tint={blurTint}
 						style={styles.card}
 					>
 
@@ -453,7 +457,7 @@ export default function PerfilDeclararOcorrencia({
 									name="alert"
 									size={24}
 									color={
-										Colors.primary
+										colors.primary
 									}
 								/>
 							</View>
@@ -477,7 +481,7 @@ export default function PerfilDeclararOcorrencia({
 				>
 					<BlurView
 						intensity={45}
-						tint="dark"
+						tint={blurTint}
 						style={styles.card}
 					>
 
@@ -576,7 +580,7 @@ export default function PerfilDeclararOcorrencia({
 				>
 					<BlurView
 						intensity={45}
-						tint="dark"
+						tint={blurTint}
 						style={styles.card}
 					>
 
@@ -680,7 +684,7 @@ export default function PerfilDeclararOcorrencia({
 
 						<LinearGradient
 							colors={[
-								Colors.primary,
+								colors.primary,
 								"#7C3AED",
 							]}
 							style={
@@ -719,11 +723,12 @@ export default function PerfilDeclararOcorrencia({
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
 
 	container: {
 		flex: 1,
-		backgroundColor: "#050816",
+		backgroundColor: c.background,
 	},
 
 	heroContainer: {
@@ -934,3 +939,4 @@ const styles = StyleSheet.create({
 		fontWeight: "bold",
 	},
 });
+}

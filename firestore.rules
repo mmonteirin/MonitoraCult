@@ -1,0 +1,760 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* =====================================================
+       🔧 HELPERS
+    ===================================================== */
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function hasOnly(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function changedOnly(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // Lê o campo role em /users — use com moderação (1 get por request)
+    function isAdmin() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    function isOwnerOrAdmin(uid) {
+      return isOwner(uid) || isAdmin();
+    }
+
+    // Verifica se o usuário é membro de um grupo de comunidade
+    function isGroupMember(groupId) {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/communityGroups/$(groupId))
+            .data.members.hasAny([request.auth.uid]);
+    }
+
+    // Verifica se o usuário é admin de um grupo de comunidade
+    function isGroupAdmin(groupId) {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/communityGroups/$(groupId))
+            .data.admins.hasAny([request.auth.uid]);
+    }
+
+
+    /* =====================================================
+       👤 USERS
+    ===================================================== */
+
+    match /users/{userId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isOwner(userId)
+        && hasOnly([
+          "nome",
+          "email",
+          "uid",
+          "fotoUrl",
+          "foto",
+          "role",
+          "areaAtuacao",
+          "localAtuacao",
+          "cnpj",
+          "followers",
+          "following",
+          "followersCount",
+          "followingCount",
+          "createdAt"
+        ]);
+
+      allow update: if isOwnerOrAdmin(userId)
+        || (isAuthenticated()
+          && changedOnly(["followers", "following", "followersCount", "followingCount"]));
+
+      allow delete: if isAdmin();
+
+      /* 🔔 EVENTOS SALVOS */
+      match /subscribedEvents/{eventId} {
+        allow read, create, update, delete: if isOwnerOrAdmin(userId);
+      }
+
+      /* ⭐ HISTÓRICO DE AVALIAÇÕES */
+      match /avaliacoes/{avaliacaoId} {
+        allow read: if isOwnerOrAdmin(userId);
+        allow create: if isOwner(userId)
+          && hasOnly(["avaliacaoId", "userId", "nome", "nota", "comentario", "foto", "eventoId", "tituloEvento", "createdAt"]);
+        allow update, delete: if isOwnerOrAdmin(userId);
+      }
+
+      /* 🚨 HISTÓRICO DE OCORRÊNCIAS */
+      match /ocorrencias/{ocorrenciaId} {
+        allow read, create, update, delete: if isOwnerOrAdmin(userId);
+      }
+
+      /* 📍 LOCAIS VISITADOS */
+      match /locaisVisitados/{localId} {
+        allow read, create, update, delete: if isOwnerOrAdmin(userId);
+      }
+
+      /* 🔔 NOTIFICAÇÕES */
+      match /notifications/{notifId} {
+        allow read: if isOwner(userId);
+        allow create: if isAuthenticated()
+          && hasOnly(["titulo", "corpo", "tipo", "dados", "lida", "criadoEm"]);
+        allow update: if isOwner(userId)
+          && changedOnly(["lida"]);
+        allow delete: if isOwner(userId);
+      }
+
+      /* 📱 PUSH TOKENS */
+      match /pushTokens/{tokenId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      /* 🎟️ COMPRAS DE INGRESSOS */
+      match /compras/{compraId} {
+        allow read: if isOwnerOrAdmin(userId);
+        allow create: if isOwner(userId)
+          && hasOnly([
+            "eventoId", "eventoNome", "eventoData", "eventoHora",
+            "eventoLocal", "eventoFoto", "categoria",
+            "userId", "userName", "userEmail", "userPhoto",
+            "ingressos", "valorTotal", "metodoPagamento", "tipoCompra",
+            "metadadosPagamento", "status", "dataCompra", "dataValidade"
+          ]);
+        allow update: if isAdmin();
+        allow delete: if false;
+      }
+    }
+
+    /* =====================================================
+       👤 USUARIOS (alias legado — usado em ingressoServiceV2)
+    ===================================================== */
+
+    match /usuarios/{userId} {
+
+      allow read: if isOwnerOrAdmin(userId);
+
+      match /compras/{compraId} {
+        allow read: if isOwnerOrAdmin(userId);
+        allow create: if isOwner(userId);
+        allow update: if isAdmin();
+        allow delete: if false;
+      }
+    }
+
+
+    /* =====================================================
+       🎉 EVENTOS
+    ===================================================== */
+
+    match /eventos/{eventoId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.uidEvento == request.auth.uid
+        && request.resource.data.keys().hasAny([
+          "uidEvento", "titulo", "tituloEvento", "descricao",
+          "imagemUrl", "imagemEvento", "local", "localEvento",
+          "dataEvento", "horaInicio", "categoria", "tipoEvento",
+          "ingressosVendidos", "createdAt", "comentarios", "likes"
+        ]);
+
+      // Corrigido para aceitar incrementação de comentários, likes e atualizações de avaliações
+      allow update: if isAuthenticated() && (
+          (resource.data.uidEvento == request.auth.uid && request.resource.data.uidEvento == resource.data.uidEvento)
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["comentarios", "likes"])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["avaliacoesResumo", "mediaAvaliacoes", "somaAvaliacoes", "totalAvaliacoes"])
+          || isAdmin()
+        );
+
+      allow delete: if (isAuthenticated()
+          && resource.data.uidEvento == request.auth.uid)
+        || isAdmin();
+
+      /* ⭐ AVALIAÇÕES */
+      match /avaliacoes/{avaliacaoId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && hasOnly(["userId", "nome", "nota", "comentario", "foto", "createdAt"]);
+        allow update, delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+      }
+
+      /* 🚨 OCORRÊNCIAS */
+      match /ocorrencias/{ocorrenciaId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && hasOnly(["userId", "nome", "local", "descricao", "tipo", "createdAt"]);
+        allow update, delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+      }
+
+      /* 🎟️ INGRESSOS */
+      match /ingressos/{ingressoId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update: if isAdmin();
+        allow delete: if false;
+      }
+
+      /* 💬 COMENTÁRIOS DE EVENTOS */
+      match /comentarios/{comentarioId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
+        allow update, delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+      }
+    }
+
+
+    /* =====================================================
+       🗺️ MAPA VIVO — EVENTOS
+    ===================================================== */
+
+    match /mapEvents/{eventId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.creatorId == request.auth.uid;
+
+      allow update: if (isAuthenticated()
+          && resource.data.creatorId == request.auth.uid)
+        || isAdmin();
+
+      allow delete: if (isAuthenticated()
+          && resource.data.creatorId == request.auth.uid)
+        || isAdmin();
+    }
+
+    /* 📍 CHECK-INS */
+    match /checkIns/{checkInId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasOnly(["eventId", "userId", "location", "photo", "caption"]);
+
+      allow update: if isAuthenticated()
+        && resource.data.userId == request.auth.uid;
+
+      allow delete: if (isAuthenticated()
+          && resource.data.userId == request.auth.uid)
+        || isAdmin();
+    }
+
+    /* 🏛️ HOTSPOTS CULTURAIS (somente leitura pelo app) */
+    match /culturalHotspots/{hotspotId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    /* 📊 INTERAÇÕES DE EVENTOS */
+    match /eventInteractions/{interactionId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated()
+        && request.resource.data.usuarioId == request.auth.uid
+        && hasOnly([
+          "usuarioId", "eventoId", "action", "durationMs",
+          "categoria", "local", "titulo", "createdAt"
+        ]);
+      allow update, delete: if false;
+    }
+
+    /* 📧 CÓDIGOS DE VERIFICAÇÃO DE EMAIL (cadastro pré-login) */
+    match /emailCodes/{email} {
+      allow create, update: if hasOnly(["code", "expiry", "email"])
+        && request.resource.data.email == email;
+      allow read, delete: if true;
+    }
+
+    /* 🛟 CHAMADOS DE SUPORTE */
+    match /supportTickets/{ticketId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.uid == request.auth.uid);
+      allow create: if isAuthenticated()
+        && request.resource.data.uid == request.auth.uid
+        && hasOnly([
+          "uid", "email", "userName", "userPhoto", "categoria", "categoriaLabel",
+          "mensagem", "status", "prioridade", "respostaAdmin",
+          "assignedAdminId", "assignedAdminName",
+          "lastMessage", "lastMessageAt", "lastMessageBy",
+          "unreadAdmin", "unreadUser"
+        ]);
+      allow update: if isAdmin()
+        || (
+          isAuthenticated()
+          && resource.data.uid == request.auth.uid
+          && request.resource.data.uid == resource.data.uid
+          && changedOnly([
+            "status", "lastMessage", "lastMessageAt", "lastMessageBy",
+            "unreadAdmin", "unreadUser"
+          ])
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(["status"])
+            || request.resource.data.status == "em_atendimento"
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(["lastMessageBy"])
+            || request.resource.data.lastMessageBy == request.auth.uid
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(["unreadAdmin"])
+            || request.resource.data.unreadAdmin == true
+          )
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(["unreadUser"])
+            || request.resource.data.unreadUser == false
+          )
+        );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isAdmin()
+          || (
+            isAuthenticated()
+            && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.uid == request.auth.uid
+          );
+        allow create: if isAdmin()
+          || (
+            isAuthenticated()
+            && get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.uid == request.auth.uid
+            && request.resource.data.authorId == request.auth.uid
+            && request.resource.data.authorRole == "user"
+          );
+        allow update, delete: if false;
+      }
+    }
+
+
+    /* =====================================================
+       📸 POSTS & FEED
+    ===================================================== */
+
+    match /posts/{postId} {
+
+      allow read: if isAuthenticated();
+
+      // Atualizado para aceitar o campo autor estruturado enviado no método criarPost
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAny([
+          "userId", "autor", "imagemUrl", "descricao",
+          "likesCount", "likes", "comentarios", "createdAt"
+        ]);
+
+      // Corrigido para aceitar alterações externas atômicas de comentários e curtidas sem barrar no ID do proprietário
+      allow update: if isAuthenticated() && (
+          (resource.data.userId == request.auth.uid && request.resource.data.userId == resource.data.userId)
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(["comentarios", "likes", "likesCount"])
+          || isAdmin()
+        );
+
+      allow delete: if (isAuthenticated()
+          && resource.data.userId == request.auth.uid)
+        || isAdmin();
+
+      /* 💬 COMENTÁRIOS DE POSTS */
+      match /comentarios/{comentarioId} {
+        allow read: if isAuthenticated();
+
+        // Expandido com hasOnly contendo todos os parâmetros textuais e fotos do payload do feed
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
+
+        allow update, delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+      }
+
+      /* 💬 COMMENTS (alias em inglês — usado em commentService) */
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+      }
+
+      /* ❤️ LIKES DE POSTS */
+      match /likes/{likeId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated()
+          && request.resource.data.userId == request.auth.uid
+          && hasOnly(["userId"]);
+        allow delete: if (isAuthenticated()
+            && resource.data.userId == request.auth.uid)
+          || isAdmin();
+        allow update: if false;
+      }
+    }
+
+    /* ❤️ LIKES GLOBAIS (eventos + posts via feedService) */
+    match /likes/{likeId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (request.resource.data.usuarioId == request.auth.uid
+          || request.resource.data.userId == request.auth.uid)
+        && hasOnly([
+          "usuarioId", "userId",
+          "referenciaId", "itemId", "itemType",
+          "tipo"
+        ]);
+
+      allow delete: if (isAuthenticated()
+          && (resource.data.usuarioId == request.auth.uid
+            || resource.data.userId == request.auth.uid))
+        || isAdmin();
+
+      allow update: if false;
+    }
+
+
+    /* =====================================================
+       📖 STORIES
+    ===================================================== */
+
+    match /stories/{storyId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasOnly([
+          "userId", "userName", "userPhoto",
+          "imagemUri", "textoStory", "musica",
+          "expiresAt",
+          "visualizacoes", "vistos", "reacoes"
+        ]);
+
+      allow update: if (isAuthenticated()
+          && resource.data.userId == request.auth.uid)
+        || isAdmin();
+
+      allow delete: if (isAuthenticated()
+          && resource.data.userId == request.auth.uid)
+        || isAdmin();
+    }
+
+
+    /* =====================================================
+       💬 DIRECT MESSAGES
+    ===================================================== */
+
+    match /conversas/{conversaId} {
+
+      allow read: if isAuthenticated()
+        && request.auth.uid in resource.data.participantes;
+
+      allow create: if isAuthenticated()
+        && request.auth.uid in request.resource.data.participantes
+        && hasOnly([
+          "conversaId", "participantes", "participantProfiles",
+          "ultimaMensagem", "ultimaAtividade",
+          "remetente", "naoLido"
+        ]);
+
+      allow update: if isAuthenticated()
+        && request.auth.uid in resource.data.participantes;
+
+      allow delete: if false;
+
+      /* ✉️ MENSAGENS */
+      match /mensagens/{mensagemId} {
+        allow read: if isAuthenticated()
+          && request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+
+        allow create: if isAuthenticated()
+          && request.resource.data.remetenteId == request.auth.uid;
+
+        allow update: if isAuthenticated()
+          && (
+            resource.data.remetenteId == request.auth.uid
+            || (
+              resource.data.destinatarioId == request.auth.uid
+              && request.resource.data.diff(resource.data).changedKeys().hasOnly(["lido"])
+            )
+          );
+
+        allow delete: if isAuthenticated()
+          && resource.data.remetenteId == request.auth.uid;
+      }
+    }
+
+    /* 💬 CHATS (usado em chatService) */
+    match /chats/{chatId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated();
+
+      allow update: if isAuthenticated();
+
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isAuthenticated();
+
+        allow create: if isAuthenticated()
+          && request.resource.data.senderId == request.auth.uid;
+
+        allow update, delete: if isAuthenticated()
+          && resource.data.senderId == request.auth.uid;
+      }
+    }
+
+
+    /* =====================================================
+       🔔 NOTIFICAÇÕES GLOBAIS (followService)
+    ===================================================== */
+
+    match /notifications/{notifId} {
+
+      allow read: if isAuthenticated()
+        && resource.data.toUserId == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.fromUserId == request.auth.uid
+        && hasOnly([
+          "fromUserId", "fromUserName", "fromUserPhoto",
+          "toUserId", "type", "createdAt", "read"
+        ]);
+
+      allow update: if isAuthenticated()
+        && resource.data.toUserId == request.auth.uid
+        && changedOnly(["read"]);
+
+      allow delete: if isAuthenticated()
+        && resource.data.toUserId == request.auth.uid;
+    }
+
+
+    /* =====================================================
+       👥 SEGUIDORES
+    ===================================================== */
+
+    match /followers/{userId} {
+
+      allow read: if isAuthenticated();
+
+      /* followers/{userId}/followers/{followerId} */
+      match /followers/{followerId} {
+        allow read: if isAuthenticated();
+        allow create: if isOwner(followerId)
+          && hasOnly(["followerId", "followerName", "followerPhoto"]);
+        allow delete: if isOwner(followerId);
+        allow update: if false;
+      }
+
+      /* followers/{userId}/following/{targetId} */
+      match /following/{targetId} {
+        allow read: if isAuthenticated();
+        allow create: if isOwner(userId)
+          && hasOnly(["targetUserId", "targetName", "targetPhoto"]);
+        allow delete: if isOwner(userId);
+        allow update: if false;
+      }
+    }
+
+
+    /* =====================================================
+       👥 COMUNIDADE
+    ===================================================== */
+
+    match /communityGroups/{groupId} {
+
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.members.hasAll([request.auth.uid])
+        && request.resource.data.admins.hasAll([request.auth.uid]);
+
+      allow update: if isAuthenticated() && (
+        isGroupAdmin(groupId)
+        || isAdmin()
+        // Join/Leave: só altera members e contadores
+        || (request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["members", "membersCount"])
+            && request.resource.data.members.hasAll([request.auth.uid]))
+      );
+
+      allow delete: if (isAuthenticated()
+          && resource.data.createdBy == request.auth.uid)
+        || isAdmin();
+
+      /* 📝 POSTS DA COMUNIDADE */
+      match /posts/{postId} {
+        allow read: if isGroupMember(groupId);
+
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.authorId == request.auth.uid;
+
+        allow update: if isAuthenticated() && (
+          resource.data.authorId == request.auth.uid
+          || isGroupAdmin(groupId)
+          || isAdmin()
+          || (isGroupMember(groupId)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(["likes", "likesCount"]))
+        );
+
+        allow delete: if (isAuthenticated()
+            && resource.data.authorId == request.auth.uid)
+          || isGroupAdmin(groupId)
+          || isAdmin();
+
+        match /comments/{commentId} {
+          allow read: if isGroupMember(groupId);
+          allow create: if isGroupMember(groupId)
+            && request.resource.data.authorId == request.auth.uid;
+          allow update, delete: if (isAuthenticated()
+              && resource.data.authorId == request.auth.uid)
+            || isGroupAdmin(groupId)
+            || isAdmin();
+        }
+      }
+
+      /* 💬 FÓRUM */
+      match /forum/{threadId} {
+        allow read: if isAuthenticated();
+
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.authorId == request.auth.uid;
+
+        allow update: if isAuthenticated() && (
+          resource.data.authorId == request.auth.uid
+          || isGroupAdmin(groupId)
+          || isAdmin()
+        );
+
+        allow delete: if (isAuthenticated()
+            && resource.data.authorId == request.auth.uid)
+          || isGroupAdmin(groupId)
+          || isAdmin();
+
+        match /replies/{replyId} {
+          allow read: if isAuthenticated();
+          allow create: if isGroupMember(groupId)
+            && request.resource.data.authorId == request.auth.uid;
+          allow update, delete: if (isAuthenticated()
+              && resource.data.authorId == request.auth.uid)
+            || isGroupAdmin(groupId)
+            || isAdmin();
+        }
+      }
+
+      /* 📰 NOTÍCIAS */
+      match /news/{newsId} {
+        allow read: if isAuthenticated();
+
+        allow create: if (isGroupAdmin(groupId) || isAdmin())
+          && request.resource.data.authorId == request.auth.uid;
+
+        allow update: if isAuthenticated() && (
+          isGroupAdmin(groupId)
+          || isAdmin()
+          || (isGroupMember(groupId)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(["likes", "likesCount", "viewsCount"]))
+        );
+
+        allow delete: if isGroupAdmin(groupId) || isAdmin();
+
+        match /comments/{commentId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated()
+            && request.resource.data.authorId == request.auth.uid;
+          allow update, delete: if (isAuthenticated()
+              && resource.data.authorId == request.auth.uid)
+            || isGroupAdmin(groupId)
+            || isAdmin();
+        }
+      }
+    }
+
+    /* 🌟 CRIADORES EM DESTAQUE */
+    match /highlightedCreators/{creatorId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+
+    /* =====================================================
+       🎟️ COMPRAS DE INGRESSOS (raiz)
+    ===================================================== */
+
+    match /comprasIngressos/{compraId} {
+
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid;
+
+      allow update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+
+    /* =====================================================
+       📤 COMPARTILHAMENTOS
+    ===================================================== */
+
+    match /compartilhamentos/{compartilhamentoId} {
+
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      allow create: if isAuthenticated()
+        && request.resource.data.userId == request.auth.uid
+        && hasOnly([
+          "userId", "eventoId", "plataforma", "timestamp", "eventoData"
+        ]);
+
+      allow delete: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    /* =====================================================
+       ✉️ EMAILS (Firebase Extensions)
+    ===================================================== */
+
+    match /mail/{document=**} {
+      allow create: if isAuthenticated()
+        || hasOnly(["to", "message"]);
+      allow read, update, delete: if isAdmin();
+    }
+
+
+    /* =====================================================
+       🔒 CATCH-ALL — nega tudo não coberto acima
+    ===================================================== */
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

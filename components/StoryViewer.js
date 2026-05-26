@@ -16,7 +16,9 @@ import {
   Dimensions,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 import { useStories } from "../hooks/useStories";
 
 const EMOJIS = ["😍", "😂", "😮", "😢", "😡", "🔥", "❤️"];
@@ -30,6 +32,9 @@ const StoryViewer = memo(
     userId,
     onReacao,
   }) => {
+    const { colors } = useTheme();
+    const styles = useThemedStyles(createThemedScreenStyles);
+
     const [storyAtualIdx, setStoryAtualIdx] = useState(0);
     const [showReacoes, setShowReacoes] = useState(false);
     const [progressoAnimacao] = useState(new Animated.Value(0));
@@ -247,7 +252,8 @@ const StoryViewer = memo(
   }
 );
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#000",
@@ -422,6 +428,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-});
+  });
+}
 
 export default StoryViewer;

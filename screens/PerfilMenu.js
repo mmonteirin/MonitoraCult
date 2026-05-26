@@ -286,7 +286,7 @@ export default function PerfilMenu({
 					style={styles.bottom_item}
 					onPress={() =>
 						navigation.navigate(
-							"EventoProximo"
+							"MeusIngressos"
 						)
 					}
 				>

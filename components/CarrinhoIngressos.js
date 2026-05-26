@@ -16,29 +16,35 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { TIPOS_INGRESSO } from "../services/ingressoServiceV2";
 
-const ItemCarrinho = memo(({ item, onRemover, onAtualizar }) => {
+const ItemCarrinho = memo(({ item, onRemover, onAtualizar, colors, styles }) => {
   const tipoConfig = TIPOS_INGRESSO[item.tipo.toUpperCase()];
   const precoComDesconto = item.precoUnitario * (1 - item.desconto);
   const subtotal = precoComDesconto * item.quantidade;
+  const gratuito = subtotal === 0;
 
   return (
     <View style={styles.itemCarrinho}>
       <View style={styles.itemInfo}>
         <Text style={styles.itemLabel}>{tipoConfig?.label}</Text>
-        <Text style={styles.itemQtd}>{item.quantidade}x R$ {precoComDesconto.toFixed(2)}</Text>
+        <Text style={styles.itemQtd}>
+          {item.quantidade}x {gratuito ? "Gratuito" : `R$ ${precoComDesconto.toFixed(2)}`}
+        </Text>
       </View>
 
       <View style={styles.itemAcoes}>
-        <Text style={styles.itemSubtotal}>R$ {subtotal.toFixed(2)}</Text>
+        <Text style={styles.itemSubtotal}>
+          {gratuito ? "Gratuito" : `R$ ${subtotal.toFixed(2)}`}
+        </Text>
 
         <TouchableOpacity
           onPress={() => onRemover(item.tipo)}
           style={styles.btnRemover}
         >
-          <MaterialCommunityIcons name="trash-can-outline" size={18} color={Colors.error} />
+          <MaterialCommunityIcons name="trash-can-outline" size={18} color={colors.error} />
         </TouchableOpacity>
       </View>
     </View>
@@ -54,7 +60,11 @@ const CarrinhoIngressos = ({
   onComprar,
   nomeEvento = "Evento",
   dataEvento = "",
+  gratuito = false,
 }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const economiaTotal = useMemo(() => {
     return carrinho.reduce((acc, item) => {
       const precoOriginal = item.precoUnitario;
@@ -69,7 +79,7 @@ const CarrinhoIngressos = ({
         <MaterialCommunityIcons
           name="ticket-outline"
           size={48}
-          color={Colors.textMuted}
+          color={colors.textMuted}
         />
         <Text style={styles.vazioTitle}>Seu carrinho está vazio</Text>
         <Text style={styles.vazioSubtitle}>Adicione ingressos para continuar</Text>
@@ -89,7 +99,7 @@ const CarrinhoIngressos = ({
 
       {/* EVENTO INFO */}
       <View style={styles.eventoInfo}>
-        <MaterialCommunityIcons name="calendar" size={16} color={Colors.primary} />
+        <MaterialCommunityIcons name="calendar" size={16} color={colors.primary} />
         <View style={styles.eventoTexto}>
           <Text style={styles.eventoNome}>{nomeEvento}</Text>
           {dataEvento && <Text style={styles.eventoData}>{dataEvento}</Text>}
@@ -104,6 +114,8 @@ const CarrinhoIngressos = ({
             item={item}
             onRemover={onRemover}
             onAtualizar={() => {}} // Usar em atualizarQuantidade
+            colors={colors}
+            styles={styles}
           />
         )}
         keyExtractor={item => item.tipo}
@@ -113,7 +125,7 @@ const CarrinhoIngressos = ({
 
       {/* RESUMO */}
       <LinearGradient
-        colors={[Colors.surface + "80", Colors.surface]}
+        colors={[colors.surface + "80", colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.resumo}
@@ -121,7 +133,7 @@ const CarrinhoIngressos = ({
         {economiaTotal > 0 && (
           <View style={styles.linhaResumo}>
             <Text style={styles.labelResumo}>Economia:</Text>
-            <Text style={[styles.valorResumo, { color: Colors.success }]}>
+            <Text style={[styles.valorResumo, { color: colors.success }]}>
               R$ {economiaTotal.toFixed(2)}
             </Text>
           </View>
@@ -131,7 +143,9 @@ const CarrinhoIngressos = ({
 
         <View style={styles.linhaResumo}>
           <Text style={styles.labelTotal}>Total:</Text>
-          <Text style={styles.valorTotal}>R$ {total.toFixed(2)}</Text>
+          <Text style={styles.valorTotal}>
+            {gratuito || total === 0 ? "Gratuito" : `R$ ${total.toFixed(2)}`}
+          </Text>
         </View>
       </LinearGradient>
 
@@ -145,22 +159,31 @@ const CarrinhoIngressos = ({
           <ActivityIndicator color="#fff" />
         ) : (
           <>
-            <MaterialCommunityIcons name="credit-card" size={22} color="#fff" />
-            <Text style={styles.btnComprarText}>Continuar Pagamento</Text>
+            <MaterialCommunityIcons
+              name={gratuito || total === 0 ? "ticket-confirmation" : "credit-card"}
+              size={22}
+              color="#fff"
+            />
+            <Text style={styles.btnComprarText}>
+              {gratuito || total === 0 ? "Reservar ingresso" : "Continuar pagamento"}
+            </Text>
           </>
         )}
       </TouchableOpacity>
 
       <Text style={styles.avisoSeguranca}>
-        💳 Pagamento seguro com encriptação SSL
+        {gratuito || total === 0
+          ? "Reserva gratuita. Seu ingresso será gerado sem cobrança."
+          : "Pagamento seguro com encriptação SSL"}
       </Text>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 16,
@@ -177,13 +200,13 @@ const styles = StyleSheet.create({
   vazioTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginTop: 16,
   },
 
   vazioSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 4,
   },
 
@@ -197,13 +220,13 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   headerCount: {
     fontSize: 12,
-    color: Colors.textMuted,
-    backgroundColor: Colors.border,
+    color: c.textMuted,
+    backgroundColor: c.border,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -212,7 +235,7 @@ const styles = StyleSheet.create({
   eventoInfo: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.primary + "10",
+    backgroundColor: c.primary + "10",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 8,
@@ -227,12 +250,12 @@ const styles = StyleSheet.create({
   eventoNome: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   eventoData: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
@@ -250,12 +273,12 @@ const styles = StyleSheet.create({
   itemLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   itemQtd: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
@@ -267,7 +290,7 @@ const styles = StyleSheet.create({
   itemSubtotal: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   btnRemover: {
@@ -276,11 +299,11 @@ const styles = StyleSheet.create({
 
   separador: {
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: c.border,
   },
 
   resumo: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     padding: 14,
     marginVertical: 16,
@@ -295,12 +318,12 @@ const styles = StyleSheet.create({
   linhaDivisoria: {
     marginVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
   },
 
   labelResumo: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     fontWeight: "500",
   },
 
@@ -312,17 +335,17 @@ const styles = StyleSheet.create({
   labelTotal: {
     fontSize: 14,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   valorTotal: {
     fontSize: 20,
     fontWeight: "800",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   btnComprar: {
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 12,
     paddingVertical: 14,
     flexDirection: "row",
@@ -340,10 +363,11 @@ const styles = StyleSheet.create({
 
   avisoSeguranca: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     textAlign: "center",
     fontStyle: "italic",
   },
-});
+  });
+}
 
 export default CarrinhoIngressos;

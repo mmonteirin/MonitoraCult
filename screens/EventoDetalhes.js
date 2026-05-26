@@ -1,7 +1,6 @@
 import React, {
 	useState,
 	useEffect,
-	useRef,
 	useCallback,
 } from "react";
 
@@ -15,7 +14,6 @@ import {
 	StyleSheet,
 	ActivityIndicator,
 	Modal,
-	Animated,
 	StatusBar,
 	Dimensions,
 } from "react-native";
@@ -30,28 +28,43 @@ import { BlurView } from "expo-blur";
 
 import { MotiView } from "moti";
 
+import Animated, {
+	useSharedValue,
+	useAnimatedStyle,
+	withSpring,
+	withSequence,
+	withDelay,
+	runOnJS,
+} from "react-native-reanimated";
+
 import {
 	collection,
-	addDoc,
 	onSnapshot,
 	query,
 	orderBy,
 	serverTimestamp,
 	where,
 	getDocs,
-	deleteDoc,
-	doc,
 } from "firebase/firestore";
 
 import { auth, db } from "../firebaseConfig";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
+import ConfirmModal from "../components/ConfirmModal";
+
+import EventoShareCard from "../components/EventoShareCard";
 
 import {
 	getUserLikes,
 	toggleEventoLike,
 	incrementEventoViews,
 } from "../services/eventosAppService";
+import {
+	adicionarAvaliacaoEvento,
+	removerAvaliacaoEvento,
+} from "../services/avaliacaoService";
 
 const { width } = Dimensions.get("window");
 
@@ -109,64 +122,6 @@ const censurarTexto = (texto) => {
 	return t;
 };
 
-/* ───────────────────────────── */
-/* LIKE BUTTON */
-/* ───────────────────────────── */
-
-function LikeButton({
-	liked,
-	onPress,
-}) {
-	const scale = useRef(
-		new Animated.Value(1)
-	).current;
-
-	const handlePress = () => {
-		Animated.sequence([
-			Animated.spring(scale, {
-				toValue: 1.3,
-				useNativeDriver: true,
-				speed: 50,
-			}),
-			Animated.spring(scale, {
-				toValue: 1,
-				useNativeDriver: true,
-				speed: 50,
-			}),
-		]).start();
-
-		onPress();
-	};
-
-	return (
-		<TouchableOpacity
-			activeOpacity={0.8}
-			onPress={handlePress}
-			style={styles.metricBtn}
-		>
-			<Animated.View
-				style={{
-					transform: [{ scale }],
-				}}
-			>
-				<MaterialCommunityIcons
-					name={
-						liked
-							? "heart"
-							: "heart-outline"
-					}
-					size={18}
-					color={
-						liked
-							? "#FF4D6D"
-							: "#FFF"
-					}
-				/>
-			</Animated.View>
-		</TouchableOpacity>
-	);
-}
-
 export default function EventoDetalhes({
 	route,
 	navigation,
@@ -176,6 +131,10 @@ export default function EventoDetalhes({
 
 	const insets =
 		useSafeAreaInsets();
+
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
 
 	const eventoId =
 		evento?.id ||
@@ -218,6 +177,17 @@ export default function EventoDetalhes({
 			evento?.views || 0
 		);
 
+	const [ocorrencias, setOcorrencias] =
+		useState([]);
+
+	const [showOcorrencias, setShowOcorrencias] =
+		useState(false);
+
+	const [loadingOcorrencias, setLoadingOcorrencias] =
+		useState(false);
+
+	const likeScale = useSharedValue(1);
+
 	/* ───────────────────────────── */
 	/* MODAL */
 	/* ───────────────────────────── */
@@ -230,6 +200,9 @@ export default function EventoDetalhes({
 
 	const [modalMessage, setModalMessage] =
 		useState("");
+
+	const [showShare, setShowShare] =
+		useState(false);
 
 	const showModal = (
 		title,
@@ -244,13 +217,35 @@ export default function EventoDetalhes({
 	/* DADOS */
 	/* ───────────────────────────── */
 
-	const precoBase =
-		evento?.precoInteira ?? 50;
+	const precoBase = Number(
+		evento?.precoInteira ??
+			evento?.preco ??
+			evento?.valor ??
+			0
+	);
+
+	const eventoGratuito =
+		evento?.gratuito === true ||
+		evento?.tipoEvento === "gratuito" ||
+		precoBase === 0;
+
+	const eventoComIngressos =
+		evento?.ingressosAtivos !== false &&
+		(evento?.tipoEvento === "gratuito" ||
+			evento?.tipoEvento === "pago" ||
+			evento?.capacidade > 0 ||
+			evento?.precoInteira !== undefined ||
+			evento?.preco !== undefined);
 
 	const capacidadeRestante =
-		(evento?.capacidade || 0) -
-		(evento?.ingressosVendidos ||
-			0);
+		evento?.capacidade > 0
+			? Math.max(
+					0,
+					(evento?.capacidade || 0) -
+						(evento?.ingressosVendidos ||
+							0)
+			  )
+			: null;
 
 	/* ───────────────────────────── */
 	/* EFFECTS */
@@ -285,11 +280,15 @@ export default function EventoDetalhes({
 				setLoadingAval(
 					false
 				);
+			},
+			(error) => {
+				console.error("Erro ao carregar avaliações:", error);
+				setLoadingAval(false);
 			}
 		);
 
 		return () => unsub();
-	}, [eventoId]);
+	}, [eventoId, db]);
 
 	useEffect(() => {
 		if (
@@ -322,7 +321,7 @@ export default function EventoDetalhes({
 		};
 
 		check();
-	}, [eventoId]);
+	}, [eventoId, auth.currentUser, db]);
 
 	useEffect(() => {
 		if (
@@ -351,7 +350,7 @@ export default function EventoDetalhes({
 			};
 
 		carregarLikes();
-	}, [eventoId]);
+	}, [eventoId, auth.currentUser]);
 
 	useEffect(() => {
 		if (!eventoId) return;
@@ -362,7 +361,9 @@ export default function EventoDetalhes({
 			setViewsCount(
 				(p) => p + 1
 			)
-		);
+		).catch((error) => {
+			console.error("Erro ao incrementar views:", error);
+		});
 	}, [eventoId]);
 
 	/* ───────────────────────────── */
@@ -385,6 +386,11 @@ export default function EventoDetalhes({
 			try {
 				const novoStatus =
 					!liked;
+
+				likeScale.value = withSequence(
+					withSpring(1.3, { damping: 8, stiffness: 400 }),
+					withSpring(1, { damping: 8, stiffness: 400 })
+				);
 
 				await toggleEventoLike(
 					eventoId,
@@ -409,6 +415,48 @@ export default function EventoDetalhes({
 					"Erro",
 					"Não foi possível atualizar o like."
 				);
+			}
+		};
+
+	const handleShowOcorrencias =
+		async () => {
+			setShowOcorrencias(true);
+			setLoadingOcorrencias(true);
+
+			try {
+				const q = query(
+					collection(
+						db,
+						"eventos",
+						eventoId,
+						"ocorrencias"
+					),
+					orderBy(
+						"createdAt",
+						"desc"
+					)
+				);
+
+				const snap =
+					await getDocs(q);
+
+				setOcorrencias(
+					snap.docs.map((d) => ({
+						id: d.id,
+						...d.data(),
+					}))
+				);
+			} catch (error) {
+				console.error(
+					"Erro ao carregar ocorrências:",
+					error
+				);
+				showModal(
+					"Erro",
+					"Não foi possível carregar as ocorrências."
+				);
+			} finally {
+				setLoadingOcorrencias(false);
 			}
 		};
 
@@ -457,62 +505,17 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				const avaliacaoData =
-					{
-						userId:
-							user.uid,
-
-						nome:
-							user.displayName ||
-							"Anônimo",
-
-						foto:
-							user.photoURL ||
-							"https://i.pravatar.cc/100",
-
-						nota:
-							notaSelecionada,
-
-						comentario:
-							censurarTexto(
-								comentario.trim()
-							),
-
-						createdAt:
-							serverTimestamp(),
-					};
-
-				const ref =
-					await addDoc(
-						collection(
-							db,
-							"eventos",
-							eventoId,
-							"avaliacoes"
-						),
-						avaliacaoData
-					);
-
-				await addDoc(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
+				await adicionarAvaliacaoEvento({
+					eventoId,
+					user,
+					nota: notaSelecionada,
+					comentario: censurarTexto(
+						comentario.trim()
 					),
-					{
-						avaliacaoId:
-							ref.id,
-
-						...avaliacaoData,
-
-						eventoId,
-
-						tituloEvento:
-							evento.tituloEvento ||
-							"Evento",
-					}
-				);
+					tituloEvento:
+						evento.tituloEvento ||
+						"Evento",
+				});
 
 				setComentario(
 					""
@@ -554,44 +557,11 @@ export default function EventoDetalhes({
 				const user =
 					auth.currentUser;
 
-				await deleteDoc(
-					doc(
-						db,
-						"eventos",
-						eventoId,
-						"avaliacoes",
-						avaliacaoId
-					)
-				);
-
-				const q = query(
-					collection(
-						db,
-						"users",
-						user.uid,
-						"avaliacoes"
-					),
-					where(
-						"avaliacaoId",
-						"==",
-						avaliacaoId
-					)
-				);
-
-				const snap =
-					await getDocs(q);
-
-				for (const d of snap.docs) {
-					await deleteDoc(
-						doc(
-							db,
-							"users",
-							user.uid,
-							"avaliacoes",
-							d.id
-						)
-					);
-				}
+				await removerAvaliacaoEvento({
+					eventoId,
+					avaliacaoId,
+					userId: user.uid,
+				});
 
 				setJaAvaliou(
 					false
@@ -637,7 +607,7 @@ export default function EventoDetalhes({
 				<Text
 					style={{
 						color:
-							Colors.textPrimary,
+							colors.textPrimary,
 					}}
 				>
 					Evento não encontrado
@@ -662,7 +632,7 @@ export default function EventoDetalhes({
 				}
 				contentContainerStyle={{
 					paddingBottom:
-						120,
+						120 + insets.bottom,
 				}}
 			>
 				{/* HERO */}
@@ -705,23 +675,35 @@ export default function EventoDetalhes({
 							navigation.goBack()
 						}
 					>
-						<BlurView
-							intensity={
-								40
+						<MaterialCommunityIcons
+							name="arrow-left"
+							size={
+								22
 							}
-							tint="dark"
-							style={
-								styles.blurBtn
-							}
-						>
-							<MaterialCommunityIcons
-								name="arrow-left"
-								size={
-									22
-								}
-								color="#FFF"
-							/>
-						</BlurView>
+							color="#FFF"
+						/>
+					</TouchableOpacity>
+
+					{/* Botão compartilhar */}
+					<TouchableOpacity
+						activeOpacity={0.8}
+						style={[
+							styles.shareBtn,
+							{
+								top:
+									insets.top +
+									10,
+							},
+						]}
+						onPress={() =>
+							setShowShare(true)
+						}
+					>
+						<MaterialCommunityIcons
+							name="share-variant"
+							size={22}
+							color="#FFF"
+						/>
 					</TouchableOpacity>
 
 					<MotiView
@@ -771,14 +753,38 @@ export default function EventoDetalhes({
 									styles.metricBox
 								}
 							>
-								<LikeButton
-									liked={
-										liked
-									}
-									onPress={
-										handleToggleLike
-									}
-								/>
+								<Animated.View
+									style={[
+										styles.metricBtn,
+										useAnimatedStyle(() => ({
+											transform: [
+												{
+													scale: likeScale.value,
+												},
+											],
+										})),
+									]}
+								>
+									<TouchableOpacity
+										style={styles.metricBtn}
+										onPress={handleToggleLike}
+										activeOpacity={0.8}
+									>
+										<MaterialCommunityIcons
+											name={
+												liked
+													? "heart"
+													: "heart-outline"
+											}
+											size={18}
+											color={
+												liked
+													? "#FF4D6D"
+													: "#FFF"
+											}
+										/>
+									</TouchableOpacity>
+								</Animated.View>
 
 								<Text
 									style={
@@ -796,13 +802,18 @@ export default function EventoDetalhes({
 									styles.metricBox
 								}
 							>
-								<MaterialCommunityIcons
-									name="eye-outline"
-									size={
-										18
-									}
-									color="#FFF"
-								/>
+								<TouchableOpacity
+									style={styles.metricBtn}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name="eye-outline"
+										size={
+											18
+										}
+										color="#FFF"
+									/>
+								</TouchableOpacity>
 
 								<Text
 									style={
@@ -811,6 +822,36 @@ export default function EventoDetalhes({
 								>
 									{
 										viewsCount
+									}
+								</Text>
+							</View>
+
+							<View
+								style={
+									styles.metricBox
+								}
+							>
+								<TouchableOpacity
+									style={styles.metricBtn}
+									onPress={handleShowOcorrencias}
+									activeOpacity={0.8}
+								>
+									<MaterialCommunityIcons
+										name="alert-circle-outline"
+										size={
+											18
+										}
+										color="#FFF"
+									/>
+								</TouchableOpacity>
+
+								<Text
+									style={
+										styles.metricText
+									}
+								>
+									{
+										ocorrencias.length
 									}
 								</Text>
 							</View>
@@ -852,7 +893,7 @@ export default function EventoDetalhes({
 									16
 								}
 								color={
-									Colors.primary
+									colors.primary
 								}
 							/>
 
@@ -874,7 +915,7 @@ export default function EventoDetalhes({
 											16
 										}
 										color={
-											Colors.primary
+											colors.primary
 										}
 									/>
 
@@ -913,8 +954,7 @@ export default function EventoDetalhes({
 
 					{/* INGRESSOS */}
 
-					{evento?.precoInteira !==
-						undefined && (
+					{eventoComIngressos && (
 						<View
 							style={
 								styles.ingressoSection
@@ -936,7 +976,7 @@ export default function EventoDetalhes({
 											20
 										}
 										color={
-											Colors.primary
+											colors.primary
 										}
 									/>
 
@@ -959,10 +999,10 @@ export default function EventoDetalhes({
 											styles.dispText
 										}
 									>
-										{
-											capacidadeRestante
-										}{" "}
-										vagas
+										{capacidadeRestante ===
+										null
+											? "Disponível"
+											: `${capacidadeRestante} vagas`}
 									</Text>
 								</View>
 							</View>
@@ -980,8 +1020,7 @@ export default function EventoDetalhes({
 									styles.precoValor
 								}
 							>
-								{precoBase ===
-								0
+								{eventoGratuito
 									? "Gratuito"
 									: `R$ ${Number(
 											precoBase
@@ -1004,6 +1043,18 @@ export default function EventoDetalhes({
 										showModal(
 											"Login necessário",
 											"Faça login para comprar ingressos."
+										);
+
+										return;
+									}
+
+									if (
+										capacidadeRestante ===
+										0
+									) {
+										showModal(
+											"Ingressos esgotados",
+											"Não há ingressos disponíveis para este evento."
 										);
 
 										return;
@@ -1047,7 +1098,9 @@ export default function EventoDetalhes({
 											styles.btnComprarText
 										}
 									>
-										Comprar Ingressos
+										{eventoGratuito
+											? "Reservar ingresso gratuito"
+											: "Comprar ingressos"}
 									</Text>
 
 									<MaterialCommunityIcons
@@ -1090,6 +1143,155 @@ export default function EventoDetalhes({
 							Declarar Ocorrência
 						</Text>
 					</TouchableOpacity>
+
+					{/* LISTA DE OCORRÊNCIAS */}
+
+					{showOcorrencias && (
+						<View
+							style={
+								styles.ocorrenciasListSection
+							}
+						>
+							<View
+								style={
+									styles.avalHeader
+								}
+							>
+								<Text
+									style={
+										styles.section
+									}
+								>
+									Ocorrências
+								</Text>
+
+								<TouchableOpacity
+									onPress={() =>
+										setShowOcorrencias(
+											false
+										)
+									}
+								>
+									<MaterialCommunityIcons
+										name="close"
+										size={24}
+										color={
+											colors.textSecondary
+										}
+									/>
+								</TouchableOpacity>
+							</View>
+
+							{loadingOcorrencias ? (
+								<ActivityIndicator
+									size="small"
+									color={
+										colors.primary
+									}
+									style={{
+										marginTop: 20,
+									}}
+								/>
+							) : ocorrencias.length ===
+							  0 ? (
+								<Text
+									style={[
+										styles.description,
+										{
+											textAlign:
+												"center",
+											marginTop: 20,
+										},
+									]}
+								>
+									Nenhuma ocorrência registrada
+								</Text>
+							) : (
+								<View
+									style={
+										styles.avalList
+									}
+								>
+									{ocorrencias.map(
+										(
+											item
+										) => (
+											<View
+												key={
+													item.id
+												}
+												style={
+													styles.avalCard
+												}
+											>
+												<View
+													style={{
+														flex: 1,
+													}}
+												>
+													<View
+														style={
+															styles.avalTop
+														}
+													>
+														<Text
+															style={
+																styles.avalNome
+															}
+														>
+															{
+																item.nome
+															}
+														</Text>
+
+														<Text
+															style={[
+																styles.starMini,
+																{
+																	color:
+																		colors.warning,
+																},
+															]}
+														>
+															{
+																item.tipo
+															}
+														</Text>
+													</View>
+
+													<Text
+														style={
+															styles.avalTexto
+														}
+													>
+														{
+															item.descricao
+														}
+													</Text>
+
+													<Text
+														style={[
+															styles.description,
+															{
+																fontSize: 12,
+																marginTop: 8,
+																color: colors.textMuted,
+															},
+														]}
+													>
+														📍{" "}
+														{
+															item.local
+														}
+													</Text>
+												</View>
+											</View>
+										)
+									)}
+								</View>
+							)}
+						</View>
+					)}
 
 					{/* AVALIAÇÕES */}
 
@@ -1163,8 +1365,8 @@ export default function EventoDetalhes({
 															color:
 																n <=
 																notaSelecionada
-																	? Colors.warning
-																	: Colors.border,
+																	? colors.warning
+																	: colors.border,
 														},
 													]}
 												>
@@ -1183,7 +1385,7 @@ export default function EventoDetalhes({
 									<TextInput
 										placeholder="Escreva sua avaliação..."
 										placeholderTextColor={
-											Colors.textMuted
+											colors.textMuted
 										}
 										style={
 											styles.input
@@ -1242,7 +1444,7 @@ export default function EventoDetalhes({
 							<ActivityIndicator
 								size="small"
 								color={
-									Colors.primary
+									colors.primary
 								}
 								style={{
 									marginTop: 16,
@@ -1268,8 +1470,9 @@ export default function EventoDetalhes({
 										>
 											<Image
 												source={{
-													uri:
-														item.foto,
+													uri: item.foto && item.foto.trim() !== ""
+														? item.foto
+														: "https://ui-avatars.com/api/?name=" + encodeURIComponent(item.nome || "User") + "&background=7C3AED&color=fff&size=100",
 												}}
 												style={
 													styles.avalAvatar
@@ -1335,7 +1538,7 @@ export default function EventoDetalhes({
 															18
 														}
 														color={
-															Colors.error
+															colors.error
 														}
 													/>
 												</TouchableOpacity>
@@ -1350,99 +1553,31 @@ export default function EventoDetalhes({
 			</ScrollView>
 
 			{/* MODAL */}
+			<ConfirmModal
+				visible={modalVisible}
+				title={modalTitle}
+				message={modalMessage}
+				type="info"
+				confirmText="OK"
+				onConfirm={() => setModalVisible(false)}
+			/>
 
-			<Modal
-				transparent
-				animationType="fade"
-				visible={
-					modalVisible
-				}
-				onRequestClose={() =>
-					setModalVisible(
-						false
-					)
-				}
-			>
-				<View
-					style={
-						styles.modalOverlay
-					}
-				>
-					<View
-						style={
-							styles.modalBox
-						}
-					>
-						<View
-							style={
-								styles.modalIcon
-							}
-						>
-							<MaterialCommunityIcons
-								name="information"
-								size={42}
-								color="#A855F7"
-							/>
-						</View>
-
-						<Text
-							style={
-								styles.modalTitle
-							}
-						>
-							{
-								modalTitle
-							}
-						</Text>
-
-						<Text
-							style={
-								styles.modalMessage
-							}
-						>
-							{
-								modalMessage
-							}
-						</Text>
-
-						<TouchableOpacity
-							onPress={() =>
-								setModalVisible(
-									false
-								)
-							}
-						>
-							<LinearGradient
-								colors={[
-									"#7C3AED",
-									"#A855F7",
-								]}
-								style={
-									styles.modalButton
-								}
-							>
-								<Text
-									style={
-										styles.modalButtonText
-									}
-								>
-									OK
-								</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-					</View>
-				</View>
-			</Modal>
+			{/* SHARE CARD */}
+			<EventoShareCard
+				visible={showShare}
+				onClose={() => setShowShare(false)}
+				evento={evento}
+			/>
 		</View>
 	);
 }
 
-const styles =
-	StyleSheet.create({
+function createThemedScreenStyles(c) {
+	return StyleSheet.create({
 		container: {
 			flex: 1,
 			backgroundColor:
-				"#070B14",
+				c.background,
 		},
 
 		center: {
@@ -1452,7 +1587,7 @@ const styles =
 			alignItems:
 				"center",
 			backgroundColor:
-				"#070B14",
+				c.background,
 		},
 
 		/* HERO */
@@ -1472,8 +1607,32 @@ const styles =
 		back: {
 			position: "absolute",
 			left: 18,
-			borderRadius: 18,
-			overflow: "hidden",
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			backgroundColor: "rgba(0,0,0,0.4)",
+			justifyContent: "center",
+			alignItems: "center",
+			zIndex: 10,
+		},
+
+		backIcon: {
+			shadowColor: "#000",
+			shadowOffset: { width: 0, height: 2 },
+			shadowOpacity: 0.3,
+			shadowRadius: 4,
+		},
+
+		shareBtn: {
+			position: "absolute",
+			right: 18,
+			width: 44,
+			height: 44,
+			borderRadius: 22,
+			backgroundColor: "rgba(0,0,0,0.4)",
+			justifyContent: "center",
+			alignItems: "center",
+			zIndex: 10,
 		},
 
 		blurBtn: {
@@ -1486,7 +1645,7 @@ const styles =
 			borderRadius: 18,
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.08)",
+				c.glassStrong,
 		},
 
 		headerText: {
@@ -1524,7 +1683,7 @@ const styles =
 			alignItems:
 				"center",
 			backgroundColor:
-				"rgba(255,255,255,0.12)",
+				c.glassStrong,
 			paddingHorizontal: 14,
 			paddingVertical: 10,
 			borderRadius: 18,
@@ -1532,10 +1691,12 @@ const styles =
 		},
 
 		metricBtn: {
-			alignItems:
-				"center",
-			justifyContent:
-				"center",
+			width: 40,
+			height: 40,
+			borderRadius: 12,
+			backgroundColor: c.glassStrong,
+			justifyContent: "center",
+			alignItems: "center",
 		},
 
 		metricText: {
@@ -1557,26 +1718,26 @@ const styles =
 			alignItems:
 				"center",
 			backgroundColor:
-				"#111827",
+				c.surfaceMuted,
 			paddingHorizontal: 14,
 			paddingVertical: 12,
 			borderRadius: 18,
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 			gap: 8,
 		},
 
 		infoText: {
 			color:
-				Colors.textSecondary,
+				c.textSecondary,
 			fontSize: 13,
 			fontWeight: "600",
 		},
 
 		section: {
 			color:
-				Colors.textPrimary,
+				c.textPrimary,
 			fontSize: 20,
 			fontWeight: "800",
 			marginTop: 24,
@@ -1585,7 +1746,7 @@ const styles =
 
 		description: {
 			color:
-				Colors.textSecondary,
+				c.textSecondary,
 			fontSize: 15,
 			lineHeight: 26,
 		},
@@ -1595,12 +1756,12 @@ const styles =
 		ingressoSection: {
 			marginTop: 28,
 			backgroundColor:
-				"#111827",
+				c.surfaceMuted,
 			borderRadius: 28,
 			padding: 22,
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 		},
 
 		ingressoHeader: {
@@ -1622,7 +1783,7 @@ const styles =
 
 		ingressoTitle: {
 			color:
-				Colors.textPrimary,
+				c.textPrimary,
 			fontSize: 17,
 			fontWeight: "800",
 		},
@@ -1637,21 +1798,21 @@ const styles =
 
 		dispText: {
 			color:
-				Colors.success,
+				c.success,
 			fontWeight: "700",
 			fontSize: 12,
 		},
 
 		precoLabel: {
 			color:
-				Colors.textMuted,
+				c.textMuted,
 			marginTop: 20,
 			fontSize: 13,
 		},
 
 		precoValor: {
 			color:
-				Colors.primary,
+				c.primary,
 			fontSize: 34,
 			fontWeight: "900",
 			marginTop: 4,
@@ -1703,6 +1864,17 @@ const styles =
 			fontSize: 14,
 		},
 
+		ocorrenciasListSection: {
+			marginTop: 20,
+			backgroundColor:
+				c.surfaceMuted,
+			borderRadius: 24,
+			padding: 18,
+			borderWidth: 1,
+			borderColor:
+				c.glass,
+		},
+
 		/* AVALIAÇÕES */
 
 		avalSection: {
@@ -1720,20 +1892,20 @@ const styles =
 
 		media: {
 			color:
-				Colors.warning,
+				c.warning,
 			fontWeight: "800",
 			fontSize: 15,
 		},
 
 		avalInputBox: {
 			backgroundColor:
-				"#111827",
+				c.surfaceMuted,
 			borderRadius: 24,
 			padding: 18,
 			marginTop: 16,
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 		},
 
 		starsRow: {
@@ -1760,14 +1932,14 @@ const styles =
 		input: {
 			flex: 1,
 			backgroundColor:
-				"#070B14",
+				c.background,
 			borderRadius: 18,
 			padding: 14,
 			minHeight: 90,
 			color: "#FFF",
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 			textAlignVertical:
 				"top",
 		},
@@ -1777,7 +1949,7 @@ const styles =
 			height: 54,
 			borderRadius: 18,
 			backgroundColor:
-				Colors.primary,
+				c.primary,
 			justifyContent:
 				"center",
 			alignItems:
@@ -1786,7 +1958,7 @@ const styles =
 
 		jaAvaliadoBox: {
 			backgroundColor:
-				"#111827",
+				c.surfaceMuted,
 			padding: 18,
 			borderRadius: 18,
 			marginTop: 14,
@@ -1794,12 +1966,12 @@ const styles =
 				"center",
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 		},
 
 		jaAvaliadoText: {
 			color:
-				Colors.success,
+				c.success,
 			fontWeight: "700",
 		},
 
@@ -1811,14 +1983,14 @@ const styles =
 			flexDirection:
 				"row",
 			backgroundColor:
-				"#111827",
+				c.surfaceMuted,
 			padding: 14,
 			borderRadius: 22,
 			marginBottom: 14,
 			gap: 12,
 			borderWidth: 1,
 			borderColor:
-				"rgba(255,255,255,0.06)",
+				c.glass,
 		},
 
 		avalAvatar: {
@@ -1843,13 +2015,13 @@ const styles =
 
 		starMini: {
 			color:
-				Colors.warning,
+				c.warning,
 			fontSize: 12,
 		},
 
 		avalTexto: {
 			color:
-				Colors.textSecondary,
+				c.textSecondary,
 			fontSize: 13,
 			lineHeight: 21,
 			marginTop: 6,
@@ -1857,68 +2029,6 @@ const styles =
 
 		/* MODAL */
 
-		modalOverlay: {
-			flex: 1,
-			backgroundColor:
-				"rgba(0,0,0,0.75)",
-			justifyContent:
-				"center",
-			alignItems:
-				"center",
-			padding: 24,
-		},
 
-		modalBox: {
-			width: "100%",
-			backgroundColor:
-				"#111827",
-			borderRadius: 30,
-			padding: 28,
-			alignItems:
-				"center",
-			borderWidth: 1,
-			borderColor:
-				"rgba(255,255,255,0.06)",
-		},
-
-		modalIcon: {
-			width: 84,
-			height: 84,
-			borderRadius: 28,
-			backgroundColor:
-				"rgba(168,85,247,0.14)",
-			alignItems:
-				"center",
-			justifyContent:
-				"center",
-			marginBottom: 20,
-		},
-
-		modalTitle: {
-			color: "#FFF",
-			fontSize: 22,
-			fontWeight: "900",
-			marginBottom: 10,
-		},
-
-		modalMessage: {
-			color:
-				"rgba(255,255,255,0.72)",
-			fontSize: 15,
-			lineHeight: 24,
-			textAlign: "center",
-		},
-
-		modalButton: {
-			paddingHorizontal: 46,
-			paddingVertical: 15,
-			borderRadius: 18,
-			marginTop: 26,
-		},
-
-		modalButtonText: {
-			color: "#FFF",
-			fontWeight: "800",
-			fontSize: 15,
-		},
 	});
+}

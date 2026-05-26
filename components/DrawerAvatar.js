@@ -8,13 +8,13 @@ import {
 } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
-
-import { Colors } from "../styles/Colors";
+import { useColors } from "../context/ThemeContext";
 
 export default function DrawerAvatar({
 	navigation,
 }) {
 	const { foto, user } = useAuth();
+	const colors = useColors();
 
 	return (
 		<TouchableOpacity
@@ -37,7 +37,7 @@ export default function DrawerAvatar({
 					marginLeft: 15,
 					borderWidth: 2,
 					borderColor:
-						Colors.primary,
+						colors.primary,
 				}}
 			/>
 		</TouchableOpacity>

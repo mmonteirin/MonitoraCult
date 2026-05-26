@@ -7,7 +7,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const GENRES = [
   { label: "Todos", icon: "compass", value: null },
@@ -26,6 +27,8 @@ export default function MapFilter({
   showHeatmap,
   onHeatmapToggle,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   return (
     <View style={styles.container}>
       {/* FILTER SCROLL */}
@@ -50,8 +53,8 @@ export default function MapFilter({
               size={18}
               color={
                 selectedGenre === genre.value
-                  ? Colors.textPrimary
-                  : Colors.textSecondary
+                  ? colors.textPrimary
+                  : colors.textSecondary
               }
             />
             <Text
@@ -80,7 +83,7 @@ export default function MapFilter({
           name={showHeatmap ? "fire" : "fire-off"}
           size={18}
           color={
-            showHeatmap ? Colors.error : Colors.textSecondary
+            showHeatmap ? colors.error : colors.textSecondary
           }
         />
         <Text
@@ -96,7 +99,8 @@ export default function MapFilter({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -117,21 +121,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   filterButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: c.primary,
+    borderColor: c.primary,
   },
   filterText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   filterTextActive: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   heatmapButton: {
     flexDirection: "row",
@@ -140,20 +144,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   heatmapButtonActive: {
     backgroundColor: "rgba(239, 68, 68, 0.2)",
-    borderColor: Colors.error,
+    borderColor: c.error,
   },
   heatmapText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   heatmapTextActive: {
-    color: Colors.error,
+    color: c.error,
   },
 });
+}

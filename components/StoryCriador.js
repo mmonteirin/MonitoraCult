@@ -18,10 +18,13 @@ import {
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const StoryCriador = memo(
   ({ visible, onClose, onCriar, userData, criando = false }) => {
+    const { colors } = useTheme();
+    const styles = useThemedStyles(createThemedScreenStyles);
     const [imagemUri, setImagemUri] = useState(null);
     const [textoStory, setTextoStory] = useState("");
     const [musica, setMusica] = useState(null);
@@ -128,7 +131,7 @@ const StoryCriador = memo(
               disabled={emProcesso || !imagemUri}
             >
               {emProcesso ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <Text
                   style={[
@@ -177,7 +180,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="camera"
                       size={32}
-                      color={Colors.primary}
+                      color={colors.primary}
                     />
                     <Text style={styles.btnSelecaoText}>Câmera</Text>
                   </TouchableOpacity>
@@ -189,7 +192,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="image"
                       size={32}
-                      color={Colors.primary}
+                      color={colors.primary}
                     />
                     <Text style={styles.btnSelecaoText}>Galeria</Text>
                   </TouchableOpacity>
@@ -205,7 +208,7 @@ const StoryCriador = memo(
                   <TextInput
                     style={styles.input}
                     placeholder="O que você está fazendo?"
-                    placeholderTextColor={Colors.textMuted}
+                    placeholderTextColor={colors.textMuted}
                     value={textoStory}
                     onChangeText={setTextoStory}
                     maxLength={150}
@@ -223,7 +226,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="lock"
                       size={14}
-                      color={Colors.textMuted}
+                      color={colors.textMuted}
                     />
                   </View>
 
@@ -231,7 +234,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="music"
                       size={24}
-                      color={Colors.primary}
+                      color={colors.primary}
                     />
                     <View style={styles.musicaInfo}>
                       <Text style={styles.musicaNome}>
@@ -251,7 +254,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="account-multiple"
                       size={20}
-                      color={Colors.primary}
+                      color={colors.primary}
                     />
                     <View style={styles.opcaoInfo}>
                       <Text style={styles.opcaoTitulo}>Todos</Text>
@@ -262,7 +265,7 @@ const StoryCriador = memo(
                     <MaterialCommunityIcons
                       name="check-circle"
                       size={20}
-                      color={Colors.primary}
+                      color={colors.primary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -275,18 +278,19 @@ const StoryCriador = memo(
   }
 );
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
   },
 
   header: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -295,13 +299,13 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   btnTexto: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   btnTextoDesabilitado: {
@@ -318,20 +322,20 @@ const styles = StyleSheet.create({
   },
 
   seletorFoto: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
     marginBottom: 20,
     borderWidth: 2,
     borderStyle: "dashed",
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   labelFoto: {
     fontSize: 16,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 20,
   },
 
@@ -342,7 +346,7 @@ const styles = StyleSheet.create({
 
   btnSelecao: {
     flex: 1,
-    backgroundColor: Colors.primary + "15",
+    backgroundColor: c.primary + "15",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -352,7 +356,7 @@ const styles = StyleSheet.create({
   btnSelecaoText: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
 
   previewContainer: {
@@ -373,7 +377,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primary,
+    backgroundColor: c.primary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -392,18 +396,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 12,
   },
 
   input: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     minHeight: 80,
     textAlignVertical: "top",
     fontSize: 14,
@@ -411,13 +415,13 @@ const styles = StyleSheet.create({
 
   contador: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 6,
     textAlign: "right",
   },
 
   btnMusica: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -425,7 +429,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   musicaInfo: {
@@ -435,17 +439,17 @@ const styles = StyleSheet.create({
   musicaNome: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   musicaSubtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
 
   opcao: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -453,7 +457,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
 
   opcaoInfo: {
@@ -463,14 +467,15 @@ const styles = StyleSheet.create({
   opcaoTitulo: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
   opcaoSubtitle: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
-});
+  });
+}
 
 export default StoryCriador;

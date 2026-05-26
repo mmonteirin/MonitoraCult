@@ -7,7 +7,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function CheckInCard({
   id,
@@ -20,6 +21,8 @@ export default function CheckInCard({
   onPress,
   onDelete,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp.seconds * 1000);
@@ -53,7 +56,7 @@ export default function CheckInCard({
           <MaterialCommunityIcons
             name="camera-off"
             size={40}
-            color={Colors.textMuted}
+            color={colors.textMuted}
           />
         </View>
       )}
@@ -73,7 +76,7 @@ export default function CheckInCard({
                 <MaterialCommunityIcons
                   name="account"
                   size={18}
-                  color={Colors.primary}
+                  color={colors.primary}
                 />
               </View>
             )}
@@ -93,7 +96,7 @@ export default function CheckInCard({
               <MaterialCommunityIcons
                 name="close"
                 size={20}
-                color={Colors.error}
+                color={colors.error}
               />
             </TouchableOpacity>
           )}
@@ -104,7 +107,7 @@ export default function CheckInCard({
           <MaterialCommunityIcons
             name="map-marker"
             size={13}
-            color={Colors.primary}
+            color={colors.primary}
           />
           {" "}
           {eventTitle}
@@ -123,32 +126,33 @@ export default function CheckInCard({
         <MaterialCommunityIcons
           name="check-circle"
           size={16}
-          color={Colors.success}
+          color={colors.success}
         />
       </View>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     borderRadius: 12,
     marginHorizontal: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
     overflow: "hidden",
   },
   photo: {
     width: "100%",
     height: 160,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   photoPlaceholder: {
     width: "100%",
     height: 160,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -171,35 +175,35 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   avatarPlaceholder: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
   userName: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   timestamp: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   eventTitle: {
     fontSize: 12,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
     marginBottom: 6,
   },
   caption: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   badge: {
@@ -211,3 +215,4 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 });
+}

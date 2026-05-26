@@ -7,7 +7,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function CommunityNews({
   id,
@@ -22,6 +23,10 @@ export default function CommunityNews({
   onLike,
   isLiked = false,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp.seconds * 1000);
@@ -56,7 +61,7 @@ export default function CommunityNews({
             <MaterialCommunityIcons
               name="newspaper"
               size={40}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
         )}
@@ -88,7 +93,7 @@ export default function CommunityNews({
                 <MaterialCommunityIcons
                   name="eye"
                   size={14}
-                  color={Colors.textMuted}
+                  color={colors.textMuted}
                 />
                 <Text style={styles.statText}>
                   {viewsCount > 999
@@ -100,12 +105,12 @@ export default function CommunityNews({
                 <MaterialCommunityIcons
                   name="heart"
                   size={14}
-                  color={isLiked ? Colors.error : Colors.textMuted}
+                  color={isLiked ? colors.error : colors.textMuted}
                 />
                 <Text
                   style={[
                     styles.statText,
-                    isLiked && { color: Colors.error },
+                    isLiked && { color: colors.error },
                   ]}
                 >
                   {likesCount}
@@ -121,7 +126,7 @@ export default function CommunityNews({
               <MaterialCommunityIcons
                 name={isLiked ? "heart" : "heart-outline"}
                 size={18}
-                color={isLiked ? Colors.error : Colors.primary}
+                color={isLiked ? colors.error : colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -131,27 +136,28 @@ export default function CommunityNews({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 12,
   },
   card: {
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   image: {
     width: "100%",
     height: 160,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   placeholderImage: {
     width: "100%",
     height: 160,
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -162,12 +168,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     lineHeight: 20,
   },
   excerpt: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   metadata: {
@@ -177,11 +183,11 @@ const styles = StyleSheet.create({
   author: {
     fontSize: 11,
     fontWeight: "600",
-    color: Colors.primary,
+    color: c.primary,
   },
   timestamp: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginLeft: 4,
   },
   footer: {
@@ -190,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   stats: {
     flexDirection: "row",
@@ -203,7 +209,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: c.textMuted,
   },
   likeButton: {
     padding: 6,
@@ -211,3 +217,4 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(108, 92, 231, 0.1)",
   },
 });
+}

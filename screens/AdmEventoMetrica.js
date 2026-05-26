@@ -48,7 +48,9 @@ import { BlurView } from "expo-blur";
 
 import { MotiView } from "moti";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 
 import { useAuth } from "../context/AuthContext";
 
@@ -58,6 +60,8 @@ const screenWidth =
 export default function AdmEventoMetricas({
   navigation,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const { user } = useAuth();
 
   const [loading, setLoading] =
@@ -251,7 +255,7 @@ export default function AdmEventoMetricas({
       <View style={styles.loading}>
         <ActivityIndicator
           size="large"
-          color={Colors.primary}
+          color={colors.primary}
         />
 
         <Text style={styles.loadingText}>
@@ -370,7 +374,7 @@ export default function AdmEventoMetricas({
 
         <BlurView
           intensity={50}
-          tint="dark"
+          tint={blurTint}
           style={styles.chartCard}
         >
           <BarChart
@@ -391,7 +395,7 @@ export default function AdmEventoMetricas({
 
         <BlurView
           intensity={50}
-          tint="dark"
+          tint={blurTint}
           style={styles.chartCard}
         >
           <PieChart
@@ -491,17 +495,18 @@ const chartConfig = {
 };
 
 /* STYLES */
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
   },
 
   loading: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#070B14",
+    backgroundColor: c.background,
   },
 
   loadingText: {
@@ -527,7 +532,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
 
     backgroundColor:
-      "rgba(255,255,255,0.08)",
+      c.glassStrong,
 
     justifyContent: "center",
     alignItems: "center",
@@ -623,6 +628,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
   },
 });
+}

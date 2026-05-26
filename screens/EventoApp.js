@@ -44,9 +44,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 
 export default function EventosApp() {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles((c) => createThemedScreenStyles(c, isDark));
+	const blurTint = isDark ? "dark" : "light";
 	const { user, nome, foto } = useAuth();
 
 	const navigation = useNavigation();
@@ -171,7 +176,7 @@ export default function EventosApp() {
 						</ImageBackground>
 
 						{/* CONTENT */}
-						<BlurView intensity={50} tint="dark" style={styles.content}>
+						<BlurView intensity={50} tint={blurTint} style={styles.content}>
 							<Text style={styles.titulo} numberOfLines={1}>
 								{item.tituloEvento}
 							</Text>
@@ -181,7 +186,7 @@ export default function EventosApp() {
 								<MaterialCommunityIcons
 									name="calendar"
 									size={17}
-									color={Colors.primary}
+									color={colors.primary}
 								/>
 
 								<Text style={styles.infoText}>{item.dataEvento}</Text>
@@ -192,7 +197,7 @@ export default function EventosApp() {
 								<MaterialCommunityIcons
 									name="map-marker"
 									size={17}
-									color={Colors.primary}
+									color={colors.primary}
 								/>
 
 								<Text style={styles.infoText} numberOfLines={1}>
@@ -205,7 +210,7 @@ export default function EventosApp() {
 								<TouchableOpacity
 									activeOpacity={0.85}
 									onPress={() =>
-										navigation.navigate("EventoPublico", {
+										navigation.navigate("Detalhes", {
 											evento: item,
 										})
 									}
@@ -234,7 +239,7 @@ export default function EventosApp() {
 	if (loading) {
 		return (
 			<View style={styles.loading}>
-				<ActivityIndicator size="large" color={Colors.primary} />
+				<ActivityIndicator size="large" color={colors.primary} />
 
 				<Text style={styles.loadingText}>Carregando eventos...</Text>
 			</View>
@@ -243,26 +248,50 @@ export default function EventosApp() {
 
 	return (
 		<View style={styles.container}>
-			<StatusBar barStyle="light-content" />
+			<StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
-			{/* HEADER */}
-			<LinearGradient
-				colors={["#0F172A", "#111827", "#1E1B4B"]}
+		{/* HEADER */}
+		<LinearGradient
+			colors={isDark 
+				? ["#0F172A", "#111827", "#1E1B4B"] 
+				: ["#F5F3FF", "#F3EFFF", "#EBE5FF"]}
+			style={[
+				styles.header,
+				{
+					paddingTop: insets.top + 10,
+				},
+			]}
+		>
+			<TouchableOpacity
 				style={[
-					styles.header,
-					{
-						paddingTop: insets.top + 10,
-					},
+					styles.backBtn,
+					!isDark && { backgroundColor: colors.glass }
 				]}
+				onPress={() => navigation.goBack()}
 			>
-				<TouchableOpacity
-					style={styles.backBtn}
-					onPress={() => navigation.goBack()}
-				>
-					<MaterialCommunityIcons name="arrow-left" size={24} color="#FFF" />
-				</TouchableOpacity>
+				<MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFF" : colors.primary} />
+			</TouchableOpacity>
 
-				<Text style={styles.headerTitle}>Meus Eventos</Text>
+			<Text style={[
+				styles.headerTitle,
+				!isDark && { color: colors.textPrimary }
+			]}>Meus Eventos</Text>
+
+			<TouchableOpacity
+				style={[
+					styles.calendarBtn,
+					!isDark && { backgroundColor: colors.glass }
+				]}
+				onPress={() =>
+					navigation.navigate("AgendaEventos")
+				}
+			>
+				<MaterialCommunityIcons
+					name="calendar-month"
+					size={22}
+					color={isDark ? "#FFF" : colors.primary}
+				/>
+			</TouchableOpacity>
 			</LinearGradient>
 
 			{/* PERFIL */}
@@ -280,7 +309,7 @@ export default function EventosApp() {
 					duration: 600,
 				}}
 			>
-				<BlurView intensity={60} tint="dark" style={styles.profileCard}>
+				<BlurView intensity={60} tint={blurTint} style={styles.profileCard}>
 					{/* LEFT */}
 					<View style={styles.profileLeft}>
 						<LinearGradient
@@ -336,7 +365,7 @@ export default function EventosApp() {
 						<MaterialCommunityIcons
 							name="calendar-remove"
 							size={70}
-							color="rgba(255,255,255,0.2)"
+							color={isDark ? "rgba(255,255,255,0.2)" : "rgba(108,92,231,0.2)"}
 						/>
 
 						<Text style={styles.empty}>
@@ -349,10 +378,11 @@ export default function EventosApp() {
 	);
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c, isDark) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	/* HEADER */
@@ -373,20 +403,32 @@ const styles = StyleSheet.create({
 
 		borderRadius: 18,
 
-		backgroundColor: "rgba(255,255,255,0.08)",
+		backgroundColor: c.glassStrong,
 
 		justifyContent: "center",
 		alignItems: "center",
 	},
 
 	headerTitle: {
-		color: "#FFF",
+		color: isDark ? "#FFF" : c.textPrimary,
 
 		fontSize: 22,
 
 		fontFamily: "PoppinsBold",
 
 		marginLeft: 16,
+
+		flex: 1,
+	},
+
+	calendarBtn: {
+		width: 46,
+		height: 46,
+		borderRadius: 18,
+		backgroundColor: c.glassStrong,
+		justifyContent: "center",
+		alignItems: "center",
+		marginLeft: 12,
 	},
 
 	/* PROFILE */
@@ -408,9 +450,15 @@ const styles = StyleSheet.create({
 
 		borderWidth: 1,
 
-		borderColor: "rgba(255,255,255,0.08)",
+		borderColor: isDark ? c.glass : "#D8CCFF",
 
-		backgroundColor: "rgba(255,255,255,0.04)",
+		backgroundColor: isDark ? c.glass : "#FAFAF9",
+		
+		shadowColor: c.shadow,
+		shadowOpacity: isDark ? 0.15 : 0.08,
+		shadowRadius: 12,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 4 : 3,
 	},
 
 	profileLeft: {
@@ -430,18 +478,18 @@ const styles = StyleSheet.create({
 
 		borderRadius: 18,
 
-		backgroundColor: "rgba(124,58,237,0.16)",
+		backgroundColor: isDark ? "rgba(124,58,237,0.16)" : "rgba(108,92,231,0.12)",
 
 		justifyContent: "center",
 		alignItems: "center",
 
 		borderWidth: 1,
 
-		borderColor: "rgba(255,255,255,0.06)",
+		borderColor: isDark ? c.glass : "#E0D4FF",
 	},
 
 	profileBadgeText: {
-		color: "#FFF",
+		color: isDark ? "#FFF" : c.primary,
 
 		marginTop: 2,
 
@@ -462,7 +510,7 @@ const styles = StyleSheet.create({
 	},
 
 	nome: {
-		color: "#FFF",
+		color: isDark ? "#FFF" : c.textPrimary,
 
 		fontSize: 22,
 
@@ -470,7 +518,7 @@ const styles = StyleSheet.create({
 	},
 
 	subtitle: {
-		color: "rgba(255,255,255,0.65)",
+		color: isDark ? "rgba(255,255,255,0.65)" : "#7C7C7C",
 
 		marginTop: 4,
 
@@ -485,11 +533,17 @@ const styles = StyleSheet.create({
 
 		overflow: "hidden",
 
-		backgroundColor: "rgba(255,255,255,0.04)",
+		backgroundColor: isDark ? c.glass : "#FFFFFF",
 
 		borderWidth: 1,
 
-		borderColor: "rgba(255,255,255,0.06)",
+		borderColor: isDark ? c.glass : "#E5DEFF",
+		
+		shadowColor: c.shadow,
+		shadowOpacity: isDark ? 0.2 : 0.1,
+		shadowRadius: 12,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 5 : 4,
 	},
 
 	image: {
@@ -505,10 +559,11 @@ const styles = StyleSheet.create({
 
 	content: {
 		padding: 18,
+		backgroundColor: isDark ? "transparent" : "#F8F5FF",
 	},
 
 	titulo: {
-		color: "#FFF",
+		color: isDark ? "#FFF" : c.textPrimary,
 
 		fontSize: 20,
 
@@ -525,7 +580,7 @@ const styles = StyleSheet.create({
 	},
 
 	infoText: {
-		color: "rgba(255,255,255,0.72)",
+		color: isDark ? "rgba(255,255,255,0.72)" : "#5A5A5A",
 
 		marginLeft: 8,
 
@@ -588,6 +643,12 @@ const styles = StyleSheet.create({
 		borderRadius: 18,
 
 		gap: 8,
+
+		shadowColor: "#6C5CE7",
+		shadowOpacity: isDark ? 0.4 : 0.15,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 5 : 3,
 	},
 
 	eventBtnText: {
@@ -599,7 +660,7 @@ const styles = StyleSheet.create({
 	},
 
 	cancelar: {
-		color: "#EF4444",
+		color: isDark ? "#FF6B6B" : "#DC2626",
 
 		fontSize: 14,
 
@@ -632,7 +693,7 @@ const styles = StyleSheet.create({
 	},
 
 	empty: {
-		color: "rgba(255,255,255,0.55)",
+		color: isDark ? "rgba(255,255,255,0.55)" : "#888888",
 
 		marginTop: 16,
 
@@ -650,14 +711,17 @@ const styles = StyleSheet.create({
 		justifyContent: "center",
 		alignItems: "center",
 
-		backgroundColor: "#070B14",
+		backgroundColor: c.background,
 	},
 
 	loadingText: {
-		color: "rgba(255,255,255,0.65)",
+		color: isDark ? "rgba(255,255,255,0.7)" : c.textSecondary,
 
-		marginTop: 14,
+		marginTop: 16,
+
+		fontSize: 15,
 
 		fontFamily: "PoppinsRegular",
 	},
-});
+  });
+}

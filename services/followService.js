@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
+import logger from "../utils/logger";
 
 /**
  * Seguir um usuário
@@ -73,7 +74,7 @@ export const followUser = async (targetUserId, targetData) => {
     await batch.commit();
     return true;
   } catch (error) {
-    console.log("Erro ao seguir usuário:", error);
+    logger.error("followService", "Erro ao seguir usuário", error);
     throw error;
   }
 };
@@ -110,7 +111,7 @@ export const unfollowUser = async (targetUserId) => {
     await batch.commit();
     return true;
   } catch (error) {
-    console.log("Erro ao deixar de seguir:", error);
+    logger.error("followService", "Erro ao deixar de seguir", error);
     throw error;
   }
 };
@@ -133,7 +134,7 @@ export const isFollowing = async (targetUserId) => {
     const docSnap = await getDoc(docRef);
     return docSnap.exists();
   } catch (error) {
-    console.log("Erro ao verificar follow:", error);
+    logger.error("followService", "Erro ao verificar follow", error);
     return false;
   }
 };
@@ -151,7 +152,7 @@ export const getFollowers = async (userId, limitCount = 50) => {
       ...d.data(),
     }));
   } catch (error) {
-    console.log("Erro ao buscar seguidores:", error);
+    logger.error("followService", "Erro ao buscar seguidores", error);
     return [];
   }
 };
@@ -169,7 +170,7 @@ export const getFollowing = async (userId, limitCount = 50) => {
       ...d.data(),
     }));
   } catch (error) {
-    console.log("Erro ao buscar following:", error);
+    logger.error("followService", "Erro ao buscar following", error);
     return [];
   }
 };
@@ -197,7 +198,7 @@ export const getFollowingEvents = async (userId) => {
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
   } catch (error) {
-    console.log("Erro ao buscar eventos dos seguidos:", error);
+    logger.error("followService", "Erro ao buscar eventos dos seguidos", error);
     return [];
   }
 };
@@ -215,7 +216,7 @@ export const getFollowStats = async (userId) => {
       following: following.length,
     };
   } catch (error) {
-    console.log("Erro ao contar seguidores:", error);
+    logger.error("followService", "Erro ao contar seguidores", error);
     return { followers: 0, following: 0 };
   }
 };

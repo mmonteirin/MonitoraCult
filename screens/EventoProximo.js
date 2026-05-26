@@ -29,7 +29,9 @@ import {
   AnimatePresence,
 } from "moti";
 
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
 
 const { width } = Dimensions.get("window");
 
@@ -68,6 +70,8 @@ const eventosMock = [
 ];
 
 export default function TelaGerenciarEventos() {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   const [eventos, setEventos] =
     useState(eventosMock);
 
@@ -215,7 +219,7 @@ export default function TelaGerenciarEventos() {
                       intensity={
                         60
                       }
-                      tint="dark"
+                      tint={blurTint}
                       style={
                         styles.floatingBlur
                       }
@@ -233,7 +237,7 @@ export default function TelaGerenciarEventos() {
               {/* CONTEUDO */}
               <BlurView
                 intensity={55}
-                tint="dark"
+                tint={blurTint}
                 style={
                   styles.conteudo
                 }
@@ -263,7 +267,7 @@ export default function TelaGerenciarEventos() {
                       name="calendar"
                       size={16}
                       color={
-                        Colors.primary
+                        colors.primary
                       }
                     />
 
@@ -285,7 +289,7 @@ export default function TelaGerenciarEventos() {
                       name="map-marker"
                       size={16}
                       color={
-                        Colors.primary
+                        colors.primary
                       }
                     />
 
@@ -525,11 +529,12 @@ export default function TelaGerenciarEventos() {
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor:
-      "#070B14",
+      c.background,
   },
 
   /* HEADER */
@@ -590,7 +595,7 @@ const styles = StyleSheet.create({
   /* CARD */
   card: {
     backgroundColor:
-      "rgba(255,255,255,0.04)",
+      c.glass,
 
     borderRadius: 30,
 
@@ -601,7 +606,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
 
     borderColor:
-      "rgba(255,255,255,0.06)",
+      c.glass,
 
     shadowColor: "#000",
 
@@ -841,3 +846,4 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+}

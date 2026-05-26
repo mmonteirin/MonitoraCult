@@ -3,27 +3,32 @@
  * Exibe lista de conversas com opções
  */
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import { useAuth } from "../context/AuthContext";
 import { useDirectMessages } from "../hooks/useDirectMessages";
 import ListaConversas from "../components/ListaConversas";
 
 const TelaConversas = ({ navigation, route }) => {
-  const auth = route?.params?.auth; // Obtém auth via params
-  const userId = auth?.currentUser?.uid;
-  
-  const { conversas, loading, naoLidas, iniciarConversa } =
-    useDirectMessages(userId);
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+  const embedded = !!route?.params?.embedded;
+  const scrollY = route?.params?.scrollY;
+  const onNovaConversaExterno = route?.params?.onNovaConversa;
+
+  const { user } = useAuth();
+  const userId = user?.uid;
+
+  const { conversas, loading, deletarConversa } = useDirectMessages(userId);
 
   const handleConversaPress = useCallback(
     (conversa) => {
@@ -36,99 +41,142 @@ const TelaConversas = ({ navigation, route }) => {
   );
 
   const handleNovaConversa = useCallback(() => {
-    // Aqui você pode adicionar um modal para selecionar contato
-    Alert.alert(
-      "Nova Conversa",
-      "Selecione um contato para iniciar",
-      [{ text: "OK" }]
+    if (onNovaConversaExterno) {
+      onNovaConversaExterno();
+      return;
+    }
+    navigation.navigate("BuscaUsuarios");
+  }, [navigation, onNovaConversaExterno]);
+
+  const handleDeleteConversa = useCallback(
+    async (conversaId) => {
+      await deletarConversa(conversaId);
+    },
+    [deletarConversa]
+  );
+
+  if (embedded) {
+    return (
+      <View style={styles.containerEmbedded}>
+        <ListaConversas
+          conversas={conversas}
+          loading={loading}
+          userId={userId}
+          embedded
+          scrollY={scrollY}
+          onConversaPress={handleConversaPress}
+          onNovaConversa={handleNovaConversa}
+          onDeleteConversa={handleDeleteConversa}
+        />
+      </View>
     );
-  }, []);
+  }
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.titulo}>Mensagens</Text>
-          {naoLidas > 0 && (
-            <View style={styles.badgeNaoLidas}>
-              <Text style={styles.badgeText}>{naoLidas}</Text>
-            </View>
-          )}
+          <Text style={styles.label}>Mensagens</Text>
+          <View style={styles.headerTitleRow}>
+            <Text style={styles.titulo}>Conversas</Text>
+          </View>
+          <Text style={styles.subtitulo}>
+            Suas conversas e mensagens diretas
+          </Text>
         </View>
 
         <TouchableOpacity
           style={styles.btnNovaConversa}
           onPress={handleNovaConversa}
+          activeOpacity={0.8}
         >
           <MaterialCommunityIcons
             name="pencil-plus"
             size={24}
-            color={Colors.primary}
+            color="#FFF"
           />
         </TouchableOpacity>
       </View>
 
-      {/* LISTA */}
       <ListaConversas
         conversas={conversas}
         loading={loading}
         userId={userId}
         onConversaPress={handleConversaPress}
         onNovaConversa={handleNovaConversa}
+        onDeleteConversa={handleDeleteConversa}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: c.background,
+  },
+
+  containerEmbedded: {
+    flex: 1,
+    backgroundColor: c.background,
   },
 
   header: {
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 14,
+    paddingBottom: 18,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: c.border,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 12,
   },
 
   headerContent: {
     flex: 1,
+  },
+
+  headerTitleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginTop: 4,
   },
 
   titulo: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "800",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 
-  badgeNaoLidas: {
-    backgroundColor: Colors.primary,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
+  label: {
+    color: c.primary,
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 
-  badgeText: {
-    color: "#fff",
+  subtitulo: {
+    color: c.textMuted,
     fontSize: 12,
-    fontWeight: "700",
+    marginTop: 6,
+    lineHeight: 16,
   },
 
   btnNovaConversa: {
-    padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: c.primary,
+    marginTop: 2,
   },
-});
+  });
+}
 
 export default TelaConversas;

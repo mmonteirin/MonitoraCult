@@ -6,7 +6,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 
 export default function ForumThread({
   id,
@@ -19,6 +20,10 @@ export default function ForumThread({
   onPress,
   onReply,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
     const date = new Date(timestamp.seconds * 1000);
@@ -46,7 +51,7 @@ export default function ForumThread({
             <MaterialCommunityIcons
               name="account-circle"
               size={40}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
           <View style={styles.authorDetails}>
@@ -75,7 +80,7 @@ export default function ForumThread({
             <MaterialCommunityIcons
               name="chat-multiple-outline"
               size={16}
-              color={Colors.textSecondary}
+              color={colors.textSecondary}
             />
             <Text style={styles.statText}>
               {repliesCount} respostas
@@ -85,7 +90,7 @@ export default function ForumThread({
             <MaterialCommunityIcons
               name="heart-outline"
               size={16}
-              color={Colors.textSecondary}
+              color={colors.textSecondary}
             />
             <Text style={styles.statText}>
               {likesCount} curtidas
@@ -101,7 +106,7 @@ export default function ForumThread({
           <MaterialCommunityIcons
             name="reply"
             size={18}
-            color={Colors.primary}
+            color={colors.primary}
           />
           <Text style={styles.replyButtonText}>Responder</Text>
         </TouchableOpacity>
@@ -110,15 +115,16 @@ export default function ForumThread({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     marginHorizontal: 16,
     marginBottom: 12,
     padding: 16,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   header: {
     marginBottom: 12,
@@ -134,7 +140,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   authorDetails: {
     flex: 1,
@@ -142,22 +148,22 @@ const styles = StyleSheet.create({
   authorName: {
     fontSize: 14,
     fontWeight: "600",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   timestamp: {
     fontSize: 12,
-    color: Colors.textMuted,
+    color: c.textMuted,
     marginTop: 2,
   },
   title: {
     fontSize: 15,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 8,
   },
   description: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -167,7 +173,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: c.border,
   },
   statsRow: {
     flexDirection: "row",
@@ -180,7 +186,7 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   replyButton: {
     flexDirection: "row",
@@ -193,7 +199,8 @@ const styles = StyleSheet.create({
   },
   replyButtonText: {
     fontSize: 12,
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "600",
   },
 });
+}

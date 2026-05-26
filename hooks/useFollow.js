@@ -21,6 +21,11 @@ export const useFollow = (targetUserId, targetUserData) => {
   // ✅ Verificar status inicial de follow
   useEffect(() => {
     const checkFollowing = async () => {
+      if (!targetUserId) {
+        setIsFollowingUser(false);
+        return;
+      }
+
       try {
         const following = await isFollowing(targetUserId);
         
@@ -41,7 +46,7 @@ export const useFollow = (targetUserId, targetUserData) => {
 
   // ✅ Toggle follow/unfollow com useCallback
   const toggleFollow = useCallback(async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !targetUserId) return isFollowingUser;
 
     setLoading(true);
     setError(null);
@@ -49,23 +54,26 @@ export const useFollow = (targetUserId, targetUserData) => {
     try {
       if (isFollowingUser) {
         await unfollowUser(targetUserId);
-        
+
         if (isMountedRef.current) {
           setIsFollowingUser(false);
         }
+        return false;
       } else {
         await followUser(targetUserId, targetUserData);
-        
+
         if (isMountedRef.current) {
           setIsFollowingUser(true);
         }
+        return true;
       }
     } catch (err) {
       console.log("Erro ao togglear follow:", err);
-      
+
       if (isMountedRef.current) {
         setError(err.message);
       }
+      return isFollowingUser;
     } finally {
       if (isMountedRef.current) {
         setLoading(false);

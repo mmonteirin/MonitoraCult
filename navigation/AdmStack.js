@@ -4,8 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import AdmMenu from "../screens/AdmMenu";
 import AdmEvento from "../screens/AdmEvento";
 import AdmCadastroEvento from "../screens/AdmCadastroEvento";
-import TelaSuporte from "../screens/TelaSuporte";
+import AdmSuporte from "../screens/AdmSuporte";
 import AdmEventoMetrica from "../screens/AdmEventoMetrica";
+import AdmEventoDashIndividual from "../screens/AdmEventoDashIndividual";
+import AdmQRScanner from "../screens/AdmQrScanner";
+import AdmGerenciarIngressos from "../screens/AdmGerenciarIngressos";
 
 import { View, Text, ActivityIndicator } from "react-native";
 
@@ -58,7 +61,16 @@ export default function AdmStack() {
       <Stack.Screen name="CriarEvento" component={AdmCadastroEvento} />
       <Stack.Screen name="AdmEvento" component={AdmEvento} />
       <Stack.Screen name="Metricas" component={AdmEventoMetrica} />
-      <Stack.Screen name="Ajuda" component={TelaSuporte} />
+      <Stack.Screen
+        name="AdmEventoDashIndividual"
+        component={AdmEventoDashIndividual}
+      />
+      <Stack.Screen name="AdmSuporte" component={AdmSuporte} />
+      <Stack.Screen name="AdmQRScanner" component={AdmQRScanner} />
+      <Stack.Screen
+        name="AdmGerenciarIngressos"
+        component={AdmGerenciarIngressos}
+      />
     </Stack.Navigator>
   );
 }

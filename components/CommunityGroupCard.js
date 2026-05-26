@@ -7,7 +7,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function CommunityGroupCard({
@@ -22,6 +23,10 @@ export default function CommunityGroupCard({
   onJoin,
   onLeave,
 }) {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -64,7 +69,7 @@ export default function CommunityGroupCard({
               <MaterialCommunityIcons
                 name="account-multiple"
                 size={16}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.membersText}>
                 {membersCount} membros
@@ -84,7 +89,7 @@ export default function CommunityGroupCard({
             <MaterialCommunityIcons
               name={isMember ? "check" : "plus"}
               size={20}
-              color={isMember ? Colors.success : Colors.primary}
+              color={isMember ? colors.success : colors.primary}
             />
             <Text
               style={[
@@ -101,7 +106,8 @@ export default function CommunityGroupCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -110,9 +116,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     height: 200,
-    backgroundColor: Colors.card,
+    backgroundColor: c.card,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: c.border,
   },
   cardImage: {
     ...StyleSheet.absoluteFillObject,
@@ -135,7 +141,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   genreTagText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 12,
     fontWeight: "600",
   },
@@ -145,12 +151,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     marginBottom: 6,
   },
   description: {
     fontSize: 13,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     marginBottom: 12,
   },
   membersRow: {
@@ -159,7 +165,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   membersText: {
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     fontSize: 12,
   },
   button: {
@@ -176,11 +182,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(34, 197, 94, 0.9)",
   },
   buttonText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontWeight: "600",
     fontSize: 13,
   },
   buttonActiveText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
 });
+}

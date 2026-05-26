@@ -1,6 +1,9 @@
 import * as ImageManipulator from "expo-image-manipulator";
 
-const IMGBB_API_KEY = "16bf8901689afb7a9a2b390275817e88";
+import logger from "../utils/logger";
+
+const IMGBB_API_KEY =
+	process.env.EXPO_PUBLIC_IMGBB_API_KEY || "16bf8901689afb7a9a2b390275817e88";
 
 const MAX_IMAGE_SIZE = 1500;
 const IMAGE_QUALITY = 0.7;
@@ -25,7 +28,7 @@ const compressImage = async (uri) => {
 
 		return result.uri;
 	} catch (error) {
-		console.log("Erro ao comprimir:", error);
+		logger.error("uploadService", "Erro ao comprimir", error);
 
 		return uri;
 	}
@@ -54,7 +57,7 @@ const uriToBase64 = async (uri) => {
 			reader.readAsDataURL(blob);
 		});
 	} catch (error) {
-		console.log("Erro base64:", error);
+		logger.error("uploadService", "Erro base64", error);
 
 		throw new Error("Erro ao ler arquivo");
 	}
@@ -100,7 +103,7 @@ export const uploadImagem = async (
 
 		const data = await response.json();
 
-		console.log("ImgBB response:", data);
+		logger.debug("uploadService", "ImgBB response", data);
 
 		if (!data.success) {
 			throw new Error(
@@ -113,7 +116,7 @@ export const uploadImagem = async (
 		return data.data.url;
 
 	} catch (error) {
-		console.log("Erro upload:", error);
+		logger.error("uploadService", "Erro upload", error);
 
 		throw error;
 	}

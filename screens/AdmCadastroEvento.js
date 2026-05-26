@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import {
 	View,
@@ -10,181 +10,299 @@ import {
 	Modal,
 	ActivityIndicator,
 	StyleSheet,
+	StatusBar,
+	KeyboardAvoidingView,
+	Platform,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
-
+import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as ImagePicker from "expo-image-picker";
 
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import {
+	collection,
+	addDoc,
+	updateDoc,
+	serverTimestamp,
+	doc,
+	Timestamp,
+} from "firebase/firestore";
 
-import { db, auth } from "../firebaseConfig";
-
+import { db } from "../firebaseConfig";
 import { useAuth } from "../context/AuthContext";
-
 import { uploadImagem } from "../services/uploadService";
-
 import { geocodeAddress } from "../services/geocodingService";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+import ConfirmModal from "../components/ConfirmModal";
 
-import { Colors } from "../styles/Colors";
+/* =========================
+   MASKS
+========================= */
 
-import { BlurView } from "expo-blur";
-
-/* 🔥 MASKS */
-const maskCEP = (t) =>
+const maskCEP = (t = "") =>
 	t
 		.replace(/\D/g, "")
 		.replace(/^(\d{5})(\d)/, "$1-$2")
 		.slice(0, 9);
 
-const maskData = (t) =>
+const maskData = (t = "") =>
 	t
 		.replace(/\D/g, "")
 		.replace(/^(\d{2})(\d)/, "$1/$2")
 		.replace(/^(\d{2})\/(\d{2})(\d)/, "$1/$2/$3")
 		.slice(0, 10);
 
-const maskHora = (t) =>
+const maskHora = (t = "") =>
 	t
 		.replace(/\D/g, "")
 		.replace(/^(\d{2})(\d)/, "$1:$2")
 		.slice(0, 5);
 
-/* 🔥 MODAL */
-function AppModal({ visible, title, message, type = "info", onConfirm }) {
-	const getIcon = () => {
-		switch (type) {
-			case "success":
-				return {
-					name: "check-circle",
-					color: "#22C55E",
-				};
+/* =========================
+   VALIDATIONS
+========================= */
 
-			case "error":
-				return {
-					name: "close-circle",
-					color: "#EF4444",
-				};
+const isDataValida = (data) => {
+	if (!/^\d{2}\/\d{2}\/\d{4}$/.test(data)) return false;
 
-			default:
-				return {
-					name: "information",
-					color: Colors.primary,
-				};
-		}
-	};
+	const [dia, mes, ano] = data.split("/").map(Number);
 
-	const icon = getIcon();
+	const d = new Date(ano, mes - 1, dia);
 
 	return (
-		<Modal visible={visible} transparent animationType="fade">
-			<View style={styles.modalOverlay}>
-				<BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-
-				<View style={styles.modalBox}>
-					<LinearGradient
-						colors={["#111827", "#0F172A"]}
-						style={styles.modalContent}
-					>
-						<View
-							style={[
-								styles.modalIcon,
-								{
-									backgroundColor: icon.color + "20",
-								},
-							]}
-						>
-							<MaterialCommunityIcons
-								name={icon.name}
-								size={40}
-								color={icon.color}
-							/>
-						</View>
-
-						<Text style={styles.modalTitle}>{title}</Text>
-
-						<Text style={styles.modalMessage}>{message}</Text>
-
-						<TouchableOpacity onPress={onConfirm} activeOpacity={0.85}>
-							<LinearGradient
-								colors={["#7C3AED", "#5B21B6"]}
-								style={styles.modalButton}
-							>
-								<Text style={styles.modalButtonText}>OK</Text>
-							</LinearGradient>
-						</TouchableOpacity>
-					</LinearGradient>
-				</View>
-			</View>
-		</Modal>
+		d.getFullYear() === ano &&
+		d.getMonth() === mes - 1 &&
+		d.getDate() === dia
 	);
-}
+};
 
-/* 🔥 SELECT */
-const SelectModal = ({ label, value, options, onSelect }) => {
+const isHoraValida = (hora) => {
+	if (!/^\d{2}:\d{2}$/.test(hora)) return false;
+
+	const [h, m] = hora.split(":").map(Number);
+
+	return h >= 0 && h <= 23 && m >= 0 && m <= 59;
+};
+
+const criarDataHora = (data, hora) => {
+	const [dia, mes, ano] = data.split("/").map(Number);
+	const [h, m] = hora.split(":").map(Number);
+
+	return new Date(ano, mes - 1, dia, h, m);
+};
+
+const toDateFromFirestore = (valor) => {
+	if (!valor) return null;
+	if (typeof valor?.toDate === "function") return valor.toDate();
+	if (valor instanceof Date) return valor;
+	return null;
+};
+
+const normalizarCampoData = (valor) => {
+	if (!valor) return "";
+	if (typeof valor === "string") {
+		if (/^\d{2}\/\d{2}\/\d{4}$/.test(valor)) return valor;
+		const match = valor.match(/(\d{2}\/\d{2}\/\d{4})/);
+		return match ? match[1] : "";
+	}
+	const date = toDateFromFirestore(valor);
+	if (!date || Number.isNaN(date.getTime())) return "";
+	const dia = String(date.getDate()).padStart(2, "0");
+	const mes = String(date.getMonth() + 1).padStart(2, "0");
+	const ano = date.getFullYear();
+	return `${dia}/${mes}/${ano}`;
+};
+
+const normalizarCampoHora = (valor) => {
+	if (!valor) return "";
+	if (typeof valor === "string") {
+		if (/^\d{2}:\d{2}$/.test(valor)) return valor;
+		const match = valor.match(/(\d{2}:\d{2})/);
+		return match ? match[1] : "";
+	}
+	const date = toDateFromFirestore(valor);
+	if (!date || Number.isNaN(date.getTime())) return "";
+	return `${String(date.getHours()).padStart(2, "0")}:${String(
+		date.getMinutes()
+	).padStart(2, "0")}`;
+};
+
+const montarDataEvento = (dataInicio, horaInicio) => {
+	if (!dataInicio) return "";
+	return horaInicio
+		? `${dataInicio} · ${horaInicio}`
+		: dataInicio;
+};
+
+const eventoParaFormulario = (evento) => {
+	const dataDeTimestamp = normalizarCampoData(
+		evento?.dataEventoTimestamp
+	);
+	const horaDeTimestamp = normalizarCampoHora(
+		evento?.dataEventoTimestamp
+	);
+
+	const dataInicio =
+		normalizarCampoData(evento?.dataInicio) ||
+		dataDeTimestamp ||
+		normalizarCampoData(evento?.dataEvento);
+
+	const dataFim =
+		normalizarCampoData(evento?.dataFim) ||
+		dataInicio;
+
+	const horaInicio =
+		normalizarCampoHora(evento?.horaInicio) ||
+		horaDeTimestamp;
+
+	const horaFim =
+		normalizarCampoHora(evento?.horaFim) ||
+		horaInicio;
+
+	const cepBruto = String(evento?.cep || "").replace(/\D/g, "");
+
+	return {
+		tipoEvento: evento?.tipoEvento || "gratuito",
+		classificacao: evento?.classificacao || "Livre",
+		tituloEvento: evento?.tituloEvento || "",
+		descricao: evento?.descricao || "",
+		categoria: evento?.categoria || "",
+		dataInicio,
+		dataFim,
+		horaInicio,
+		horaFim,
+		localEvento: evento?.localEvento || "",
+		cep: cepBruto ? maskCEP(cepBruto) : "",
+		bairro: evento?.bairro || "",
+		cidade: evento?.cidade || "",
+		uf: evento?.uf || "",
+		atracoes: evento?.atracoes || "",
+		capacidade: evento?.capacidade?.toString() || "",
+		precoIngresso: evento?.precoIngresso?.toString() || "",
+		linkIngresso: evento?.linkIngresso || "",
+	};
+};
+
+/* =========================
+   SELECT MODAL
+========================= */
+
+const SelectModal = ({
+	label,
+	value,
+	options,
+	onSelect,
+}) => {
+  const { colors, isDark } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
 	const [visible, setVisible] = useState(false);
 
 	return (
 		<>
-			<Text style={styles.label}>{label}</Text>
+			<Text style={styles.inputLabel}>
+				{label}
+			</Text>
 
-			<TouchableOpacity onPress={() => setVisible(true)} style={styles.select}>
+			<TouchableOpacity
+				style={styles.select}
+				onPress={() => setVisible(true)}
+				activeOpacity={0.8}
+			>
 				<Text
 					style={{
-						color: value ? Colors.textPrimary : Colors.textMuted,
+						color: value
+							? "#FFF"
+							: colors.textMuted ||
+							  "#64748B",
+						fontSize: 15,
 					}}
 				>
-					{value || "Selecione..."}
+					{value || "Selecione"}
 				</Text>
 
 				<MaterialCommunityIcons
 					name="chevron-down"
 					size={22}
-					color={Colors.primary}
+					color={
+						colors.primary || "#7C3AED"
+					}
 				/>
 			</TouchableOpacity>
 
-			<Modal visible={visible} transparent animationType="fade">
+			<Modal
+				visible={visible}
+				transparent
+				animationType="fade"
+			>
 				<View style={styles.selectOverlay}>
+					<BlurView
+						intensity={35}
+						tint={blurTint}
+						style={StyleSheet.absoluteFill}
+					/>
+
 					<View style={styles.selectBox}>
+						<Text style={styles.selectTitle}>
+							Selecione uma opção
+						</Text>
+
 						{options.map((item) => {
-							const ativo = value === item;
+							const active =
+								value === item;
 
 							return (
 								<TouchableOpacity
 									key={item}
-									onPress={() => {
-										onSelect(item);
-
-										setVisible(false);
-									}}
 									style={[
 										styles.selectItem,
-										{
-											backgroundColor: ativo ? Colors.primary : "transparent",
-										},
+										active &&
+											styles.selectItemActive,
 									]}
+									onPress={() => {
+										onSelect(item);
+										setVisible(false);
+									}}
 								>
 									<Text
 										style={{
-											color: ativo ? Colors.background : Colors.textPrimary,
+											color: "#FFF",
+											fontWeight:
+												active
+													? "700"
+													: "500",
 										}}
 									>
 										{item}
 									</Text>
+
+									{active && (
+										<MaterialCommunityIcons
+											name="check"
+											size={18}
+											color="#FFF"
+										/>
+									)}
 								</TouchableOpacity>
 							);
 						})}
 
-						<TouchableOpacity onPress={() => setVisible(false)}>
+						<TouchableOpacity
+							style={
+								styles.selectCancelBtn
+							}
+							onPress={() =>
+								setVisible(false)
+							}
+						>
 							<Text
-								style={{
-									textAlign: "center",
-
-									color: Colors.textSecondary,
-								}}
+								style={
+									styles.selectCancelText
+								}
 							>
 								Cancelar
 							</Text>
@@ -196,222 +314,302 @@ const SelectModal = ({ label, value, options, onSelect }) => {
 	);
 };
 
-/* 📅 VALIDA DATA */
-const isDataValida = (data) => {
-	if (!/^\d{2}\/\d{2}\/\d{4}$/.test(data)) {
-		return false;
-	}
+/* =========================
+   SCREEN
+========================= */
 
-	const [dia, mes, ano] = data.split("/").map(Number);
-
-	const date = new Date(ano, mes - 1, dia);
-
-	return (
-		date.getFullYear() === ano &&
-		date.getMonth() === mes - 1 &&
-		date.getDate() === dia
-	);
-};
-
-/* ⏰ VALIDA HORA */
-const isHoraValida = (hora) => {
-	if (!/^\d{2}:\d{2}$/.test(hora)) {
-		return false;
-	}
-
-	const [h, m] = hora.split(":").map(Number);
-
-	return h >= 0 && h <= 23 && m >= 0 && m <= 59;
-};
-
-/* 🕒 DATA/HORA FUTURA */
-const criarDataHora = (data, hora) => {
-	const [dia, mes, ano] = data.split("/").map(Number);
-
-	const [h, m] = hora.split(":").map(Number);
-
-	return new Date(ano, mes - 1, dia, h, m);
-};
-
-export default function AdmCadastroEvento({ navigation }) {
-	const [form, setForm] = useState({});
+export default function AdmCadastroEvento({
+	navigation,
+	route,
+}) {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
+	const insets = useSafeAreaInsets();
 
 	const { user, profile } = useAuth();
 
-	const [imagem, setImagem] = useState(null);
+	const eventoEditando =
+		route?.params?.evento || null;
 
-	const [loading, setLoading] = useState(false);
+	const eventoDocId =
+		eventoEditando?.id ||
+		route?.params?.eventoId ||
+		null;
 
-	const [uploadProgress, setUploadProgress] = useState(0);
+	const isEditing =
+		Boolean(route?.params?.isEditing && eventoDocId);
 
-	const [modal, setModal] = useState({
+	const [form, setForm] = useState({
+		tipoEvento: "gratuito",
+		classificacao: "Livre",
+
+		tituloEvento: "",
+		descricao: "",
+		categoria: "",
+
+		dataInicio: "",
+		dataFim: "",
+
+		horaInicio: "",
+		horaFim: "",
+
+		localEvento: "",
+		cep: "",
+		bairro: "",
+		cidade: "",
+		uf: "",
+
+		atracoes: "",
+		capacidade: "",
+
+		precoIngresso: "",
+		linkIngresso: "",
+	});
+
+	const [imagem, setImagem] =
+		useState(null);
+
+	const [loading, setLoading] =
+		useState(false);
+
+	const [uploadProgress, setUploadProgress] =
+		useState(0);
+
+	const [focusedField, setFocusedField] =
+		useState(null);
+
+	const [erros, setErros] = useState({});
+
+	const [feedbackModal, setFeedbackModal] = useState({
 		visible: false,
 		title: "",
 		message: "",
 		type: "info",
+		confirmText: "OK",
+		onConfirm: null,
 	});
 
-	const setField = (key, value) =>
+	const openFeedback = ({
+		title,
+		message,
+		type = "error",
+		confirmText = "OK",
+		onConfirm,
+	}) => {
+		setFeedbackModal({
+			visible: true,
+			title,
+			message,
+			type,
+			confirmText,
+			onConfirm:
+				onConfirm ||
+				(() =>
+					setFeedbackModal((prev) => ({
+						...prev,
+						visible: false,
+					}))),
+		});
+	};
+
+	/* =========================
+	   EDIT MODE
+	========================= */
+
+	useEffect(() => {
+		if (isEditing && eventoEditando) {
+			setForm(eventoParaFormulario(eventoEditando));
+			setImagem(eventoEditando.imagemEvento || null);
+		}
+	}, [isEditing, eventoEditando]);
+
+	/* =========================
+	   HELPERS
+	========================= */
+
+	const setField = (key, value) => {
 		setForm((prev) => ({
 			...prev,
 			[key]: value,
 		}));
 
-	/* 📸 PICK IMAGE */
-	const pickImage = async () => {
-		const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-		if (!permission.granted) {
-			setModal({
-				visible: true,
-				title: "Permissão necessária",
-				message: "Permita acesso à galeria.",
-				type: "error",
-			});
-
-			return;
-		}
-
-		const result = await ImagePicker.launchImageLibraryAsync({
-			quality: 0.5,
-			allowsEditing: true,
-			aspect: [16, 9],
-		});
-
-		if (!result.canceled) {
-			setImagem(result.assets[0].uri);
+		if (erros[key]) {
+			setErros((prev) => ({
+				...prev,
+				[key]: null,
+			}));
 		}
 	};
 
-	/* 🔍 CEP */
-	const buscarCEP = async () => {
-		const cep = form.cep?.replace(/\D/g, "");
+	const pickImage = async () => {
+		try {
+			const permission =
+				await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-		if (!cep || cep.length !== 8) {
-			setModal({
-				visible: true,
-				title: "CEP inválido",
-				message: "Digite um CEP válido.",
+			if (!permission.granted) {
+				openFeedback({
+					title: "Permissão necessária",
+					message: "Permita acesso à galeria para escolher a imagem do evento.",
+					type: "warning",
+				});
+				return;
+			}
+
+			const result =
+				await ImagePicker.launchImageLibraryAsync(
+					{
+						mediaTypes:
+							ImagePicker.MediaTypeOptions.Images,
+						allowsEditing: true,
+						aspect: [16, 9],
+						quality: 0.7,
+					}
+				);
+
+			if (!result.canceled) {
+				setImagem(
+					result.assets?.[0]?.uri
+				);
+			}
+		} catch (e) {
+			console.log(e);
+			openFeedback({
+				title: "Erro",
+				message: "Não foi possível selecionar a imagem.",
 				type: "error",
 			});
-
-			return;
 		}
+	};
 
+	const buscarCEP = async () => {
 		try {
-			const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+			const cep = form.cep.replace(
+				/\D/g,
+				""
+			);
 
-			const data = await res.json();
+			if (cep.length !== 8) {
+				openFeedback({
+					title: "CEP inválido",
+					message: "Informe um CEP com 8 dígitos.",
+					type: "warning",
+				});
+				return;
+			}
+
+			const response = await fetch(
+				`https://viacep.com.br/ws/${cep}/json/`
+			);
+
+			const data = await response.json();
 
 			if (data.erro) {
-				setModal({
-					visible: true,
+				openFeedback({
 					title: "CEP não encontrado",
-					message: "Não foi possível localizar este CEP.",
-					type: "error",
+					message: "Não encontramos este CEP. Verifique e tente novamente.",
+					type: "warning",
 				});
-
 				return;
 			}
 
 			setForm((prev) => ({
 				...prev,
-
-				rua: data.logradouro || "",
-
-				bairro: data.bairro || "",
-
-				cidade: data.localidade || "",
-
+				localEvento:
+					data.logradouro || "",
+				bairro:
+					data.bairro || "",
+				cidade:
+					data.localidade || "",
 				uf: data.uf || "",
-
-				localEvento: data.logradouro || "",
 			}));
-		} catch {
-			setModal({
-				visible: true,
+		} catch (e) {
+			console.log(e);
+
+			openFeedback({
 				title: "Erro",
-				message: "Erro ao buscar CEP.",
+				message: "Não foi possível buscar o CEP. Tente novamente.",
 				type: "error",
 			});
 		}
 	};
 
-	/* 🚀 SUBMIT */
+	/* =========================
+	   SUBMIT
+	========================= */
+
 	const handleSubmit = async () => {
-		if (!form.tituloEvento) {
-			setModal({
-				visible: true,
-				title: "Campo obrigatório",
-				message: "Preencha o nome do evento.",
-				type: "error",
-			});
+		const listaErros = {};
 
-			return;
+		if (!form.tituloEvento.trim()) {
+			listaErros.tituloEvento =
+				"Título obrigatório.";
 		}
 
-		/* 📅 DATA */
-		if (!isDataValida(form.dataEvento || "")) {
-			setModal({
-				visible: true,
-				title: "Data inválida",
-				message: "Digite a data completa no formato DD/MM/AAAA.",
-				type: "error",
-			});
-
-			return;
+		if (!form.descricao.trim()) {
+			listaErros.descricao =
+				"Descrição obrigatória.";
 		}
 
-		/* ⏰ HORA INÍCIO */
-		if (!isHoraValida(form.horaInicio || "")) {
-			setModal({
-				visible: true,
-				title: "Hora inválida",
-				message: "Digite a hora inicial completa no formato HH:MM.",
-				type: "error",
-			});
-
-			return;
+		if (!form.categoria) {
+			listaErros.categoria =
+				"Selecione uma categoria.";
 		}
 
-		/* ⏰ HORA FIM */
-		if (!isHoraValida(form.horaFim || "")) {
-			setModal({
-				visible: true,
-				title: "Hora inválida",
-				message: "Digite a hora final completa no formato HH:MM.",
-				type: "error",
-			});
-
-			return;
+		if (!form.localEvento.trim()) {
+			listaErros.localEvento =
+				"Informe o local.";
 		}
 
-		/* 🕒 DATAS */
-		const inicioEvento = criarDataHora(form.dataEvento, form.horaInicio);
-
-		const fimEvento = criarDataHora(form.dataEvento, form.horaFim);
-
-		const agora = new Date();
-
-		/* 🚫 EVENTO PASSADO */
-		if (inicioEvento < agora) {
-			setModal({
-				visible: true,
-				title: "Horário inválido",
-				message: "O evento não pode começar em uma data/hora passada.",
-				type: "error",
-			});
-
-			return;
+		if (!form.cidade.trim()) {
+			listaErros.cidade =
+				"Informe a cidade.";
 		}
 
-		/* 🚫 FIM MENOR QUE INÍCIO */
-		if (fimEvento <= inicioEvento) {
-			setModal({
-				visible: true,
-				title: "Horário inválido",
-				message: "A hora final deve ser maior que a hora inicial.",
-				type: "error",
+		if (!isDataValida(form.dataInicio)) {
+			listaErros.dataInicio =
+				"Data inválida.";
+		}
+
+		if (!isDataValida(form.dataFim)) {
+			listaErros.dataFim =
+				"Data inválida.";
+		}
+
+		if (!isHoraValida(form.horaInicio)) {
+			listaErros.horaInicio =
+				"Hora inválida.";
+		}
+
+		if (!isHoraValida(form.horaFim)) {
+			listaErros.horaFim =
+				"Hora inválida.";
+		}
+
+		if (
+			form.tipoEvento === "pago"
+		) {
+			if (!form.precoIngresso) {
+				listaErros.precoIngresso =
+					"Preço obrigatório.";
+			}
+
+			if (!form.linkIngresso) {
+				listaErros.linkIngresso =
+					"Link obrigatório.";
+			}
+		}
+
+		if (
+			Object.keys(listaErros)
+				.length > 0
+		) {
+			setErros(listaErros);
+
+			openFeedback({
+				title: "Campos inválidos",
+				message: "Corrija os campos destacados e tente novamente.",
+				type: "warning",
 			});
 
 			return;
@@ -420,562 +618,1145 @@ export default function AdmCadastroEvento({ navigation }) {
 		try {
 			setLoading(true);
 
-			let imageUrl = "";
+			let imageUrl =
+				eventoEditando?.imagemEvento ||
+				"";
 
-			if (imagem) {
-				imageUrl = await uploadImagem(imagem, user?.uid, (p) =>
-					setUploadProgress(p)
-				);
+			if (
+				imagem &&
+				imagem !==
+					eventoEditando?.imagemEvento
+			) {
+				imageUrl =
+					await uploadImagem(
+						imagem,
+						user?.uid,
+						(progress) =>
+							setUploadProgress(
+								progress
+							)
+					);
 			}
-
-			const endereco = form.localEvento || form.rua;
 
 			let coords = null;
 
-			if (endereco) {
-				coords = await geocodeAddress(endereco);
+			try {
+				coords =
+					await geocodeAddress(
+						form.localEvento
+					);
+			} catch (e) {
+				console.log(e);
 			}
 
-			const dataEventoTimestamp = criarDataHora(
-				form.dataEvento,
+			const inicioCompleto =
+				criarDataHora(
+					form.dataInicio,
+					form.horaInicio
+				);
+
+			const fimCompleto =
+				criarDataHora(
+					form.dataFim,
+					form.horaFim
+				);
+
+			const nomeOrganizador =
+				profile?.nome ||
+				user?.displayName ||
+				"Organizador";
+
+			const dataEventoExibicao = montarDataEvento(
+				form.dataInicio,
 				form.horaInicio
 			);
 
-			await addDoc(collection(db, "eventos"), {
-				tituloEvento: form.tituloEvento,
+			const dadosEvento = {
+				tituloEvento:
+					form.tituloEvento.trim(),
 
-				descricao: form.descricao || "",
+				descricao:
+					form.descricao.trim(),
 
 				imagemEvento: imageUrl,
 
-				dataEvento: form.dataEvento || "",
+				dataInicio:
+					form.dataInicio,
 
-				dataEventoTimestamp,
+				dataFim:
+					form.dataFim,
 
-				horaInicio: form.horaInicio || "",
+				horaInicio:
+					form.horaInicio,
 
-				horaFim: form.horaFim || "",
+				horaFim: form.horaFim,
 
-				localEvento: endereco || "",
+				dataEvento: dataEventoExibicao,
 
-				categoria: form.categoria || "",
+				dataEventoTimestamp:
+					Timestamp.fromDate(inicioCompleto),
 
-				tipoEvento: form.tipoEvento || "",
+				dataFimTimestamp:
+					Timestamp.fromDate(fimCompleto),
 
-				cep: form.cep || "",
+				localEvento:
+					form.localEvento.trim(),
 
-				bairro: form.bairro || "",
+				categoria:
+					form.categoria,
 
-				cidade: form.cidade || "",
+				tipoEvento:
+					form.tipoEvento,
 
-				uf: form.uf || "",
+				cep: form.cep.replace(
+					/\D/g,
+					""
+				),
 
-				latitude: coords?.latitude || null,
+				bairro:
+					form.bairro.trim(),
 
-				longitude: coords?.longitude || null,
+				cidade:
+					form.cidade.trim(),
 
-				status: "ativo",
+				uf: form.uf
+					.trim()
+					.toUpperCase(),
 
-				likes: 0,
-				comentarios: 0,
+				latitude:
+					coords?.latitude ??
+					(isEditing
+						? eventoEditando?.latitude ?? null
+						: null),
 
-				uidEvento: user?.uid || "",
+				longitude:
+					coords?.longitude ??
+					(isEditing
+						? eventoEditando?.longitude ?? null
+						: null),
 
-				/* 👤 ORGANIZADOR */
-				organizador: {
-					uid: user?.uid || "",
+				atracoes:
+					form.atracoes.trim(),
 
-					nome: profile?.nome || user?.displayName || "Usuário",
+				capacidade:
+					form.capacidade
+						? Number(
+								form.capacidade
+						  )
+						: null,
 
-					foto: profile?.foto || user?.photoURL || "https://i.pravatar.cc/150",
+				classificacao:
+					form.classificacao,
 
-					email: user?.email || "",
+				precoIngresso:
+					form.tipoEvento ===
+					"pago"
+						? Number(
+								form.precoIngresso
+						  )
+						: 0,
 
-					role: profile?.role || "user",
-				},
+				linkIngresso:
+					form.tipoEvento ===
+					"pago"
+						? form.linkIngresso.trim()
+						: "",
 
-				createdAt: serverTimestamp(),
-			});
+				updatedAt:
+					serverTimestamp(),
+			};
 
-			setModal({
-				visible: true,
-				title: "Evento criado",
-				message: "Seu evento foi publicado com sucesso.",
+			if (isEditing && eventoDocId) {
+				await updateDoc(
+					doc(db, "eventos", eventoDocId),
+					dadosEvento
+				);
+			} else {
+			const fotoFailsafe =
+				profile?.foto ||
+				user?.photoURL ||
+				`https://ui-avatars.com/api/?name=${encodeURIComponent(
+					nomeOrganizador
+				)}&background=7C3AED&color=fff`;
+
+			await addDoc(
+				collection(db, "eventos"),
+				{
+					...dadosEvento,
+
+					status: "ativo",
+
+					likes: 0,
+
+					comentarios: 0,
+
+					uidEvento:
+						user?.uid || "",
+
+					organizador: {
+						uid:
+							user?.uid || "",
+
+						nome:
+							nomeOrganizador,
+
+						foto:
+							fotoFailsafe,
+
+						email:
+							user?.email || "",
+
+						role:
+							profile?.role ||
+							"user",
+					},
+
+					createdAt:
+						serverTimestamp(),
+				}
+			);
+			}
+
+			openFeedback({
+				title: isEditing
+					? "Evento atualizado"
+					: "Evento criado",
+				message: isEditing
+					? "Evento atualizado com sucesso."
+					: "Seu evento foi publicado.",
 				type: "success",
+				onConfirm: () => {
+					setFeedbackModal((prev) => ({
+						...prev,
+						visible: false,
+					}));
+					navigation.goBack();
+				},
 			});
 		} catch (e) {
-			setModal({
-				visible: true,
+			console.log(e);
+
+			openFeedback({
 				title: "Erro",
-				message: e.message || "Erro ao salvar evento.",
+				message:
+					e?.message ||
+					"Erro ao salvar evento.",
 				type: "error",
 			});
 		} finally {
 			setLoading(false);
-
 			setUploadProgress(0);
 		}
 	};
 
+	/* =========================
+	   RENDER
+	========================= */
+
 	return (
 		<View style={styles.container}>
-			{/* HEADER */}
-			<LinearGradient
-				colors={[Colors.background, Colors.surface]}
-				style={styles.header}
-			>
-				<TouchableOpacity onPress={() => navigation.goBack()}>
-					<MaterialCommunityIcons
-						name="arrow-left"
-						size={26}
-						color={Colors.primary}
-					/>
-				</TouchableOpacity>
+			<StatusBar
+				barStyle="light-content"
+			/>
 
-				<Text style={styles.title}>Criar Evento</Text>
+			<LinearGradient
+				colors={[
+					colors.backgroundSecondary ||
+						"#18122B",
+					colors.surface ||
+						"#10131F",
+				]}
+				style={[
+					styles.header,
+					{
+						paddingTop:
+							insets.top + 12,
+					},
+				]}
+			>
+				<View
+					style={
+						styles.headerContentRow
+					}
+				>
+					<TouchableOpacity
+						style={
+							styles.backButton
+						}
+						onPress={() =>
+							navigation.goBack()
+						}
+					>
+						<MaterialCommunityIcons
+							name="arrow-left"
+							size={24}
+							color="#FFF"
+						/>
+					</TouchableOpacity>
+
+					<Text
+						style={
+							styles.headerTitle
+						}
+					>
+						{isEditing
+							? "Editar Evento"
+							: "Criar Evento"}
+					</Text>
+
+					<View
+						style={{ width: 24 }}
+					/>
+				</View>
 			</LinearGradient>
 
-			<ScrollView
-				contentContainerStyle={{
-					padding: 20,
-					paddingBottom: 120,
-				}}
+			<KeyboardAvoidingView
+				style={{ flex: 1 }}
+				behavior={
+					Platform.OS === "ios"
+						? "padding"
+						: undefined
+				}
 			>
-				{/* IMAGE */}
-				<TouchableOpacity onPress={pickImage}>
-					{imagem ? (
-						<Image
-							source={{
-								uri: imagem,
-							}}
-							style={styles.image}
+				<ScrollView
+					showsVerticalScrollIndicator={
+						false
+					}
+					contentContainerStyle={{
+						padding: 20,
+						paddingBottom:
+							insets.bottom + 120,
+					}}
+				>
+					{/* IMAGE */}
+					<TouchableOpacity
+						style={
+							styles.imagePicker
+						}
+						onPress={pickImage}
+						activeOpacity={0.85}
+					>
+						{imagem ? (
+							<Image
+								source={{
+									uri: imagem,
+								}}
+								style={
+									styles.imagemEvento
+								}
+							/>
+						) : (
+							<View
+								style={
+									styles.imagemPlaceholder
+								}
+							>
+								<MaterialCommunityIcons
+									name="image-plus"
+									size={40}
+									color={
+										colors.primary ||
+										"#7C3AED"
+									}
+								/>
+
+								<Text
+									style={
+										styles.imagePickerText
+									}
+								>
+									Selecionar imagem
+								</Text>
+							</View>
+						)}
+					</TouchableOpacity>
+
+					{/* TITLE */}
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Título do Evento *
+					</Text>
+
+					<TextInput
+						style={[
+							styles.textInput,
+							erros.tituloEvento &&
+								styles.inputError,
+							focusedField ===
+								"tituloEvento" &&
+								styles.inputFocused,
+						]}
+						placeholder="Festival de Música"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						value={
+							form.tituloEvento
+						}
+						onChangeText={(v) =>
+							setField(
+								"tituloEvento",
+								v
+							)
+						}
+						onFocus={() =>
+							setFocusedField(
+								"tituloEvento"
+							)
+						}
+						onBlur={() =>
+							setFocusedField(
+								null
+							)
+						}
+					/>
+
+					{/* DESCRIPTION */}
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Descrição *
+					</Text>
+
+					<TextInput
+						style={[
+							styles.textArea,
+							focusedField ===
+								"descricao" &&
+								styles.inputFocused,
+						]}
+						placeholder="Descreva seu evento..."
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						multiline
+						numberOfLines={4}
+						value={
+							form.descricao
+						}
+						onChangeText={(v) =>
+							setField(
+								"descricao",
+								v
+							)
+						}
+						onFocus={() =>
+							setFocusedField(
+								"descricao"
+							)
+						}
+						onBlur={() =>
+							setFocusedField(
+								null
+							)
+						}
+					/>
+
+					{/* CATEGORY */}
+					<SelectModal
+						label="Categoria"
+						value={
+							form.categoria
+						}
+						options={[
+							"Shows",
+							"Teatro",
+							"Cinema",
+							"Dança",
+							"Literatura",
+							"Fotografia",
+							"Gastronomia",
+							"Outro",
+						]}
+						onSelect={(v) =>
+							setField(
+								"categoria",
+								v
+							)
+						}
+					/>
+
+					{/* DATE */}
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Data Inicial *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="DD/MM/YYYY"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						keyboardType="numeric"
+						maxLength={10}
+						value={
+							form.dataInicio
+						}
+						onChangeText={(v) =>
+							setField(
+								"dataInicio",
+								maskData(v)
+							)
+						}
+					/>
+
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Hora Inicial *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="HH:MM"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						keyboardType="numeric"
+						maxLength={5}
+						value={
+							form.horaInicio
+						}
+						onChangeText={(v) =>
+							setField(
+								"horaInicio",
+								maskHora(v)
+							)
+						}
+					/>
+
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Data Final *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="DD/MM/YYYY"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						keyboardType="numeric"
+						maxLength={10}
+						value={
+							form.dataFim
+						}
+						onChangeText={(v) =>
+							setField(
+								"dataFim",
+								maskData(v)
+							)
+						}
+					/>
+
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Hora Final *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="HH:MM"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						keyboardType="numeric"
+						maxLength={5}
+						value={
+							form.horaFim
+						}
+						onChangeText={(v) =>
+							setField(
+								"horaFim",
+								maskHora(v)
+							)
+						}
+					/>
+
+					{/* CEP */}
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						CEP
+					</Text>
+
+					<View
+						style={styles.cepRow}
+					>
+						<TextInput
+							style={[
+								styles.textInput,
+								{ flex: 1 },
+							]}
+							placeholder="00000-000"
+							placeholderTextColor={
+								colors.textMuted ||
+								"#64748B"
+							}
+							keyboardType="numeric"
+							maxLength={9}
+							value={form.cep}
+							onChangeText={(v) =>
+								setField(
+									"cep",
+									maskCEP(v)
+								)
+							}
 						/>
-					) : (
-						<View style={styles.imagePlaceholder}>
+
+						<TouchableOpacity
+							style={
+								styles.cepButton
+							}
+							onPress={buscarCEP}
+						>
 							<MaterialCommunityIcons
-								name="image-plus"
-								size={42}
-								color={Colors.primary}
+								name="magnify"
+								size={22}
+								color="#FFF"
+							/>
+						</TouchableOpacity>
+					</View>
+
+					{/* LOCATION */}
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Local *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="Rua, avenida..."
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						value={
+							form.localEvento
+						}
+						onChangeText={(v) =>
+							setField(
+								"localEvento",
+								v
+							)
+						}
+					/>
+
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						Cidade *
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="Cidade"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						value={form.cidade}
+						onChangeText={(v) =>
+							setField(
+								"cidade",
+								v
+							)
+						}
+					/>
+
+					<Text
+						style={
+							styles.inputLabel
+						}
+					>
+						UF
+					</Text>
+
+					<TextInput
+						style={
+							styles.textInput
+						}
+						placeholder="CE"
+						placeholderTextColor={
+							colors.textMuted ||
+							"#64748B"
+						}
+						maxLength={2}
+						value={form.uf}
+						onChangeText={(v) =>
+							setField(
+								"uf",
+								v.toUpperCase()
+							)
+						}
+					/>
+
+					{/* EVENT TYPE */}
+					<SelectModal
+						label="Tipo do Evento"
+						value={
+							form.tipoEvento
+						}
+						options={[
+							"gratuito",
+							"pago",
+						]}
+						onSelect={(v) =>
+							setField(
+								"tipoEvento",
+								v
+							)
+						}
+					/>
+
+					{/* PRICE */}
+					{form.tipoEvento ===
+						"pago" && (
+						<>
+							<Text
+								style={
+									styles.inputLabel
+								}
+							>
+								Preço
+							</Text>
+
+							<TextInput
+								style={
+									styles.textInput
+								}
+								placeholder="R$ 0,00"
+								placeholderTextColor={
+									colors.textMuted ||
+									"#64748B"
+								}
+								keyboardType="decimal-pad"
+								value={
+									form.precoIngresso
+								}
+								onChangeText={(
+									v
+								) =>
+									setField(
+										"precoIngresso",
+										v
+									)
+								}
 							/>
 
 							<Text
-								style={{
-									color: Colors.textSecondary,
-
-									marginTop: 8,
-								}}
+								style={
+									styles.inputLabel
+								}
 							>
-								Adicionar imagem
+								Link
 							</Text>
-						</View>
+
+							<TextInput
+								style={
+									styles.textInput
+								}
+								placeholder="https://"
+								placeholderTextColor={
+									colors.textMuted ||
+									"#64748B"
+								}
+								value={
+									form.linkIngresso
+								}
+								onChangeText={(
+									v
+								) =>
+									setField(
+										"linkIngresso",
+										v
+									)
+								}
+							/>
+						</>
 					)}
-				</TouchableOpacity>
 
-				{/* SELECTS */}
-				<View
-					style={{
-						marginTop: 16,
-					}}
-				>
-					<SelectModal
-						label="Categoria"
-						value={form.categoria}
-						options={["Shows", "Cinema", "Teatro", "Arte", "Música"]}
-						onSelect={(v) => setField("categoria", v)}
-					/>
-
-					<View
-						style={{
-							marginTop: 14,
-						}}
+					{/* BUTTON */}
+					<TouchableOpacity
+						activeOpacity={0.85}
+						onPress={handleSubmit}
+						disabled={loading}
 					>
-						<SelectModal
-							label="Tipo"
-							value={form.tipoEvento}
-							options={["gratuito", "pago"]}
-							onSelect={(v) => setField("tipoEvento", v)}
-						/>
-					</View>
-				</View>
-
-				{/* INPUTS */}
-				<TextInput
-					placeholder="Nome do evento"
-					placeholderTextColor={Colors.textMuted}
-					value={form.tituloEvento || ""}
-					onChangeText={(v) => setField("tituloEvento", v)}
-					style={styles.input}
-				/>
-
-				<TextInput
-					placeholder="Descrição"
-					placeholderTextColor={Colors.textMuted}
-					multiline
-					value={form.descricao || ""}
-					onChangeText={(v) => setField("descricao", v)}
-					style={[
-						styles.input,
-						{
-							height: 110,
-							textAlignVertical: "top",
-						},
-					]}
-				/>
-
-				<TextInput
-					placeholder="Data"
-					placeholderTextColor={Colors.textMuted}
-					keyboardType="numeric"
-					value={form.dataEvento || ""}
-					onChangeText={(v) => setField("dataEvento", maskData(v))}
-					style={styles.input}
-				/>
-
-				<View
-					style={{
-						flexDirection: "row",
-						gap: 10,
-					}}
-				>
-					<TextInput
-						placeholder="Início"
-						placeholderTextColor={Colors.textMuted}
-						keyboardType="numeric"
-						value={form.horaInicio || ""}
-						onChangeText={(v) => setField("horaInicio", maskHora(v))}
-						style={[styles.input, { flex: 1 }]}
-					/>
-
-					<TextInput
-						placeholder="Fim"
-						placeholderTextColor={Colors.textMuted}
-						keyboardType="numeric"
-						value={form.horaFim || ""}
-						onChangeText={(v) => setField("horaFim", maskHora(v))}
-						style={[styles.input, { flex: 1 }]}
-					/>
-				</View>
-
-				<View
-					style={{
-						flexDirection: "row",
-						alignItems: "center",
-					}}
-				>
-					<TextInput
-						placeholder="CEP"
-						placeholderTextColor={Colors.textMuted}
-						keyboardType="numeric"
-						value={form.cep || ""}
-						onChangeText={(v) => setField("cep", maskCEP(v))}
-						style={[
-							styles.input,
-							{
-								flex: 1,
-								marginRight: 10,
-							},
-						]}
-					/>
-
-					<TouchableOpacity onPress={buscarCEP} style={styles.btnCep}>
-						<MaterialCommunityIcons name="magnify" size={22} color="#FFF" />
+						<LinearGradient
+							colors={["#6C5CE7", "#5746D6"]}
+							style={[
+								styles.submitButton,
+								loading &&
+									styles.submitButtonDisabled,
+							]}
+						>
+							{loading ? (
+								<ActivityIndicator
+									size="small"
+									color="#FFF"
+								/>
+							) : (
+								<Text
+									style={
+										styles.submitButtonText
+									}
+								>
+									{isEditing
+										? "Atualizar Evento"
+										: "Criar Evento"}
+								</Text>
+							)}
+						</LinearGradient>
 					</TouchableOpacity>
-				</View>
 
-				<TextInput
-					placeholder="Rua / Local"
-					placeholderTextColor={Colors.textMuted}
-					value={form.localEvento || ""}
-					onChangeText={(v) => setField("localEvento", v)}
-					style={styles.input}
-				/>
+					{uploadProgress >
+						0 &&
+						uploadProgress <
+							100 && (
+							<View
+								style={
+									styles.progressContainer
+								}
+							>
+								<View
+									style={[
+										styles.progressBar,
+										{
+											width: `${uploadProgress}%`,
+										},
+									]}
+								/>
 
-				{/* UPLOAD */}
-				{loading && uploadProgress > 0 && (
-					<Text style={styles.uploadText}>
-						Upload: {Math.round(uploadProgress * 100)}%
-					</Text>
-				)}
-
-				{/* BUTTON */}
-				<TouchableOpacity
-					disabled={loading}
-					onPress={handleSubmit}
-					activeOpacity={0.85}
-				>
-					<LinearGradient colors={["#7C3AED", "#5B21B6"]} style={styles.button}>
-						{loading ? (
-							<ActivityIndicator color="#FFF" />
-						) : (
-							<>
-								<MaterialCommunityIcons name="check" size={20} color="#FFF" />
-
-								<Text style={styles.buttonText}>Criar Evento</Text>
-							</>
+								<Text
+									style={
+										styles.progressText
+									}
+								>
+									Upload:{" "}
+									{Math.round(
+										uploadProgress
+									)}
+									%
+								</Text>
+							</View>
 						)}
-					</LinearGradient>
-				</TouchableOpacity>
-			</ScrollView>
+				</ScrollView>
+			</KeyboardAvoidingView>
 
-			{/* MODAL */}
-			<AppModal
-				visible={modal.visible}
-				title={modal.title}
-				message={modal.message}
-				type={modal.type}
-				onConfirm={() => {
-					setModal({
-						...modal,
-						visible: false,
-					});
-
-					if (modal.type === "success") {
-						navigation.goBack();
-					}
-				}}
+			<ConfirmModal
+				visible={feedbackModal.visible}
+				title={feedbackModal.title}
+				message={feedbackModal.message}
+				type={feedbackModal.type}
+				confirmText={feedbackModal.confirmText}
+				onConfirm={feedbackModal.onConfirm}
+				onCancel={
+					feedbackModal.type === "success"
+						? undefined
+						: () =>
+								setFeedbackModal((prev) => ({
+									...prev,
+									visible: false,
+								}))
+				}
 			/>
 		</View>
 	);
 }
 
-const styles = StyleSheet.create({
+/* =========================
+   STYLES
+========================= */
+
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
 	container: {
 		flex: 1,
-
-		backgroundColor: Colors.background,
+		backgroundColor:
+			c.background ||
+			"#10131F",
 	},
 
 	header: {
-		paddingTop: 55,
-
 		paddingHorizontal: 20,
-
-		paddingBottom: 22,
-
-		borderBottomLeftRadius: 28,
-
-		borderBottomRightRadius: 28,
+		paddingBottom: 20,
+		borderBottomLeftRadius: 30,
+		borderBottomRightRadius: 30,
 	},
 
-	title: {
-		color: Colors.textPrimary,
-
-		fontSize: 28,
-
-		fontWeight: "bold",
-
-		marginTop: 14,
-	},
-
-	image: {
-		height: 220,
-
-		borderRadius: 24,
-	},
-
-	imagePlaceholder: {
-		height: 220,
-
-		borderRadius: 24,
-
-		backgroundColor: Colors.surface,
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		borderWidth: 1,
-
-		borderColor: "rgba(255,255,255,0.06)",
-	},
-
-	label: {
-		color: Colors.textPrimary,
-
-		marginBottom: 8,
-	},
-
-	select: {
-		backgroundColor: Colors.surface,
-
-		padding: 16,
-
-		borderRadius: 18,
-
-		borderWidth: 1,
-
-		borderColor: "rgba(255,255,255,0.06)",
-
+	headerContentRow: {
 		flexDirection: "row",
-
+		alignItems: "center",
 		justifyContent: "space-between",
 	},
 
-	input: {
-		backgroundColor: Colors.surface,
-
-		color: Colors.textPrimary,
-
-		padding: 16,
-
-		borderRadius: 18,
-
-		marginTop: 14,
-
-		borderWidth: 1,
-
-		borderColor: "rgba(255,255,255,0.05)",
+	backButton: {
+		padding: 4,
 	},
 
-	btnCep: {
-		width: 56,
-		height: 56,
-
-		borderRadius: 18,
-
-		backgroundColor: Colors.primary,
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		marginTop: 14,
+	headerTitle: {
+		color: "#FFF",
+		fontSize: 20,
+		fontWeight: "bold",
 	},
 
-	button: {
-		height: 58,
-
+	imagePicker: {
 		borderRadius: 20,
-
-		marginTop: 24,
-
-		flexDirection: "row",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		gap: 10,
+		overflow: "hidden",
+		marginBottom: 10,
 	},
 
-	buttonText: {
-		color: "#FFF",
-
-		fontWeight: "bold",
-
-		fontSize: 16,
-	},
-
-	uploadText: {
-		color: Colors.textSecondary,
-
-		textAlign: "center",
-
-		marginTop: 14,
-	},
-
-	/* MODAL */
-	modalOverlay: {
-		flex: 1,
-
-		backgroundColor: "rgba(0,0,0,0.55)",
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		padding: 24,
-	},
-
-	modalBox: {
+	imagemEvento: {
 		width: "100%",
+		height: 220,
 	},
 
-	modalContent: {
-		borderRadius: 30,
-
-		padding: 24,
-	},
-
-	modalIcon: {
-		width: 82,
-		height: 82,
-
-		borderRadius: 24,
-
+	imagemPlaceholder: {
+		width: "100%",
+		height: 220,
+		borderRadius: 20,
+		backgroundColor:
+			"rgba(255,255,255,0.05)",
+		borderWidth: 1,
+		borderColor:
+			c.glassStrong,
 		justifyContent: "center",
-
 		alignItems: "center",
-
-		alignSelf: "center",
-
-		marginBottom: 18,
 	},
 
-	modalTitle: {
+	imagePickerText: {
+		color:
+			c.textMuted ||
+			"#64748B",
+		marginTop: 8,
+		fontWeight: "600",
+	},
+
+	inputLabel: {
+		color:
+			c.textPrimary ||
+			"#FFF",
+		fontSize: 13,
+		fontWeight: "700",
+		marginTop: 18,
+		marginBottom: 8,
+		textTransform: "uppercase",
+	},
+
+	textInput: {
+		backgroundColor:
+			"rgba(255,255,255,0.05)",
+		borderWidth: 1,
+		borderColor:
+			c.glassStrong,
+		borderRadius: 14,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
 		color: "#FFF",
-
-		fontSize: 22,
-
-		fontWeight: "bold",
-
-		textAlign: "center",
-	},
-
-	modalMessage: {
-		color: "rgba(255,255,255,0.7)",
-
-		textAlign: "center",
-
-		lineHeight: 24,
-
-		marginTop: 12,
-	},
-
-	modalButton: {
-		height: 56,
-
-		borderRadius: 18,
-
-		justifyContent: "center",
-
-		alignItems: "center",
-
-		marginTop: 24,
-	},
-
-	modalButtonText: {
-		color: "#FFF",
-
-		fontWeight: "bold",
-
 		fontSize: 15,
 	},
 
-	/* SELECT */
+	textArea: {
+		backgroundColor:
+			"rgba(255,255,255,0.05)",
+		borderWidth: 1,
+		borderColor:
+			c.glassStrong,
+		borderRadius: 14,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+		color: "#FFF",
+		fontSize: 15,
+		minHeight: 120,
+		textAlignVertical: "top",
+	},
+
+	inputFocused: {
+		borderColor:
+			c.primary ||
+			"#7C3AED",
+	},
+
+	inputError: {
+		borderColor: "#EF4444",
+	},
+
+	errorText: {
+		color: "#EF4444",
+		fontSize: 12,
+		marginTop: 6,
+	},
+
+	select: {
+		backgroundColor:
+			"rgba(255,255,255,0.05)",
+		borderWidth: 1,
+		borderColor:
+			c.glassStrong,
+		borderRadius: 14,
+		paddingHorizontal: 16,
+		paddingVertical: 14,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+
 	selectOverlay: {
 		flex: 1,
-
-		backgroundColor: "rgba(0,0,0,0.6)",
-
 		justifyContent: "center",
-
-		padding: 20,
+		alignItems: "center",
+		padding: 24,
+		backgroundColor:
+			"rgba(0,0,0,0.5)",
 	},
 
 	selectBox: {
-		backgroundColor: Colors.surface,
-
+		width: "100%",
+		backgroundColor:
+			c.surface ||
+			"#161B2E",
 		borderRadius: 24,
+		padding: 20,
+	},
 
-		padding: 18,
+	selectTitle: {
+		color: "#FFF",
+		fontSize: 18,
+		fontWeight: "700",
+		marginBottom: 14,
 	},
 
 	selectItem: {
-		padding: 16,
-
-		borderRadius: 14,
-
+		paddingVertical: 14,
+		paddingHorizontal: 14,
+		borderRadius: 12,
 		marginBottom: 8,
+		backgroundColor:
+			c.glass,
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
 	},
+
+	selectItemActive: {
+		backgroundColor:
+			"rgba(124,58,237,0.22)",
+		borderWidth: 1,
+		borderColor:
+			c.primary ||
+			"#7C3AED",
+	},
+
+	selectCancelBtn: {
+		marginTop: 12,
+		paddingVertical: 14,
+		alignItems: "center",
+	},
+
+	selectCancelText: {
+		color:
+			c.textMuted ||
+			"#94A3B8",
+		fontWeight: "700",
+	},
+
+	cepRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 10,
+	},
+
+	cepButton: {
+		width: 56,
+		height: 56,
+		borderRadius: 14,
+		backgroundColor:
+			c.primary ||
+			"#6C5CE7",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+
+	submitButton: {
+		height: 56,
+		borderRadius: 16,
+		justifyContent: "center",
+		alignItems: "center",
+		marginTop: 24,
+	},
+
+	submitButtonDisabled: {
+		opacity: 0.6,
+	},
+
+	submitButtonText: {
+		color: "#FFF",
+		fontSize: 16,
+		fontWeight: "bold",
+	},
+
+	progressContainer: {
+		marginTop: 16,
+	},
+
+	progressBar: {
+		height: 8,
+		borderRadius: 999,
+		backgroundColor:
+			c.primary ||
+			"#7C3AED",
+	},
+
+	progressText: {
+		color:
+			c.textMuted ||
+			"#64748B",
+		marginTop: 8,
+		textAlign: "center",
+		fontSize: 13,
+	},
+
 });
+}

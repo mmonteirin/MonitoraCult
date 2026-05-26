@@ -7,7 +7,8 @@ import {
   Image,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { Colors } from "../styles/Colors";
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function CreatorHighlight({
@@ -21,6 +22,8 @@ export default function CreatorHighlight({
   onPress,
   onFollow,
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
   return (
     <TouchableOpacity
       style={styles.container}
@@ -28,7 +31,7 @@ export default function CreatorHighlight({
       activeOpacity={0.7}
     >
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark]}
+        colors={[colors.primary, colors.primaryDark]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
@@ -46,7 +49,7 @@ export default function CreatorHighlight({
             <MaterialCommunityIcons
               name="account"
               size={60}
-              color={Colors.textPrimary}
+              color={colors.textPrimary}
             />
           </View>
         )}
@@ -90,7 +93,7 @@ export default function CreatorHighlight({
               <MaterialCommunityIcons
                 name="eye"
                 size={14}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>
                 {viewsCount > 999 ? `${(viewsCount / 1000).toFixed(1)}k` : viewsCount} visualizações
@@ -100,7 +103,7 @@ export default function CreatorHighlight({
               <MaterialCommunityIcons
                 name="account-multiple"
                 size={14}
-                color={Colors.textSecondary}
+                color={colors.textSecondary}
               />
               <Text style={styles.statText}>
                 {followersCount > 999 ? `${(followersCount / 1000).toFixed(1)}k` : followersCount} seguidores
@@ -117,7 +120,7 @@ export default function CreatorHighlight({
             <MaterialCommunityIcons
               name="plus"
               size={18}
-              color={Colors.primary}
+              color={colors.primary}
             />
             <Text style={styles.followButtonText}>Seguir</Text>
           </TouchableOpacity>
@@ -127,7 +130,8 @@ export default function CreatorHighlight({
   );
 }
 
-const styles = StyleSheet.create({
+function createThemedScreenStyles(c) {
+  return StyleSheet.create({
   container: {
     height: 280,
     marginHorizontal: 16,
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: Colors.surface,
+    backgroundColor: c.surface,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   genreTagText: {
-    color: Colors.textPrimary,
+    color: c.textPrimary,
     fontSize: 11,
     fontWeight: "600",
   },
@@ -194,11 +198,11 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 18,
     fontWeight: "700",
-    color: Colors.textPrimary,
+    color: c.textPrimary,
   },
   description: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
     lineHeight: 16,
   },
   stats: {
@@ -212,20 +216,21 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: c.textSecondary,
   },
   followButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    backgroundColor: Colors.textPrimary,
+    backgroundColor: c.textPrimary,
     paddingVertical: 10,
     borderRadius: 10,
   },
   followButtonText: {
-    color: Colors.primary,
+    color: c.primary,
     fontWeight: "700",
     fontSize: 13,
   },
 });
+}
