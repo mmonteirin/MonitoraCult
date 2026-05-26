@@ -15,7 +15,7 @@ import {
   serverTimestamp,
   deleteDoc,
 } from "firebase/firestore";
-import { db } from "./firebaseConfig";
+import { db } from "../firebaseConfig";
 
 const COLLECTION_NAME = "compartilhamentos";
 

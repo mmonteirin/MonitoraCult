@@ -1506,7 +1506,7 @@ const styles = StyleSheet.create({
 	// ── Hero card ──
 	heroCard: {
 		width: width * 0.78,
-		height: 300,
+		height: height * 0.35, // Responsivo: 35% da altura da tela
 		marginRight: 16,
 		borderRadius: 30,
 		overflow: "hidden",

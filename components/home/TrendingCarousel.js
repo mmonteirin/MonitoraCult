@@ -35,11 +35,11 @@ import {
   getTicketSignal,
 } from "./homeUtils";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const CARD_WIDTH = SCREEN_WIDTH * 0.76;
 
-const CARD_HEIGHT = 400;
+const CARD_HEIGHT = SCREEN_HEIGHT * 0.45; // Responsivo: 45% da altura da tela
 
 const SPACING = 14;
 
