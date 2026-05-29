@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 
 import {
   View,
@@ -30,7 +30,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 
-const AdmMenu = memo(function AdmMenu() {
+export default function AdmMenu() {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
   const blurTint = useMemo(() => isDark ? "dark" : "light", [isDark]);
@@ -879,5 +879,4 @@ function createThemedScreenStyles(c) {
     fontWeight: "bold",
   },
 });
-
-export default AdmMenu;
+}

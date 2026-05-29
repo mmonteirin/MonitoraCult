@@ -677,5 +677,6 @@ function createThemedScreenStyles(c) {
 		shadowRadius: 18,
 	},
 });
+}
 
 export default AdmEvento;
