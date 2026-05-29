@@ -304,6 +304,11 @@ export const getHighlightedCreators = async () => {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
+export const getCreatorDetails = async (creatorId) => {
+  const snap = await getDoc(doc(db, "highlightedCreators", creatorId));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+};
+
 export const incrementCreatorViews = async (creatorId) => {
   await updateDoc(doc(db, "highlightedCreators", creatorId), {
     viewsCount: increment(1),

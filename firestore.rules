@@ -419,7 +419,8 @@ service cloud.firestore {
         && hasOnly([
           "usuarioId", "userId",
           "referenciaId", "itemId", "itemType",
-          "tipo"
+          "tipo",
+          "createdAt"
         ]);
 
       allow delete: if (isAuthenticated()

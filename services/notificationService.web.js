@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   writeBatch,
   doc,
+  startAfter,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
@@ -82,6 +83,38 @@ export async function buscarNotificacoes(uid, quantidade = 30) {
   } catch (error) {
     console.error("[Notificações] Erro ao buscar:", error);
     return [];
+  }
+}
+
+export async function buscarNotificacoesPaginadas(uid, { limit: limite = 30, ultimoDoc = null, tipo = null } = {}) {
+  if (!uid) return { notificacoes: [], ultimoDoc: null, temMais: false };
+  try {
+    let q = query(collection(db, "users", uid, "notifications"), orderBy("criadoEm", "desc"), limit(limite + 1));
+
+    if (tipo) {
+      q = query(collection(db, "users", uid, "notifications"), where("tipo", "==", tipo), orderBy("criadoEm", "desc"), limit(limite + 1));
+    }
+
+    if (ultimoDoc) {
+      q = query(collection(db, "users", uid, "notifications"), orderBy("criadoEm", "desc"), startAfter(ultimoDoc), limit(limite + 1));
+      if (tipo) {
+        q = query(collection(db, "users", uid, "notifications"), where("tipo", "==", tipo), orderBy("criadoEm", "desc"), startAfter(ultimoDoc), limit(limite + 1));
+      }
+    }
+
+    const snap = await getDocs(q);
+    const docs = snap.docs;
+    const temMais = docs.length > limite;
+    const notificacoes = temMais ? docs.slice(0, limite).map((d) => ({ id: d.id, ...d.data() })) : docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    return {
+      notificacoes,
+      ultimoDoc: temMais ? docs[limite - 1] : (docs.length > 0 ? docs[docs.length - 1] : null),
+      temMais,
+    };
+  } catch (error) {
+    console.error("[Notificações] buscarNotificacoesPaginadas:", error);
+    return { notificacoes: [], ultimoDoc: null, temMais: false };
   }
 }
 

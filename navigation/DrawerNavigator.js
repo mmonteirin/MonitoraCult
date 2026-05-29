@@ -44,12 +44,12 @@ export default function DrawerNavigator() {
       screenOptions={({ navigation }) => ({
         drawerType: "slide",
         swipeEnabled: true,
-        overlayColor: "rgba(0, 0, 0, 0.65)",
+        overlayColor: "rgba(0, 0, 0, 0.7)",
 
         /* 🎨 DRAWER STYLES */
         drawerStyle: {
           backgroundColor: Colors.background,
-          width: SCREEN_WIDTH * 0.78,
+          width: SCREEN_WIDTH * 0.8,
         },
         sceneContainerStyle: {
           backgroundColor: Colors.background,
@@ -57,16 +57,19 @@ export default function DrawerNavigator() {
         drawerActiveTintColor: Colors.primary,
         drawerInactiveTintColor: Colors.textSecondary,
         drawerLabelStyle: {
-          fontSize: 15,
-          marginLeft: -10,
+          fontSize: 16,
+          marginLeft: -8,
           fontFamily: Typography?.medium || "System",
+          fontWeight: "600",
+          letterSpacing: 0.2,
         },
         drawerItemStyle: {
-          minHeight: 44,
-          marginVertical: 1,
-          borderRadius: 14,
+          minHeight: 52,
+          marginVertical: 2,
+          borderRadius: 16,
+          marginHorizontal: 8,
         },
-        drawerActiveBackgroundColor: "rgba(108,92,231,0.15)",
+        drawerActiveBackgroundColor: Colors.primary + "20",
 
         /* 🎨 HEADER CONFIGS */
         headerShown: true,
@@ -74,6 +77,8 @@ export default function DrawerNavigator() {
         headerShadowVisible: false,
         headerStyle: {
           backgroundColor: Colors.background,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         headerTintColor: Colors.primary,
         headerLeft: () => <DrawerAvatar navigation={navigation} />,

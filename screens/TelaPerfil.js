@@ -8,6 +8,7 @@ import {
     StyleSheet,
     Modal,
     Pressable,
+    Dimensions,
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -21,14 +22,17 @@ import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { Status } from "../styles/Colors";
 
+const { width } = Dimensions.get("window");
+
 export default function TelaPerfil({ navigation }) {
     const { foto, nome, user, logout } = useAuth();
     const [loadingLogout, setLoadingLogout] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const insets = useSafeAreaInsets();
     const { colors, isDark } = useTheme();
-    const styles = useThemedStyles(createPerfilStyles);
+    const isSmallScreen = width < 380;
     const blurTint = isDark ? "dark" : "light";
+    const styles = useThemedStyles((c) => createPerfilStyles(c, isSmallScreen));
 
     const headerGradient = useMemo(
         () => [colors.surfaceMuted, colors.backgroundDeep, colors.backgroundSecondary],
@@ -55,7 +59,6 @@ export default function TelaPerfil({ navigation }) {
         <View style={styles.container}>
             <ScrollView
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 120 }}
             >
                 <LinearGradient
                     colors={headerGradient}
@@ -200,6 +203,7 @@ export default function TelaPerfil({ navigation }) {
                         </View>
                     </TouchableOpacity>
                 </View>
+                <View style={{ height: 100 }} />
             </ScrollView>
 
             <Modal
@@ -276,60 +280,62 @@ export default function TelaPerfil({ navigation }) {
     );
 }
 
-function createPerfilStyles(c) {
+function createPerfilStyles(c, isSmallScreen) {
     return StyleSheet.create({
         container: { flex: 1, backgroundColor: c.background },
         header: {
-            paddingHorizontal: 20,
-            paddingBottom: 24,
-            borderBottomLeftRadius: 28,
-            borderBottomRightRadius: 28,
+            paddingHorizontal: isSmallScreen ? 16 : 20,
+            paddingBottom: isSmallScreen ? 18 : 24,
+            borderBottomLeftRadius: isSmallScreen ? 22 : 28,
+            borderBottomRightRadius: isSmallScreen ? 22 : 28,
         },
         profileRow: { flexDirection: "row", alignItems: "center" },
         avatarWrapper: { position: "relative" },
         avatar: {
-            width: 78,
-            height: 78,
-            borderRadius: 39,
-            borderWidth: 3,
+            width: isSmallScreen ? 64 : 78,
+            height: isSmallScreen ? 64 : 78,
+            borderRadius: isSmallScreen ? 32 : 39,
+            borderWidth: isSmallScreen ? 2 : 3,
             borderColor: c.primary,
         },
         onlineDot: {
             position: "absolute",
             right: 2,
             bottom: 2,
-            width: 14,
-            height: 14,
-            borderRadius: 7,
+            width: isSmallScreen ? 12 : 14,
+            height: isSmallScreen ? 12 : 14,
+            borderRadius: isSmallScreen ? 6 : 7,
             backgroundColor: c.success,
-            borderWidth: 2,
+            borderWidth: isSmallScreen ? 2 : 2,
             borderColor: c.surfaceMuted,
         },
-        infoContainer: { marginLeft: 14, flex: 1 },
-        nome: { color: c.textPrimary, fontSize: 20, fontWeight: "bold" },
-        email: { color: c.textSecondary, fontSize: 13, marginTop: 2 },
+        infoContainer: { marginLeft: isSmallScreen ? 12 : 14, flex: 1 },
+        nome: { color: c.textPrimary, fontSize: isSmallScreen ? 18 : 20, fontWeight: "bold" },
+        email: { color: c.textSecondary, fontSize: isSmallScreen ? 12 : 13, marginTop: 2 },
         badge: {
-            marginTop: 10,
+            marginTop: isSmallScreen ? 8 : 10,
             alignSelf: "flex-start",
             flexDirection: "row",
             alignItems: "center",
-            paddingHorizontal: 10,
-            height: 26,
-            borderRadius: 14,
+            paddingHorizontal: isSmallScreen ? 8 : 10,
+            height: isSmallScreen ? 24 : 26,
+            borderRadius: isSmallScreen ? 12 : 14,
             backgroundColor: c.primarySoft,
         },
         badgeText: {
             color: c.primaryLight,
-            fontSize: 12,
-            marginLeft: 6,
+            fontSize: isSmallScreen ? 11 : 12,
+            marginLeft: isSmallScreen ? 5 : 6,
             fontWeight: "600",
         },
-        menu: { padding: 18 },
+        menu: { 
+            padding: isSmallScreen ? 14 : 18,
+        },
         section: {
             color: c.textMuted,
-            fontSize: 13,
-            marginBottom: 12,
-            marginTop: 8,
+            fontSize: isSmallScreen ? 12 : 13,
+            marginBottom: isSmallScreen ? 10 : 12,
+            marginTop: isSmallScreen ? 6 : 8,
             fontWeight: "700",
             textTransform: "uppercase",
             letterSpacing: 0.5,
@@ -338,88 +344,88 @@ function createPerfilStyles(c) {
             flexDirection: "row",
             alignItems: "center",
             backgroundColor: c.glass,
-            padding: 16,
-            borderRadius: 22,
-            marginBottom: 14,
+            padding: isSmallScreen ? 14 : 16,
+            borderRadius: isSmallScreen ? 18 : 22,
+            marginBottom: isSmallScreen ? 12 : 14,
             borderWidth: 1,
             borderColor: c.glassBorder,
         },
         iconBox: {
-            width: 46,
-            height: 46,
-            borderRadius: 16,
+            width: isSmallScreen ? 40 : 46,
+            height: isSmallScreen ? 40 : 46,
+            borderRadius: isSmallScreen ? 14 : 16,
             backgroundColor: c.primarySoft,
             justifyContent: "center",
             alignItems: "center",
-            marginRight: 14,
+            marginRight: isSmallScreen ? 12 : 14,
         },
-        texto: { color: c.textPrimary, fontSize: 15, fontWeight: "600" },
-        subtexto: { color: c.textMuted, fontSize: 12, marginTop: 3 },
+        texto: { color: c.textPrimary, fontSize: isSmallScreen ? 14 : 15, fontWeight: "600" },
+        subtexto: { color: c.textMuted, fontSize: isSmallScreen ? 11 : 12, marginTop: 3 },
         logout: {
-            marginTop: 12,
+            marginTop: isSmallScreen ? 10 : 12,
             flexDirection: "row",
             alignItems: "center",
             backgroundColor: "rgba(239,68,68,0.06)",
-            padding: 16,
-            borderRadius: 22,
+            padding: isSmallScreen ? 14 : 16,
+            borderRadius: isSmallScreen ? 18 : 22,
             borderWidth: 1,
             borderColor: "rgba(239,68,68,0.15)",
         },
         logoutIcon: { backgroundColor: "rgba(239,68,68,0.1)" },
-        logoutText: { color: c.error, fontSize: 15, fontWeight: "bold" },
+        logoutText: { color: c.error, fontSize: isSmallScreen ? 14 : 15, fontWeight: "bold" },
         modalOverlay: {
             flex: 1,
             backgroundColor: c.overlayStronger,
             justifyContent: "center",
             alignItems: "center",
-            paddingHorizontal: 24,
+            paddingHorizontal: isSmallScreen ? 20 : 24,
         },
         modalCard: {
             width: "100%",
-            borderRadius: 28,
+            borderRadius: isSmallScreen ? 24 : 28,
             overflow: "hidden",
             borderWidth: 1,
             borderColor: c.glassBorder,
         },
-        modalGradient: { padding: 24, alignItems: "center" },
+        modalGradient: { padding: isSmallScreen ? 20 : 24, alignItems: "center" },
         modalIcon: {
-            width: 72,
-            height: 72,
-            borderRadius: 24,
+            width: isSmallScreen ? 64 : 72,
+            height: isSmallScreen ? 64 : 72,
+            borderRadius: isSmallScreen ? 20 : 24,
             backgroundColor: "rgba(239,68,68,0.1)",
             justifyContent: "center",
             alignItems: "center",
-            marginBottom: 16,
+            marginBottom: isSmallScreen ? 14 : 16,
         },
-        modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
+        modalTitle: { color: c.textPrimary, fontSize: isSmallScreen ? 20 : 22, fontWeight: "bold" },
         modalText: {
             color: c.textSecondary,
             textAlign: "center",
-            marginTop: 10,
-            fontSize: 14,
-            lineHeight: 22,
-            paddingHorizontal: 12,
+            marginTop: isSmallScreen ? 8 : 10,
+            fontSize: isSmallScreen ? 13 : 14,
+            lineHeight: isSmallScreen ? 20 : 22,
+            paddingHorizontal: isSmallScreen ? 10 : 12,
         },
-        modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
+        modalButtons: { flexDirection: "row", marginTop: isSmallScreen ? 20 : 24, width: "100%", gap: isSmallScreen ? 10 : 12 },
         cancelBtn: {
             flex: 1,
-            height: 50,
-            borderRadius: 16,
+            height: isSmallScreen ? 46 : 50,
+            borderRadius: isSmallScreen ? 14 : 16,
             backgroundColor: c.glass,
             justifyContent: "center",
             alignItems: "center",
             borderWidth: 1,
             borderColor: c.glassBorder,
         },
-        cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
-        confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+        cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: isSmallScreen ? 13 : 14 },
+        confirmBtn: { flex: 1, height: isSmallScreen ? 46 : 50, borderRadius: isSmallScreen ? 14 : 16, overflow: "hidden" },
         confirmGradient: {
             flex: 1,
             flexDirection: "row",
             justifyContent: "center",
             alignItems: "center",
-            gap: 8,
+            gap: isSmallScreen ? 6 : 8,
         },
-        confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
+        confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: isSmallScreen ? 13 : 14 },
     });
 }

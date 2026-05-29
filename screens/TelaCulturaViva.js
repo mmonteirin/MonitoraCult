@@ -86,8 +86,9 @@ const getImagemPorCategoria = (categoria, imagemOriginal) => {
 };
 
 export default function TelaCulturaViva({ navigation }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
 
   const insets = useSafeAreaInsets();
 

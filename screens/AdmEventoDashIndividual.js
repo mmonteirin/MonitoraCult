@@ -919,6 +919,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [periodo, setPeriodo] = useState("30d");
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [semPermissao, setSemPermissao] = useState(false);
 
   const { show: showToast, ToastComponent } = useNotificationToast();
 
@@ -940,7 +941,19 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
         ]);
         if (!mounted) return;
         if (eventoSnap.exists()) {
-          setEvento({ id: eventoSnap.id, ...eventoSnap.data() });
+          const eventoData = { id: eventoSnap.id, ...eventoSnap.data() };
+          
+          // Verificar permissão: usuário deve ser o proprietário do evento
+          const isOwner = eventoData.uidEvento === user?.uid || 
+                         eventoData.organizador?.uid === user?.uid;
+          
+          if (!isOwner) {
+            setSemPermissao(true);
+            setLoading(false);
+            return;
+          }
+          
+          setEvento(eventoData);
         }
         setVendas(vendasData || null);
       } catch (error) {
@@ -1137,6 +1150,31 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
         <View style={styles.loadingState}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Carregando dashboard...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Acesso Negado ─────────────────────────────────────────────────────────
+  if (semPermissao) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <LinearGradient
+          colors={["#05060A", "#0B1020", "#111827"]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={styles.errorState}>
+          <MaterialCommunityIcons name="lock-outline" size={64} color="#EF4444" />
+          <Text style={styles.errorTitle}>Acesso Negado</Text>
+          <Text style={styles.errorText}>
+            Você não tem permissão para visualizar as métricas deste evento.
+          </Text>
+          <TouchableOpacity
+            style={styles.errorButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.errorButtonText}>Voltar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -1493,6 +1531,32 @@ function createThemedScreenStyles(c) {
     fontSize: 14,
     fontWeight: "700",
     marginTop: 12,
+  },
+  errorState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
+  errorTitle: {
+    color: "#FFF",
+    fontSize: 24,
+    fontWeight: "800",
+    marginTop: 20,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 28,
+  },
+  errorButton: {
+    backgroundColor: c.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 16,
+  },
+  errorButtonText: {
+    color: "#FFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
   headerCard: {
     borderRadius: 30,

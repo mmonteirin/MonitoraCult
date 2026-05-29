@@ -23,6 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
+import { getCreatorDetails, incrementCreatorViews } from "../services/communityService";
 
 export default function ComunidadeCriadorDetalhes({
   route,
@@ -38,14 +39,17 @@ export default function ComunidadeCriadorDetalhes({
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // Aqui você carregaria os detalhes do criador
     loadCreatorData();
-  }, []);
+  }, [creatorId]);
 
   const loadCreatorData = async () => {
     try {
       setLoading(true);
-      // Simular carregamento de dados
+      const creatorData = await getCreatorDetails(creatorId);
+      setCreator(creatorData);
+      if (creatorData) {
+        await incrementCreatorViews(creatorId);
+      }
       setLoading(false);
     } catch (error) {
       console.error("Erro ao carregar criador:", error);
@@ -144,7 +148,6 @@ export default function ComunidadeCriadorDetalhes({
       </Animated.View>
 
       <Animated.ScrollView
-        entering={FadeIn.duration(700)}
         style={styles.content}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
@@ -167,27 +170,31 @@ export default function ComunidadeCriadorDetalhes({
             style={styles.profileHeader}
           >
           <View style={styles.profileImage}>
-            <MaterialCommunityIcons
-              name="account"
-              size={80}
-              color={colors.textPrimary}
-            />
+            {creator?.photoURL ? (
+              <Image source={{ uri: creator.photoURL }} style={styles.profileImage} />
+            ) : (
+              <MaterialCommunityIcons
+                name="account"
+                size={80}
+                color={colors.textPrimary}
+              />
+            )}
           </View>
-          <Text style={styles.creatorName}>Criador em Destaque</Text>
-          <Text style={styles.creatorGenre}>Gênero</Text>
+          <Text style={styles.creatorName}>{creator?.name || "Criador"}</Text>
+          <Text style={styles.creatorGenre}>{creator?.genre || "Artista"}</Text>
 
           {/* STATS */}
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statNumber}>{creator?.followersCount || 0}</Text>
               <Text style={styles.statLabel}>Seguidores</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statNumber}>{creator?.worksCount || 0}</Text>
               <Text style={styles.statLabel}>Obras</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNumber}>0</Text>
+              <Text style={styles.statNumber}>{creator?.likesCount || 0}</Text>
               <Text style={styles.statLabel}>Curtidas</Text>
             </View>
           </View>
@@ -226,9 +233,8 @@ export default function ComunidadeCriadorDetalhes({
           <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sobre</Text>
           <Text style={styles.sectionContent}>
-            Descrição do criador em destaque. Aqui você pode visualizar
-            informações sobre o criador selecionado.
-            </Text>
+            {creator?.bio || "Sem descrição disponível."}
+          </Text>
           </View>
         </Animated.View>
 
@@ -244,20 +250,35 @@ export default function ComunidadeCriadorDetalhes({
             </TouchableOpacity>
           </View>
           <View style={styles.portfolioGrid}>
-            {[1, 2, 3, 4].map((item) => (
-              <View
-                key={item}
-                style={styles.portfolioItem}
-              >
-                <View style={styles.portfolioPlaceholder}>
-                  <MaterialCommunityIcons
-                    name="image"
-                    size={32}
-                    color={colors.textMuted}
-                  />
+            {creator?.portfolio?.length > 0 ? (
+              creator.portfolio.map((item, index) => (
+                <View
+                  key={index}
+                  style={styles.portfolioItem}
+                >
+                  {item.imageUrl ? (
+                    <Image source={{ uri: item.imageUrl }} style={styles.portfolioItem} />
+                  ) : (
+                    <View style={styles.portfolioPlaceholder}>
+                      <MaterialCommunityIcons
+                        name="image"
+                        size={32}
+                        color={colors.textMuted}
+                      />
+                    </View>
+                  )}
                 </View>
+              ))
+            ) : (
+              <View style={styles.portfolioPlaceholder}>
+                <MaterialCommunityIcons
+                  name="image-outline"
+                  size={40}
+                  color={colors.textMuted}
+                />
+                <Text style={styles.emptyText}>Sem portfólio</Text>
               </View>
-              ))}
+            )}
             </View>
           </View>
         </Animated.View>
@@ -273,30 +294,45 @@ export default function ComunidadeCriadorDetalhes({
               <Text style={styles.seeAll}>Ver Tudo</Text>
             </TouchableOpacity>
           </View>
-          {[1, 2, 3].map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={styles.workItem}
-              activeOpacity={0.7}
-            >
-              <View style={styles.workImage}>
+          {creator?.works?.length > 0 ? (
+            creator.works.map((work, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.workItem}
+                activeOpacity={0.7}
+              >
+                <View style={styles.workImage}>
+                  {work.imageUrl ? (
+                    <Image source={{ uri: work.imageUrl }} style={styles.workImage} />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="image"
+                      size={40}
+                      color={colors.textMuted}
+                    />
+                  )}
+                </View>
+                <View style={styles.workInfo}>
+                  <Text style={styles.workTitle}>{work.title || "Obra"}</Text>
+                  <Text style={styles.workDate}>{work.date || "Recente"}</Text>
+                </View>
                 <MaterialCommunityIcons
-                  name="image"
-                  size={40}
+                  name="chevron-right"
+                  size={24}
                   color={colors.textMuted}
                 />
-              </View>
-              <View style={styles.workInfo}>
-                <Text style={styles.workTitle}>Obra {item}</Text>
-                <Text style={styles.workDate}>Há 2 dias</Text>
-              </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
               <MaterialCommunityIcons
-                name="chevron-right"
-                size={24}
+                name="image-outline"
+                size={40}
                 color={colors.textMuted}
               />
-            </TouchableOpacity>
-          ))}
+              <Text style={styles.emptyText}>Sem obras recentes</Text>
+            </View>
+          )}
           </View>
         </Animated.View>
       </Animated.ScrollView>
@@ -506,6 +542,15 @@ function createThemedScreenStyles(c) {
     fontSize: 11,
     color: c.textMuted,
     marginTop: 4,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyText: {
+    color: c.textMuted,
+    fontSize: 13,
+    marginTop: 8,
   },
 });
 }

@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Modal,
+  Dimensions,
 } from "react-native";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,6 +21,8 @@ import { useColors, useGradients, useTheme } from "../context/ThemeContext";
 import { Radius, Status, Typography } from "../styles/Colors";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import ThemeToggle from "../components/ThemeToggle";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function CustomDrawerContent(props) {
   const insets = useSafeAreaInsets();
@@ -61,8 +64,12 @@ export default function CustomDrawerContent(props) {
   return (
     <View style={styles.container}>
       {/* HEADER EM GRADIENTE */}
-      <LinearGradient colors={Gradients?.primary || ["#1E1B4B", "#0F172A"]} style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <View style={styles.glow} />
+      <LinearGradient 
+        colors={[colors.primary, colors.primaryDark, colors.accentCyan]} 
+        style={[styles.header, { paddingTop: insets.top + 16 }]}
+      >
+        <View style={[styles.glow, { backgroundColor: colors.primary + "30" }]} />
+        <View style={[styles.glow2, { backgroundColor: colors.accentCyan + "20" }]} />
         <TouchableOpacity activeOpacity={0.85} onPress={() => props.navigation.navigate("Perfil")}>
           <Animated.View style={[styles.profileRow, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
             <View style={styles.avatarWrapper}>
@@ -74,13 +81,13 @@ export default function CustomDrawerContent(props) {
               <Text style={styles.nome} numberOfLines={1}>{nomeUsuario}</Text>
               <Text style={styles.email} numberOfLines={1}>{user?.email || "Sem email"}</Text>
 
-              <BlurView intensity={35} tint="dark" style={styles.roleBadge}>
-                <MaterialCommunityIcons name={role === "admin" ? "shield-crown" : "account-circle"} size={13} color="#fff" />
+              <BlurView intensity={30} tint="dark" style={styles.roleBadge}>
+                <MaterialCommunityIcons name={role === "admin" ? "shield-crown" : "account-circle"} size={14} color="#fff" />
                 <Text style={styles.roleText}>{role === "admin" ? "Organizador" : "Participante"}</Text>
               </BlurView>
             </View>
 
-            <MaterialCommunityIcons name="chevron-right" size={22} color="rgba(255,255,255,0.55)" />
+            <MaterialCommunityIcons name="chevron-right" size={24} color="rgba(255,255,255,0.6)" />
           </Animated.View>
         </TouchableOpacity>
       </LinearGradient>
@@ -160,168 +167,199 @@ function createDrawerStyles(c) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     header: {
-      paddingHorizontal: 14,
-      paddingBottom: 14,
-      borderBottomLeftRadius: 22,
-      borderBottomRightRadius: 22,
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+      borderBottomLeftRadius: 28,
+      borderBottomRightRadius: 28,
       overflow: "hidden",
+      shadowColor: c.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 8,
     },
     glow: {
       position: "absolute",
-      width: 160,
-      height: 160,
-      borderRadius: Radius.round,
-      backgroundColor: c.glassStrong,
-      top: -62,
-      right: -46,
+      width: 180,
+      height: 180,
+      borderRadius: 90,
+      top: -70,
+      right: -50,
+    },
+    glow2: {
+      position: "absolute",
+      width: 120,
+      height: 120,
+      borderRadius: 60,
+      bottom: 30,
+      left: -40,
     },
     profileRow: { flexDirection: "row", alignItems: "center" },
-    profileCopy: { flex: 1, paddingHorizontal: 12 },
+    profileCopy: { flex: 1, paddingHorizontal: 14 },
     avatarWrapper: { position: "relative" },
     avatar: {
-      width: 58,
-      height: 58,
-      borderRadius: 29,
-      borderWidth: 2,
-      borderColor: c.glassBorder,
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      borderWidth: 3,
+      borderColor: "rgba(255,255,255,0.3)",
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 4,
     },
     onlineBadge: {
       position: "absolute",
-      right: 1,
-      bottom: 1,
-      width: 13,
-      height: 13,
-      borderRadius: 7,
+      right: 2,
+      bottom: 2,
+      width: 16,
+      height: 16,
+      borderRadius: 8,
       backgroundColor: c.success,
-      borderWidth: 2,
+      borderWidth: 3,
       borderColor: c.surfaceMuted,
     },
     nome: {
       color: c.onPrimary,
       fontFamily: Typography.bold,
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: "800",
+      letterSpacing: 0.3,
     },
-    email: { color: "rgba(255,255,255,0.72)", fontSize: 11, marginTop: 2 },
+    email: { color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 3, fontWeight: "500" },
     roleBadge: {
       alignSelf: "flex-start",
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      paddingHorizontal: 9,
-      paddingVertical: 5,
-      borderRadius: 30,
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
       overflow: "hidden",
-      marginTop: 7,
+      marginTop: 10,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.2)",
     },
     roleText: {
       color: c.onPrimary,
       fontFamily: Typography.bold,
       fontSize: 12,
-      fontWeight: "600",
+      fontWeight: "700",
+      letterSpacing: 0.2,
     },
-    footer: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 14 },
-    supportButton: { borderRadius: Radius.md, overflow: "hidden", marginBottom: 10 },
+    footer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 },
+    supportButton: { borderRadius: Radius.lg, overflow: "hidden", marginBottom: 12 },
     cityButtonGradient: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 11,
-      paddingHorizontal: 12,
-      borderRadius: Radius.md,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: Radius.lg,
     },
     cityIconWrapper: {
-      width: 36,
-      height: 36,
-      borderRadius: Radius.sm,
+      width: 42,
+      height: 42,
+      borderRadius: Radius.md,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.primarySoft,
-      marginRight: 10,
+      marginRight: 12,
     },
-    supportText: { color: c.textPrimary, fontWeight: "700", fontSize: 13 },
-    citySubText: { color: c.textMuted, marginTop: 1, fontSize: 11 },
-    actionButtonsRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+    supportText: { color: c.textPrimary, fontWeight: "700", fontSize: 14, letterSpacing: 0.2 },
+    citySubText: { color: c.textMuted, marginTop: 2, fontSize: 12 },
+    actionButtonsRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
     themeButton: {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.primarySoft,
-      paddingVertical: 12,
-      borderRadius: Radius.sm,
-      gap: 6,
+      paddingVertical: 14,
+      borderRadius: Radius.md,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
     },
-    themeText: { color: c.textPrimary, fontWeight: "700", fontSize: 14 },
+    themeText: { color: c.textPrimary, fontWeight: "700", fontSize: 15, letterSpacing: 0.2 },
     logoutButton: {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(239,68,68,0.08)",
-      paddingVertical: 12,
-      borderRadius: Radius.sm,
-      gap: 6,
+      backgroundColor: "rgba(239,68,68,0.1)",
+      paddingVertical: 14,
+      borderRadius: Radius.md,
+      gap: 8,
+      borderWidth: 1,
+      borderColor: "rgba(239,68,68,0.2)",
     },
-    logoutText: { color: c.error, fontWeight: "700", fontSize: 14 },
-    version: { color: c.textMuted, textAlign: "center", marginTop: 10, fontSize: 11 },
+    logoutText: { color: c.error, fontWeight: "700", fontSize: 15, letterSpacing: 0.2 },
+    version: { color: c.textMuted, textAlign: "center", marginTop: 12, fontSize: 12, fontWeight: "600" },
     modalOverlay: {
       flex: 1,
       backgroundColor: c.overlayStronger,
       justifyContent: "center",
       alignItems: "center",
-      paddingHorizontal: 24,
+      paddingHorizontal: 28,
     },
     modalCard: {
       width: "100%",
-      borderRadius: 30,
+      borderRadius: 32,
       overflow: "hidden",
-      padding: 26,
+      padding: 28,
       backgroundColor: c.card,
       borderWidth: 1,
       borderColor: c.glassBorder,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.3,
+      shadowRadius: 24,
+      elevation: 12,
     },
     modalIcon: {
-      width: 74,
-      height: 74,
-      borderRadius: 24,
+      width: 80,
+      height: 80,
+      borderRadius: 28,
       justifyContent: "center",
       alignItems: "center",
       alignSelf: "center",
-      marginBottom: 20,
+      marginBottom: 24,
     },
     modalTitle: {
       color: c.textPrimary,
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: "bold",
       textAlign: "center",
+      letterSpacing: 0.3,
     },
     modalText: {
       color: c.textSecondary,
-      fontSize: 15,
+      fontSize: 16,
       textAlign: "center",
-      lineHeight: 23,
-      marginTop: 10,
+      lineHeight: 24,
+      marginTop: 12,
     },
-    modalButtons: { flexDirection: "row", marginTop: 28, gap: 14 },
+    modalButtons: { flexDirection: "row", marginTop: 32, gap: 16 },
     cancelButton: {
       flex: 1,
-      height: 56,
-      borderRadius: 18,
+      height: 60,
+      borderRadius: 20,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: c.glass,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: c.glassBorder,
     },
-    cancelText: { color: c.textPrimary, fontWeight: "700", fontSize: 15 },
+    cancelText: { color: c.textPrimary, fontWeight: "700", fontSize: 16, letterSpacing: 0.2 },
     confirmButton: {
-      height: 56,
-      borderRadius: 18,
+      height: 60,
+      borderRadius: 20,
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      gap: 8,
+      gap: 10,
     },
-    confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 15 },
+    confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 16, letterSpacing: 0.2 },
   });
 }

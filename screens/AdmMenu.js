@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 
 import {
   View,
@@ -33,7 +33,7 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 export default function AdmMenu() {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
-  const blurTint = isDark ? "dark" : "light";
+  const blurTint = useMemo(() => isDark ? "dark" : "light", [isDark]);
   const navigation = useNavigation();
 
   const {
@@ -48,11 +48,11 @@ export default function AdmMenu() {
   const [loadingLogout, setLoadingLogout] =
     useState(false);
 
-  const goToAdmin = (screen) => {
+  const goToAdmin = useCallback((screen) => {
     navigation.navigate(screen);
-  };
+  }, [navigation]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       setLoadingLogout(true);
 
@@ -65,7 +65,7 @@ export default function AdmMenu() {
       setLoadingLogout(false);
       setShowLogoutModal(false);
     }
-  };
+  }, [logout]);
 
   return (
     <ImageBackground
@@ -485,7 +485,7 @@ export default function AdmMenu() {
 }
 
 /* CARD - Acesso Rápido */
-function MenuCard({
+const MenuCard = React.memo(function MenuCard({
   icon,
   label,
   subtitle,
@@ -541,7 +541,7 @@ function MenuCard({
       </TouchableOpacity>
     </MotiView>
   );
-}
+});
 
 /* STYLES */
 function createThemedScreenStyles(c) {

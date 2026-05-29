@@ -30,6 +30,7 @@ import {
 	deleteDoc,
 	doc,
 	orderBy,
+	or,
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
@@ -52,9 +53,10 @@ const formatarDataEventoLista = (item) => {
 };
 
 export default function AdmEvento({ navigation }) {
-		const { colors } = useTheme();
-		const styles = useThemedStyles(createThemedScreenStyles);
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
 	const { user, foto } = useAuth();
+	const blurTint = isDark ? "dark" : "light";
 
 	const [eventos, setEventos] = useState([]);
 
@@ -75,9 +77,13 @@ export default function AdmEvento({ navigation }) {
 	useEffect(() => {
 		if (!user?.uid) return;
 
+		// Buscar eventos onde usuário é o proprietário (uidEvento ou organizador.uid)
 		const q = query(
 			collection(db, "eventos"),
-			where("uidEvento", "==", user.uid),
+			or(
+				where("uidEvento", "==", user.uid),
+				where("organizador.uid", "==", user.uid)
+			),
 			orderBy("createdAt", "desc")
 		);
 

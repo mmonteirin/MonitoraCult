@@ -24,6 +24,7 @@ import {
   obterPushToken,
   salvarTokenNoFirestore,
   buscarNotificacoes,
+  buscarNotificacoesPaginadas,
   marcarComoLida,
   marcarTodasComoLidas,
   limparHistorico,
@@ -47,6 +48,11 @@ export function NotificationProvider({ children }) {
   const [notificacoes, setNotificacoes] = useState([]);
   const [naoLidas, setNaoLidas] = useState(0);
   const [carregando, setCarregando] = useState(false);
+  const [carregandoMais, setCarregandoMais] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState(null);
+  const [erro, setErro] = useState(null);
+  const [temMais, setTemMais] = useState(true);
+  const [ultimoDoc, setUltimoDoc] = useState(null);
 
   // Refs para listeners
   const notificationsModuleRef = useRef(null);
@@ -71,11 +77,11 @@ export function NotificationProvider({ children }) {
     return () => {
       // Cleanup listeners
       const Notifications = notificationsModuleRef.current;
-      if (notifRecebidaRef.current) {
-        Notifications?.removeNotificationSubscription(notifRecebidaRef.current);
+      if (Notifications && notifRecebidaRef.current) {
+        Notifications.removeNotificationSubscription(notifRecebidaRef.current);
       }
-      if (notifRespostaRef.current) {
-        Notifications?.removeNotificationSubscription(notifRespostaRef.current);
+      if (Notifications && notifRespostaRef.current) {
+        Notifications.removeNotificationSubscription(notifRespostaRef.current);
       }
     };
   }, [uid]);
@@ -178,21 +184,45 @@ export function NotificationProvider({ children }) {
   }, []);
 
   // ── Carregar histórico do Firestore ─────────────────────────────────────────
-  const carregarNotificacoes = useCallback(async () => {
+  const carregarNotificacoes = useCallback(async (reset = true) => {
     if (!uid) return;
-    setCarregando(true);
+    if (reset) {
+      setCarregando(true);
+      setUltimoDoc(null);
+      setTemMais(true);
+    } else {
+      setCarregandoMais(true);
+    }
+    setErro(null);
     try {
-      const lista = await buscarNotificacoes(uid, 40);
-      setNotificacoes(lista);
-      const count = lista.filter((n) => !n.lida).length;
-      setNaoLidas(count);
-      setBadgeCount(count);
+      const result = await buscarNotificacoesPaginadas(uid, {
+        limit: 30,
+        ultimoDoc: reset ? null : ultimoDoc,
+        tipo: filtroTipo,
+      });
+      
+      if (reset) {
+        setNotificacoes(result.notificacoes);
+      } else {
+        setNotificacoes(prev => [...prev, ...result.notificacoes]);
+      }
+      
+      setUltimoDoc(result.ultimoDoc);
+      setTemMais(result.temMais);
+      
+      const count = result.notificacoes.filter((n) => !n.lida).length;
+      if (reset) {
+        setNaoLidas(count);
+        setBadgeCount(count);
+      }
     } catch (e) {
       console.error("[Notificações] Erro ao carregar:", e);
+      setErro("Não foi possível carregar notificações");
     } finally {
       setCarregando(false);
+      setCarregandoMais(false);
     }
-  }, [uid]);
+  }, [uid, ultimoDoc, filtroTipo]);
 
   // ── Ações ────────────────────────────────────────────────────────────────────
   const handleMarcarLida = useCallback(async (notifId) => {
@@ -220,13 +250,38 @@ export function NotificationProvider({ children }) {
     clearBadge();
   }, [uid]);
 
+  const carregarMais = useCallback(() => {
+    if (temMais && !carregandoMais && !carregando) {
+      carregarNotificacoes(false);
+    }
+  }, [temMais, carregandoMais, carregando, carregarNotificacoes]);
+
+  const aplicarFiltro = useCallback((tipo) => {
+    setFiltroTipo(tipo);
+    setUltimoDoc(null);
+    setTemMais(true);
+  }, []);
+
+  const limparFiltro = useCallback(() => {
+    setFiltroTipo(null);
+    setUltimoDoc(null);
+    setTemMais(true);
+  }, []);
+
   const value = {
     pushToken,
     permissaoStatus,
     notificacoes,
     naoLidas,
     carregando,
+    carregandoMais,
+    erro,
+    filtroTipo,
+    temMais,
     carregarNotificacoes,
+    carregarMais,
+    aplicarFiltro,
+    limparFiltro,
     marcarLida: handleMarcarLida,
     marcarTodasLidas: handleMarcarTodasLidas,
     limparHistorico: handleLimparHistorico,
