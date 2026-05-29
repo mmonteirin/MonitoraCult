@@ -32,6 +32,7 @@ import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciad
 
 export default function PerfilLogin({ navigation }) {
   const styles = useThemedStyles(createThemedScreenStyles);
+  const { colors } = useTheme();
   const { googleLogin, facebookLogin, microsoftLogin, twitterLogin } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -152,7 +153,7 @@ export default function PerfilLogin({ navigation }) {
               style={styles.logoContainer}
             >
               <LinearGradient
-                colors={[Colors?.primary || "#7C3AED", "#7B5CFF"]}
+                colors={[colors.primaryLight, colors.primary]}
                 style={styles.logoCircle}
               >
                 <Feather name="zap" size={30} color="#FFF" />
@@ -168,7 +169,7 @@ export default function PerfilLogin({ navigation }) {
               animate={{ opacity: 1, translateY: 0 }}
               transition={{ type: "timing", duration: 850 }}
             >
-              <BlurView intensity={65} tint={blurTint} style={styles.card}>
+              <BlurView intensity={65} tint="dark" style={styles.card}>
                 
                 {/* EMAIL */}
                 <AppText style={styles.label}>Email</AppText>
@@ -176,7 +177,7 @@ export default function PerfilLogin({ navigation }) {
                   <Feather
                     name="mail"
                     size={18}
-                    color={Colors?.textMuted || "#64748B"}
+                    color={colors.textMuted}
                     style={styles.icon}
                   />
                   <TextInput
@@ -186,7 +187,7 @@ export default function PerfilLogin({ navigation }) {
                     autoCapitalize="none"
                     keyboardType="email-address"
                     placeholder="Digite seu email"
-                    placeholderTextColor={Colors?.textMuted || "#64748B"}
+                    placeholderTextColor={colors.textMuted}
                     onFocus={() => setFocusedInput("email")}
                     onBlur={() => setFocusedInput(null)}
                     returnKeyType="next"
@@ -199,7 +200,7 @@ export default function PerfilLogin({ navigation }) {
                   <Feather
                     name="lock"
                     size={18}
-                    color={Colors?.textMuted || "#64748B"}
+                    color={colors.textMuted}
                     style={styles.icon}
                   />
                   <TextInput
@@ -208,7 +209,7 @@ export default function PerfilLogin({ navigation }) {
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     placeholder="Digite sua senha"
-                    placeholderTextColor={Colors?.textMuted || "#64748B"}
+                    placeholderTextColor={colors.textMuted}
                     onFocus={() => setFocusedInput("password")}
                     onBlur={() => setFocusedInput(null)}
                     returnKeyType="done"
@@ -218,7 +219,7 @@ export default function PerfilLogin({ navigation }) {
                     <Feather
                       name={showPassword ? "eye" : "eye-off"}
                       size={18}
-                      color={Colors?.primary || "#7C3AED"}
+                      color={colors.primary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -239,7 +240,7 @@ export default function PerfilLogin({ navigation }) {
                   style={styles.buttonWrapper}
                 >
                   <LinearGradient
-                    colors={[Colors?.primary || "#7C3AED", "#7B5CFF"]}
+                    colors={[colors.primaryLight, colors.primary]}
                     style={styles.button}
                   >
                     {loading ? (
@@ -306,8 +307,8 @@ export default function PerfilLogin({ navigation }) {
                   onPress={() => navigation.navigate("CadastroAdmin")}
                   activeOpacity={0.8}
                 >
-                  <Feather name="briefcase" size={16} color={Colors?.warning || "#FFD166"} />
-                  <AppText style={styles.organizador}>
+                  <Feather name="briefcase" size={16} color={colors.warning} />
+                  <AppText style={styles.organizadorText}>
                     Cadastrar como Organizador
                   </AppText>
                 </TouchableOpacity>
@@ -347,24 +348,24 @@ function createThemedScreenStyles(c) {
   card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: c.glassStrong },
   label: { color: "rgba(255,255,255,0.75)", marginBottom: 6, marginLeft: 4, fontSize: 13 },
   inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: c.glass, borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: c.glassStrong },
-  inputFocused: { borderColor: Colors?.primary || "#7C3AED" },
+  inputFocused: { borderColor: c.primary },
   icon: { marginRight: 8 },
   input: { flex: 1, color: "#FFF", paddingVertical: 14, fontSize: 14 },
   forgot: { alignSelf: "flex-end" },
-  link: { color: Colors?.primary || "#7C3AED", fontWeight: "600", fontSize: 13 },
+  link: { color: c.primary, fontWeight: "600", fontSize: 13 },
   buttonWrapper: { marginTop: 18, borderRadius: 16, overflow: "hidden" },
   button: { paddingVertical: 15, alignItems: "center" },
   buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 15 },
   row: { flexDirection: "row", justifyContent: "center", marginTop: 16, gap: 5, flexWrap: "wrap" },
   rowText: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
-  linkBold: { color: Colors?.primary || "#7C3AED", fontWeight: "bold", fontSize: 13 },
+  linkBold: { color: c.primary, fontWeight: "bold", fontSize: 13 },
   dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 18 },
   line: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.10)" },
   divider: { marginHorizontal: 10, color: "rgba(255,255,255,0.45)", fontSize: 11 },
   socialContainer: { flexDirection: "row", justifyContent: "center", gap: 14, marginBottom: 18 },
   socialButton: { width: 50, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: c.glassBorder },
   organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: c.glass },
-  organizador: { color: Colors?.warning || "#FFD166", fontWeight: "bold", fontSize: 13 },
+  organizadorText: { color: c.warning, fontWeight: "bold", fontSize: 13 },
   footer: { marginTop: 18, textAlign: "center", fontSize: 11, lineHeight: 18, color: "rgba(255,255,255,0.45)" },
 });
 }

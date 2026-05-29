@@ -109,7 +109,9 @@ function StatMini({ icon, label, value, color = colors.primaryLight }) {
 export default function AdmGerenciarIngressos({ navigation, route }) {
   const themeContext = useTheme();
   colors = themeContext.colors;
+  const { isDark } = themeContext;
   styles = useThemedStyles(createThemedScreenStyles);
+  const blurTint = isDark ? "dark" : "light";
   const eventoId =
     route?.params?.eventoId || route?.params?.evento?.id;
 

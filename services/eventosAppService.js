@@ -134,7 +134,7 @@ export async function toggleEventoLike(eventoId, usuarioId, like) {
   if (!eventoId || !usuarioId) return;
 
   const eventoRef = doc(db, "eventos", eventoId);
-  const likeRef = doc(db, "likes", `${eventoId}_${usuarioId}`);
+  const likeRef = doc(db, "likes", `evento_${eventoId}_${usuarioId}`);
 
   try {
     await runTransaction(db, async (transaction) => {

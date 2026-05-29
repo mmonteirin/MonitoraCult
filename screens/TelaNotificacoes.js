@@ -3,7 +3,7 @@
  * Tela de Notificações — inbox estilo app moderno
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   RefreshControl,
   Alert,
   Image,
+  ScrollView,
 } from "react-native";
 
 import Animated, {
@@ -179,17 +180,33 @@ export default function TelaNotificacoes({ navigation }) {
   const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const {
-    notificacoes, naoLidas, carregando,
-    carregarNotificacoes, marcarLida, marcarTodasLidas, limparHistorico,
+    notificacoes, naoLidas, carregando, carregandoMais, erro,
+    filtroTipo, temMais,
+    carregarNotificacoes, carregarMais, aplicarFiltro, limparFiltro,
+    marcarLida, marcarTodasLidas, limparHistorico,
   } = useNotifications();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [filtroVisible, setFiltroVisible] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await carregarNotificacoes();
+    await carregarNotificacoes(true);
     setRefreshing(false);
   }, [carregarNotificacoes]);
+
+  useEffect(() => {
+    carregarNotificacoes(true);
+  }, [filtroTipo]);
+
+  const handleFiltroChange = (tipo) => {
+    if (filtroTipo === tipo) {
+      limparFiltro();
+    } else {
+      aplicarFiltro(tipo);
+    }
+    setFiltroVisible(false);
+  };
 
   const handlePress = useCallback((notif) => {
     if (!notif.lida) marcarLida(notif.id);
@@ -242,6 +259,9 @@ export default function TelaNotificacoes({ navigation }) {
         </View>
 
         <View style={s.headerActions}>
+          <TouchableOpacity style={s.headerBtn} onPress={() => setFiltroVisible(!filtroVisible)}>
+            <MaterialCommunityIcons name={filtroTipo ? "filter" : "filter-variant-outline"} size={20} color={filtroTipo ? colors.primary : colors.textMuted} />
+          </TouchableOpacity>
           {naoLidas > 0 && (
             <TouchableOpacity style={s.headerBtn} onPress={marcarTodasLidas}>
               <MaterialCommunityIcons name="check-all" size={20} color={colors.primary} />
@@ -274,11 +294,62 @@ export default function TelaNotificacoes({ navigation }) {
         </Animated.View>
       )}
 
+      {/* BARRA DE FILTROS */}
+      {filtroVisible && (
+        <Animated.View entering={FadeInDown.springify()} style={s.filterBar}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterScroll}>
+            <TouchableOpacity
+              style={[s.filterChip, !filtroTipo && s.filterChipActive]}
+              onPress={() => handleFiltroChange(null)}
+            >
+              <Text style={[s.filterChipText, !filtroTipo && s.filterChipTextActive]}>Todas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.filterChip, filtroTipo === NOTIFICATION_TYPES.EVENTO_NOVO && s.filterChipActive]}
+              onPress={() => handleFiltroChange(NOTIFICATION_TYPES.EVENTO_NOVO)}
+            >
+              <MaterialCommunityIcons name="calendar" size={14} color={filtroTipo === NOTIFICATION_TYPES.EVENTO_NOVO ? "#fff" : colors.textMuted} />
+              <Text style={[s.filterChipText, filtroTipo === NOTIFICATION_TYPES.EVENTO_NOVO && s.filterChipTextActive]}>Eventos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.filterChip, filtroTipo === NOTIFICATION_TYPES.MENSAGEM && s.filterChipActive]}
+              onPress={() => handleFiltroChange(NOTIFICATION_TYPES.MENSAGEM)}
+            >
+              <MaterialCommunityIcons name="message" size={14} color={filtroTipo === NOTIFICATION_TYPES.MENSAGEM ? "#fff" : colors.textMuted} />
+              <Text style={[s.filterChipText, filtroTipo === NOTIFICATION_TYPES.MENSAGEM && s.filterChipTextActive]}>Mensagens</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.filterChip, filtroTipo === NOTIFICATION_TYPES.COMUNIDADE && s.filterChipActive]}
+              onPress={() => handleFiltroChange(NOTIFICATION_TYPES.COMUNIDADE)}
+            >
+              <MaterialCommunityIcons name="account-group" size={14} color={filtroTipo === NOTIFICATION_TYPES.COMUNIDADE ? "#fff" : colors.textMuted} />
+              <Text style={[s.filterChipText, filtroTipo === NOTIFICATION_TYPES.COMUNIDADE && s.filterChipTextActive]}>Comunidade</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[s.filterChip, filtroTipo === NOTIFICATION_TYPES.LIKE && s.filterChipActive]}
+              onPress={() => handleFiltroChange(NOTIFICATION_TYPES.LIKE)}
+            >
+              <MaterialCommunityIcons name="heart" size={14} color={filtroTipo === NOTIFICATION_TYPES.LIKE ? "#fff" : colors.textMuted} />
+              <Text style={[s.filterChipText, filtroTipo === NOTIFICATION_TYPES.LIKE && s.filterChipTextActive]}>Curtidas</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      )}
+
       {/* LISTA */}
       {carregando && notificacoes.length === 0 ? (
         <View style={s.loading}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
+      ) : erro ? (
+        <Animated.View entering={FadeIn.delay(200).springify()} style={s.errorContainer}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.error} />
+          <Text style={s.errorTitle}>Erro ao carregar</Text>
+          <Text style={s.errorSub}>{erro}</Text>
+          <TouchableOpacity style={s.retryBtn} onPress={onRefresh}>
+            <Text style={s.retryBtnText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </Animated.View>
       ) : (
         <FlatList
           data={items}
@@ -291,6 +362,15 @@ export default function TelaNotificacoes({ navigation }) {
               onRefresh={onRefresh}
               tintColor={colors.primary}
             />
+          }
+          onEndReached={() => temMais && !carregandoMais && carregarMais()}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            carregandoMais ? (
+              <View style={s.loadingMore}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
           }
           renderItem={({ item, index }) => {
             if (item.type === "separator") {
@@ -313,7 +393,7 @@ export default function TelaNotificacoes({ navigation }) {
                 <MaterialCommunityIcons name="bell-sleep-outline" size={52} color={colors.textMuted} />
               </View>
               <Text style={s.emptyTitle}>Tudo em dia!</Text>
-              <Text style={s.emptySub}>Nenhuma notificação por aqui ainda.</Text>
+              <Text style={s.emptySub}>{filtroTipo ? "Nenhuma notificação deste tipo." : "Nenhuma notificação por aqui ainda."}</Text>
             </Animated.View>
           }
         />
@@ -399,6 +479,7 @@ function createFeedStyles(c) {
 
   // EMPTY
   loading: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingMore: { paddingVertical: 20, alignItems: "center" },
   empty: { alignItems: "center", paddingVertical: 80, paddingHorizontal: 40 },
   emptyIcon: {
     width: 90, height: 90, borderRadius: 28, backgroundColor: c.surface,
@@ -407,5 +488,31 @@ function createFeedStyles(c) {
   },
   emptyTitle: { fontSize: 18, fontWeight: "800", color: c.textPrimary, marginBottom: 8 },
   emptySub: { fontSize: 14, color: c.textMuted, textAlign: "center", lineHeight: 20 },
+
+  // ERROR
+  errorContainer: { flex: 1, justifyContent: "center", alignItems: "center", paddingHorizontal: 40 },
+  errorTitle: { fontSize: 18, fontWeight: "700", color: c.textPrimary, marginTop: 16, marginBottom: 8 },
+  errorSub: { fontSize: 14, color: c.textMuted, textAlign: "center", marginBottom: 20 },
+  retryBtn: {
+    backgroundColor: c.primary, paddingHorizontal: 24, paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+
+  // FILTER BAR
+  filterBar: { marginHorizontal: 14, marginTop: 10, marginBottom: 8 },
+  filterScroll: { gap: 8, paddingHorizontal: 4 },
+  filterChip: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: c.surface, borderRadius: 20,
+    borderWidth: 1, borderColor: c.border,
+  },
+  filterChipActive: {
+    backgroundColor: c.primary,
+    borderColor: c.primary,
+  },
+  filterChipText: { fontSize: 13, color: c.textSecondary, fontWeight: "600" },
+  filterChipTextActive: { color: "#fff" },
 });
 }

@@ -15,6 +15,7 @@ import React, {
   useCallback,
   useMemo,
   memo,
+  useRef,
 } from "react";
 import {
   View,
@@ -44,6 +45,8 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import QRCode from "react-native-qrcode-svg";
+import captureRef from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 
 import { useAuth } from "../context/AuthContext";
 import { useIngressos } from "../hooks/useIngressos";
@@ -94,18 +97,39 @@ const StatCard = memo(({ value, label, icon, color, delay, active, onPress, colo
 const QRModal = memo(({ visible, ingresso, compra, onClose, colors, styles }) => {
   if (!ingresso) return null;
 
+  const qrRef = useRef(null);
   const cfg = statusConfig(colors)[ingresso.status] ?? statusConfig(colors).confirmado;
-  const qrValue = ingresso.codigoIngresso || ingresso.id || "sem-codigo";
+  // QR Code com formato JSON consistente: { c: codigoIngresso, e: eventoId, t: tipo }
+  const qrValue = JSON.stringify({
+    c: ingresso.codigoIngresso || ingresso.id || "sem-codigo",
+    e: compra?.eventoId || "",
+    t: ingresso.tipo || "inteira",
+  });
   const tipoLabel = ingresso.tipo
     ? ingresso.tipo.charAt(0).toUpperCase() + ingresso.tipo.slice(1).toLowerCase()
     : "Ingresso";
 
   const handleShare = async () => {
     try {
-      await Share.share({
-        message: `🎫 Meu ingresso para ${compra?.eventoNome}\nCódigo: ${qrValue}\nData: ${compra?.eventoDataStr || ""}`,
-      });
-    } catch (_) {}
+      if (qrRef.current) {
+        const uri = await captureRef(qrRef.current, {
+          format: "png",
+          quality: 1,
+        });
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Compartilhar Ingresso",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao compartilhar:", error);
+      // Fallback para compartilhar texto se falhar
+      try {
+        await Share.share({
+          message: `🎫 Meu ingresso para ${compra?.eventoNome}\nCódigo: ${qrValue}\nData: ${compra?.eventoDataStr || ""}`,
+        });
+      } catch (_) {}
+    }
   };
 
   return (
@@ -137,7 +161,7 @@ const QRModal = memo(({ visible, ingresso, compra, onClose, colors, styles }) =>
           </View>
 
           {/* QR Code */}
-          <View style={styles.qrWrapper}>
+          <View style={styles.qrWrapper} ref={qrRef} collapsable={false}>
             <LinearGradient
               colors={["rgba(108,92,231,0.18)", "rgba(34,211,238,0.10)"]}
               style={styles.qrGlow}

@@ -45,7 +45,9 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 import SeletorIngressos from "../components/SeletorIngressos";
 import CarrinhoIngressos from "../components/CarrinhoIngressos";
 
-const { width: SCREEN_W } = Dimensions.get("window");
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const isSmallScreen = SCREEN_W < 375;
+const isTablet = SCREEN_W >= 768;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -104,11 +106,11 @@ function ProgressStepper({ etapaAtual }) {
               ]}
             >
               {completo ? (
-                <MaterialCommunityIcons name="check" size={16} color="#FFF" />
+                <MaterialCommunityIcons name="check" size={isSmallScreen ? 14 : 16} color="#FFF" />
               ) : (
                 <MaterialCommunityIcons
                   name={etapa.icon}
-                  size={16}
+                  size={isSmallScreen ? 14 : 16}
                   color={ativo ? "#FFF" : colors.textMuted}
                 />
               )}
@@ -124,16 +126,18 @@ function ProgressStepper({ etapaAtual }) {
               />
             )}
 
-            {/* Label */}
-            <Text
-              style={[
-                stepper.label,
-                ativo && stepper.labelActive,
-                completo && stepper.labelComplete,
-              ]}
-            >
-              {etapa.label}
-            </Text>
+            {/* Label - ocultar em telas muito pequenas */}
+            {!isSmallScreen && (
+              <Text
+                style={[
+                  stepper.label,
+                  ativo && stepper.labelActive,
+                  completo && stepper.labelComplete,
+                ]}
+              >
+                {etapa.label}
+              </Text>
+            )}
           </View>
         );
       })}
@@ -481,14 +485,32 @@ export default function TelaIngressos({ route, navigation }) {
       />
 
       {/* HEADER */}
-      <LinearGradient colors={[colors.background, colors.surface]} style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {gratuito ? "Reservar Ingresso" : "Comprar Ingressos"}
-        </Text>
-        <View style={{ width: 40 }} />
+      <LinearGradient
+        colors={[colors.backgroundSecondary, colors.surface, colors.background]}
+        style={styles.header}
+      >
+        <BlurView intensity={60} tint={blurTint} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </BlurView>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>
+            {gratuito ? "Reservar Ingresso" : "Comprar Ingressos"}
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1}>
+            {evento?.tituloEvento}
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <View style={[styles.ticketBadge, { backgroundColor: gratuito ? colors.success + "25" : colors.primary + "25" }]}>
+            <MaterialCommunityIcons
+              name={gratuito ? "ticket-confirmation" : "cash"}
+              size={16}
+              color={gratuito ? colors.success : colors.primary}
+            />
+          </View>
+        </View>
       </LinearGradient>
 
       {/* STEPPER DE PROGRESSO */}
@@ -652,53 +674,53 @@ export default function TelaIngressos({ route, navigation }) {
 
 // ─── Estilos ──────────────────────────────────────────────────────────────────
 
-const CARD_W = SCREEN_W * 0.82;
+const CARD_W = isTablet ? SCREEN_W * 0.45 : SCREEN_W * 0.82;
 
 function createIngressoCardStyles(c) {
   return StyleSheet.create({
     wrapper: {
       width: CARD_W,
       backgroundColor: c.surface,
-      borderRadius: 20,
+      borderRadius: isTablet ? 24 : 20,
       borderWidth: 1,
       overflow: "hidden",
-      marginRight: 14,
+      marginRight: isTablet ? 16 : 12,
     },
     topBar: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingHorizontal: 14,
-      paddingVertical: 10,
+      paddingHorizontal: isTablet ? 16 : 12,
+      paddingVertical: isTablet ? 10 : 8,
     },
     tipoBadge: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 5,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
       borderRadius: 999,
     },
-    tipoText: { fontSize: 12, fontWeight: "700" },
-    numero: { color: c.textMuted, fontSize: 12, fontWeight: "600" },
+    tipoText: { fontSize: isSmallScreen ? 11 : 12, fontWeight: "700" },
+    numero: { color: c.textMuted, fontSize: isSmallScreen ? 11 : 12, fontWeight: "600" },
     body: {
       flexDirection: "row",
-      paddingHorizontal: 14,
-      paddingBottom: 14,
+      paddingHorizontal: isTablet ? 16 : 12,
+      paddingBottom: isTablet ? 14 : 12,
       gap: 0,
       alignItems: "flex-start",
     },
-    qrCol: { alignItems: "center", width: 130 },
+    qrCol: { alignItems: "center", width: isTablet ? 140 : 120 },
     qrBox: {
-      padding: 10,
+      padding: isTablet ? 10 : 8,
       backgroundColor: c.surfaceMuted,
-      borderRadius: 14,
+      borderRadius: isTablet ? 16 : 14,
       borderWidth: 1,
     },
     scanHint: {
       color: c.textMuted,
-      fontSize: 10,
-      marginTop: 6,
+      fontSize: isSmallScreen ? 9 : 10,
+      marginTop: 4,
       textAlign: "center",
     },
     separator: {
@@ -795,15 +817,16 @@ function createStepperStyles(c) {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+      paddingHorizontal: isSmallScreen ? 8 : 16,
     },
     step: {
       flex: 1,
       alignItems: "center",
     },
     circle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: isSmallScreen ? 28 : 32,
+      height: isSmallScreen ? 28 : 32,
+      borderRadius: isSmallScreen ? 14 : 16,
       backgroundColor: c.glass,
       borderWidth: 2,
       borderColor: c.border,
@@ -820,7 +843,7 @@ function createStepperStyles(c) {
     },
     line: {
       position: "absolute",
-      top: 16,
+      top: isSmallScreen ? 14 : 16,
       left: 0,
       right: 0,
       height: 2,
@@ -831,7 +854,7 @@ function createStepperStyles(c) {
       backgroundColor: c.primary,
     },
     label: {
-      fontSize: 11,
+      fontSize: isSmallScreen ? 10 : 11,
       color: c.textMuted,
       marginTop: 6,
       fontWeight: "600",
@@ -851,68 +874,73 @@ function createSucStyles(c) {
   return StyleSheet.create({
     overlay: {
       flex: 1,
-      justifyContent: "flex-end",
+      justifyContent: isTablet ? "center" : "flex-end",
       backgroundColor: c.overlayStronger,
     },
     sheet: {
       backgroundColor: c.surface,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      paddingTop: 28,
-      paddingBottom: 40,
-      paddingHorizontal: 24,
+      borderTopLeftRadius: isTablet ? 32 : 32,
+      borderTopRightRadius: isTablet ? 32 : 32,
+      borderBottomLeftRadius: isTablet ? 32 : 0,
+      borderBottomRightRadius: isTablet ? 32 : 0,
+      paddingTop: isTablet ? 24 : 20,
+      paddingBottom: isTablet ? 32 : 28,
+      paddingHorizontal: isTablet ? 24 : 20,
       alignItems: "center",
       borderTopWidth: 1,
       borderColor: c.glassBorder,
+      maxWidth: isTablet ? 600 : "100%",
+      width: isTablet ? "90%" : "100%",
+      alignSelf: "center",
     },
     iconCircle: {
-      width: 68,
-      height: 68,
-      borderRadius: 34,
+      width: isTablet ? 72 : 60,
+      height: isTablet ? 72 : 60,
+      borderRadius: isTablet ? 36 : 30,
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: 16,
+      marginBottom: 12,
     },
     titulo: {
       color: c.textPrimary,
-      fontSize: 22,
+      fontSize: isTablet ? 22 : 20,
       fontWeight: "800",
-      marginBottom: 4,
+      marginBottom: 3,
       textAlign: "center",
     },
     subtitulo: {
       color: c.textMuted,
-      fontSize: 13,
-      marginBottom: 20,
+      fontSize: isTablet ? 13 : 12,
+      marginBottom: 16,
       textAlign: "center",
     },
-    qrScroll: { width: "100%", marginBottom: 8 },
+    qrScroll: { width: "100%", marginBottom: 6 },
     qrScrollContent: { paddingLeft: 4, paddingRight: 4 },
     swipeHint: {
       color: c.textMuted,
-      fontSize: 11,
-      marginBottom: 12,
+      fontSize: isSmallScreen ? 10 : 11,
+      marginBottom: 10,
       textAlign: "center",
     },
     aviso: {
       color: c.textMuted,
-      fontSize: 12,
+      fontSize: isTablet ? 13 : 12,
       textAlign: "center",
-      lineHeight: 18,
-      marginBottom: 20,
-      paddingHorizontal: 10,
+      lineHeight: isTablet ? 20 : 18,
+      marginBottom: 16,
+      paddingHorizontal: isTablet ? 20 : 10,
     },
-    btnPrimary: { width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 10 },
+    btnPrimary: { width: "100%", borderRadius: 16, overflow: "hidden", marginBottom: 8 },
     btnGrad: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
-      paddingVertical: 15,
+      paddingVertical: isTablet ? 14 : 13,
     },
-    btnPrimaryText: { color: c.onPrimary, fontSize: 15, fontWeight: "800" },
-    btnSecondary: { paddingVertical: 10 },
-    btnSecondaryText: { color: c.textMuted, fontSize: 14 },
+    btnPrimaryText: { color: c.onPrimary, fontSize: isTablet ? 16 : 15, fontWeight: "800" },
+    btnSecondary: { paddingVertical: 8 },
+    btnSecondaryText: { color: c.textMuted, fontSize: isTablet ? 15 : 14 },
   });
 }
 
@@ -921,32 +949,58 @@ function createThemedScreenStyles(c) {
   container: { flex: 1, backgroundColor: c.background },
   center: { justifyContent: "center", alignItems: "center" },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 16 },
+  scrollContent: { paddingHorizontal: isTablet ? 24 : 16 },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: isTablet ? 12 : 8,
+    paddingVertical: isTablet ? 8 : 6,
+    borderBottomWidth: 1,
+    borderBottomColor: c.glassBorder,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: c.glass,
+    width: isTablet ? 40 : 36,
+    height: isTablet ? 40 : 36,
+    borderRadius: isTablet ? 16 : 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: c.glassStrong,
     justifyContent: "center",
     alignItems: "center",
   },
+  headerCenter: {
+    flex: 1,
+    marginHorizontal: isTablet ? 12 : 10,
+  },
   headerTitle: {
-    color: c.textPrimary,
-    fontSize: 18,
-    fontWeight: "700",
+    color: "#FFF",
+    fontSize: isTablet ? 18 : 16,
+    fontWeight: "800",
+    marginBottom: 1,
+  },
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: isTablet ? 12 : 11,
+    fontWeight: "600",
+  },
+  headerRight: {
+    alignItems: "center",
+  },
+  ticketBadge: {
+    width: isTablet ? 38 : 34,
+    height: isTablet ? 38 : 34,
+    borderRadius: isTablet ? 14 : 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: c.glassStrong,
   },
 
   stepperWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: isSmallScreen ? 8 : 16,
+    paddingVertical: isTablet ? 10 : 8,
     backgroundColor: c.surface,
     borderBottomWidth: 1,
     borderBottomColor: c.border,
@@ -954,70 +1008,70 @@ function createThemedScreenStyles(c) {
 
   eventoBanner: {
     position: "relative",
-    borderRadius: 20,
+    borderRadius: isTablet ? 24 : 20,
     overflow: "hidden",
-    height: 180,
-    marginVertical: 12,
+    height: isTablet ? 180 : 140,
+    marginVertical: isTablet ? 12 : 8,
   },
   eventoImage: { width: "100%", height: "100%", resizeMode: "cover" },
   eventoOverlay: {
     position: "absolute",
     left: 0, right: 0, bottom: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: isTablet ? 20 : 16,
+    paddingVertical: isTablet ? 16 : 12,
   },
-  eventoTitulo: { color: "#FFF", fontSize: 17, fontWeight: "800", marginBottom: 5 },
+  eventoTitulo: { color: "#FFF", fontSize: isTablet ? 20 : 17, fontWeight: "800", marginBottom: 5 },
   eventoMeta: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
-  eventoMetaText: { color: "rgba(255,255,255,0.65)", fontSize: 12 },
+  eventoMetaText: { color: "rgba(255,255,255,0.65)", fontSize: isTablet ? 13 : 12 },
 
   disponivel: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     backgroundColor: c.success + "18",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
+    borderRadius: isTablet ? 12 : 10,
+    paddingHorizontal: isTablet ? 14 : 12,
+    paddingVertical: isTablet ? 10 : 8,
+    marginBottom: isTablet ? 12 : 8,
   },
-  disponivelText: { color: c.success, fontSize: 13, fontWeight: "600" },
+  disponivelText: { color: c.success, fontSize: isTablet ? 14 : 13, fontWeight: "600" },
   esgotado: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     backgroundColor: c.error + "18",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 12,
+    borderRadius: isTablet ? 12 : 10,
+    paddingHorizontal: isTablet ? 14 : 12,
+    paddingVertical: isTablet ? 10 : 8,
+    marginBottom: isTablet ? 12 : 8,
   },
-  esgotadoText: { color: c.error, fontSize: 13, fontWeight: "600" },
+  esgotadoText: { color: c.error, fontSize: isTablet ? 14 : 13, fontWeight: "600" },
 
   infoQr: {
     flexDirection: "row",
     gap: 12,
     backgroundColor: c.primarySoft,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 14,
+    borderRadius: isTablet ? 16 : 14,
+    padding: isTablet ? 14 : 12,
+    marginBottom: isTablet ? 12 : 10,
     alignItems: "flex-start",
     borderWidth: 1,
     borderColor: c.primary + "30",
   },
-  infoQrTitle: { color: c.primaryLight, fontSize: 13, fontWeight: "700", marginBottom: 3 },
-  infoQrSub: { color: c.textMuted, fontSize: 12, lineHeight: 17 },
+  infoQrTitle: { color: c.primaryLight, fontSize: isTablet ? 14 : 13, fontWeight: "700", marginBottom: 3 },
+  infoQrSub: { color: c.textMuted, fontSize: isTablet ? 13 : 12, lineHeight: isTablet ? 18 : 17 },
 
   btnIrCarrinho: {
-    marginVertical: 16,
-    borderRadius: 16,
+    marginVertical: isTablet ? 16 : 12,
+    borderRadius: isTablet ? 18 : 16,
     overflow: "hidden",
   },
   btnIrCarrinhoGrad: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: isTablet ? 16 : 14,
+    paddingHorizontal: isTablet ? 24 : 20,
   },
   btnIrCarrinhoInfo: {
     flex: 1,
@@ -1025,76 +1079,76 @@ function createThemedScreenStyles(c) {
   },
   btnIrCarrinhoText: {
     color: "#FFF",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     fontWeight: "700",
   },
   btnIrCarrinhoSub: {
     color: "rgba(255,255,255,0.8)",
-    fontSize: 13,
+    fontSize: isTablet ? 14 : 13,
     fontWeight: "600",
   },
 
-  processando: { alignItems: "center", paddingVertical: 40 },
+  processando: { alignItems: "center", paddingVertical: isTablet ? 36 : 28 },
   processandoAnim: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: isTablet ? 80 : 64,
+    height: isTablet ? 80 : 64,
+    borderRadius: isTablet ? 40 : 32,
     backgroundColor: c.primary + "15",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  processandoTitle: { color: c.textPrimary, fontSize: 18, fontWeight: "700", marginTop: 16 },
-  processandoSub: { color: c.textMuted, fontSize: 13, marginTop: 6, textAlign: "center", paddingHorizontal: 32 },
+  processandoTitle: { color: c.textPrimary, fontSize: isTablet ? 18 : 16, fontWeight: "700", marginTop: 12 },
+  processandoSub: { color: c.textMuted, fontSize: isTablet ? 13 : 12, marginTop: 4, textAlign: "center", paddingHorizontal: isTablet ? 32 : 24 },
   processandoSteps: {
-    marginTop: 32,
+    marginTop: 24,
     width: "100%",
-    paddingHorizontal: 32,
+    paddingHorizontal: isTablet ? 32 : 24,
   },
   processandoStep: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 8,
+    gap: 10,
+    paddingVertical: 6,
   },
   processandoStepText: {
     color: c.textPrimary,
-    fontSize: 13,
+    fontSize: isTablet ? 13 : 12,
     fontWeight: "600",
   },
 
-  sucessoInline: { borderRadius: 20, overflow: "hidden", marginVertical: 16 },
-  sucessoInlineGrad: { alignItems: "center", paddingVertical: 40, paddingHorizontal: 24 },
-  sucessoInlineText: { color: c.success, fontSize: 20, fontWeight: "700", marginTop: 12 },
+  sucessoInline: { borderRadius: isTablet ? 24 : 20, overflow: "hidden", marginVertical: isTablet ? 16 : 12 },
+  sucessoInlineGrad: { alignItems: "center", paddingVertical: isTablet ? 36 : 28, paddingHorizontal: isTablet ? 24 : 20 },
+  sucessoInlineText: { color: c.success, fontSize: isTablet ? 20 : 18, fontWeight: "700", marginTop: 10 },
 
   carrinhoContainer: {
     backgroundColor: c.surface,
     borderTopWidth: 1,
     borderTopColor: c.border,
-    paddingTop: 16,
+    paddingTop: isTablet ? 16 : 12,
   },
 
   btnVoltarCarrinho: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
+    paddingHorizontal: isTablet ? 16 : 12,
+    paddingVertical: isTablet ? 12 : 10,
+    marginBottom: isTablet ? 16 : 12,
   },
   btnVoltarCarrinhoText: {
     color: c.textPrimary,
-    fontSize: 14,
+    fontSize: isTablet ? 15 : 14,
     fontWeight: "600",
   },
 
-  errorText: { color: c.textPrimary, fontSize: 16, fontWeight: "600", marginTop: 16 },
+  errorText: { color: c.textPrimary, fontSize: isTablet ? 18 : 16, fontWeight: "600", marginTop: 16 },
   btnVoltar: {
     marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: isTablet ? 24 : 20,
+    paddingVertical: isTablet ? 14 : 12,
     backgroundColor: c.primary,
-    borderRadius: 12,
+    borderRadius: isTablet ? 14 : 12,
   },
   btnVoltarText: { color: "#FFF", fontWeight: "700" },
 });

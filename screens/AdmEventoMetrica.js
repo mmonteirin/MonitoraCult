@@ -120,14 +120,10 @@ export default function AdmEventoMetricas({
       let totalParticipantes = 0;
 
       listaEventos.forEach((evento) => {
-        totalLikes +=
-          evento.likes || 0;
-
-        totalViews +=
-          evento.views || 0;
-
-        totalParticipantes +=
-          evento.participantes || 0;
+        // Tratar campos que podem não existir ou ter nomes diferentes
+        totalLikes += Number(evento.likes || evento.curtidas || 0);
+        totalViews += Number(evento.views || evento.visualizacoes || 0);
+        totalParticipantes += Number(evento.participantes || evento.inscritos || evento.ingressosVendidos || 0);
       });
 
       // 🔥 BUSCAR TODAS AVALIAÇÕES

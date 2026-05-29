@@ -23,6 +23,7 @@ const INNER_TABS = [
   { key: "posts", label: "Posts", icon: "view-dashboard-outline" },
   { key: "forum", label: "Fórum", icon: "forum-outline" },
   { key: "sobre", label: "Sobre", icon: "information-outline" },
+  { key: "configuracoes", label: "Configurações", icon: "cog-outline" },
 ];
 
 function formatDate(timestamp) {
@@ -39,64 +40,25 @@ function formatDate(timestamp) {
   return date.toLocaleDateString("pt-BR");
 }
 
-function PostCard({ post, onLike, onComment, onDelete, currentUid }) {
-  const isLiked = post.likes?.includes(currentUid);
-  const isOwner = post.authorId === currentUid;
+function ThreadCard({ thread, onPress, colors }) {
+  const threadStyles = StyleSheet.create({
+    card: {
+      marginHorizontal: 16, marginBottom: 10, backgroundColor: colors.card,
+      borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border,
+    },
+    row: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
+    avatar: {
+      width: 34, height: 34, borderRadius: 17, backgroundColor: colors.surface,
+      justifyContent: "center", alignItems: "center",
+    },
+    title: { fontSize: 14, fontWeight: "700", color: colors.textPrimary, flex: 1 },
+    meta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+    desc: { fontSize: 13, color: colors.textSecondary, lineHeight: 18, marginBottom: 10 },
+    stats: { flexDirection: "row", gap: 16, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
+    stat: { flexDirection: "row", alignItems: "center", gap: 4 },
+    statText: { fontSize: 12, color: colors.textMuted },
+  });
 
-  return (
-    <View style={postStyles.card}>
-      {/* AUTHOR */}
-      <View style={postStyles.authorRow}>
-        <View style={postStyles.avatar}>
-          {post.authorPhoto ? (
-            <Image source={{ uri: post.authorPhoto }} style={postStyles.avatarImg} />
-          ) : (
-            <MaterialCommunityIcons name="account" size={22} color={colors.textMuted} />
-          )}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={postStyles.authorName}>{post.authorName || "Usuário"}</Text>
-          <Text style={postStyles.postDate}>{formatDate(post.createdAt)}</Text>
-        </View>
-        {isOwner && (
-          <TouchableOpacity onPress={() => Alert.alert("Excluir post?", "", [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Excluir", style: "destructive", onPress: () => onDelete(post.id) },
-          ])}>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* CONTENT */}
-      <Text style={postStyles.content}>{post.content}</Text>
-
-      {post.imageUrl && (
-        <Image source={{ uri: post.imageUrl }} style={postStyles.postImage} resizeMode="cover" />
-      )}
-
-      {/* ACTIONS */}
-      <View style={postStyles.actions}>
-        <TouchableOpacity style={postStyles.actionBtn} onPress={() => onLike(post.id)}>
-          <MaterialCommunityIcons
-            name={isLiked ? "heart" : "heart-outline"}
-            size={20}
-            color={isLiked ? colors.error : colors.textMuted}
-          />
-          <Text style={[postStyles.actionText, isLiked && { color: colors.error }]}>
-            {post.likesCount || 0}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={postStyles.actionBtn} onPress={() => onComment(post.id)}>
-          <MaterialCommunityIcons name="comment-outline" size={20} color={colors.textMuted} />
-          <Text style={postStyles.actionText}>{post.commentsCount || 0}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function ThreadCard({ thread, onPress }) {
   return (
     <TouchableOpacity style={threadStyles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={threadStyles.row}>
@@ -136,6 +98,84 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
     handleDeletePost, handleCreateForumThread,
     checkIsMember, checkIsAdmin, currentUser,
   } = useCommunity();
+
+  // Define PostCard inside the component to have access to colors
+  function PostCard({ post, onLike, onComment, onDelete, currentUid }) {
+    const isLiked = post.likes?.includes(currentUid);
+    const isOwner = post.authorId === currentUid;
+
+    const postStyles = StyleSheet.create({
+      card: {
+        marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.card,
+        borderRadius: 16, padding: 14, borderWidth: 1, borderColor: colors.border,
+      },
+      authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
+      avatar: {
+        width: 38, height: 38, borderRadius: 19, backgroundColor: colors.surface,
+        justifyContent: "center", alignItems: "center", overflow: "hidden",
+      },
+      avatarImg: { width: 38, height: 38 },
+      authorName: { fontSize: 14, fontWeight: "700", color: colors.textPrimary },
+      postDate: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+      content: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 10 },
+      postImage: { width: "100%", height: 200, borderRadius: 12, marginBottom: 10 },
+      actions: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10 },
+      actionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
+      actionText: { color: colors.textMuted, fontSize: 13 },
+    });
+
+    return (
+      <View style={postStyles.card}>
+        {/* AUTHOR */}
+        <View style={postStyles.authorRow}>
+          <View style={postStyles.avatar}>
+            {post.authorPhoto ? (
+              <Image source={{ uri: post.authorPhoto }} style={postStyles.avatarImg} />
+            ) : (
+              <MaterialCommunityIcons name="account" size={22} color={colors.textMuted} />
+            )}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={postStyles.authorName}>{post.authorName || "Usuário"}</Text>
+            <Text style={postStyles.postDate}>{formatDate(post.createdAt)}</Text>
+          </View>
+          {isOwner && (
+            <TouchableOpacity onPress={() => Alert.alert("Excluir post?", "", [
+              { text: "Cancelar", style: "cancel" },
+              { text: "Excluir", style: "destructive", onPress: () => onDelete(post.id) },
+            ])}>
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* CONTENT */}
+        <Text style={postStyles.content}>{post.content}</Text>
+
+        {post.imageUrl && (
+          <Image source={{ uri: post.imageUrl }} style={postStyles.postImage} resizeMode="cover" />
+        )}
+
+        {/* ACTIONS */}
+        <View style={postStyles.actions}>
+          <TouchableOpacity style={postStyles.actionBtn} onPress={() => onLike(post.id)}>
+            <MaterialCommunityIcons
+              name={isLiked ? "heart" : "heart-outline"}
+              size={20}
+              color={isLiked ? colors.error : colors.textMuted}
+            />
+            <Text style={[postStyles.actionText, isLiked && { color: colors.error }]}>
+              {post.likesCount || 0}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={postStyles.actionBtn} onPress={() => onComment(post.id)}>
+            <MaterialCommunityIcons name="comment-outline" size={20} color={colors.textMuted} />
+            <Text style={postStyles.actionText}>{post.commentsCount || 0}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const [innerTab, setInnerTab] = useState("posts");
   const [refreshing, setRefreshing] = useState(false);
@@ -228,7 +268,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
         </TouchableOpacity>
         {isAdmin && (
           <TouchableOpacity style={styles.settingsBtn}
-            onPress={() => navigation.navigate("ComunidadeGrupoEditar", { groupId })}>
+            onPress={() => setInnerTab("configuracoes")}>
             <MaterialCommunityIcons name="cog-outline" size={24} color="#fff" />
           </TouchableOpacity>
         )}
@@ -322,7 +362,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
           post={post}
           currentUid={currentUser?.uid}
           onLike={(id) => handleLikePost(groupId, id)}
-          onComment={(id) => navigation.navigate("ComunidadePostComentarios", { groupId, postId: id })}
+          onComment={(id) => Alert.alert("Em breve", "A funcionalidade de comentários estará disponível em breve.")}
           onDelete={(id) => handleDeletePost(groupId, id)}
         />
       ))}
@@ -354,6 +394,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
           key={thread.id}
           thread={thread}
           onPress={() => navigation.navigate("ComunidadeForumDetalhes", { groupId, threadId: thread.id })}
+          colors={colors}
         />
       ))}
       {forumThreads.length === 0 && (
@@ -397,6 +438,95 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
     </View>
   );
 
+  const renderConfiguracoesContent = () => (
+    <View style={styles.settingsBox}>
+      <Text style={styles.settingsTitle}>Configurações da Comunidade</Text>
+
+      {isAdmin && (
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsSectionTitle}>Administrador</Text>
+
+          <TouchableOpacity
+            style={styles.settingsItem}
+            onPress={() => Alert.alert("Editar comunidade", "Funcionalidade em desenvolvimento")}
+          >
+            <View style={styles.settingsItemLeft}>
+              <MaterialCommunityIcons name="pencil-outline" size={22} color={colors.textMuted} />
+              <Text style={styles.settingsItemText}>Editar informações</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingsItem}
+            onPress={() => Alert.alert("Gerenciar membros", "Funcionalidade em desenvolvimento")}
+          >
+            <View style={styles.settingsItemLeft}>
+              <MaterialCommunityIcons name="account-group-outline" size={22} color={colors.textMuted} />
+              <Text style={styles.settingsItemText}>Gerenciar membros</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.settingsItem, styles.settingsItemDanger]}
+            onPress={() => Alert.alert("Excluir comunidade", "Tem certeza que deseja excluir esta comunidade? Esta ação não pode ser desfeita.", [
+              { text: "Cancelar", style: "cancel" },
+              { text: "Excluir", style: "destructive", onPress: () => Alert.alert("Funcionalidade em desenvolvimento") },
+            ])}
+          >
+            <View style={styles.settingsItemLeft}>
+              <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.error} />
+              <Text style={[styles.settingsItemText, styles.settingsItemTextDanger]}>Excluir comunidade</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.error} />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsSectionTitle}>Geral</Text>
+
+        <TouchableOpacity
+          style={styles.settingsItem}
+          onPress={() => Alert.alert("Notificações", "Funcionalidade em desenvolvimento")}
+        >
+          <View style={styles.settingsItemLeft}>
+            <MaterialCommunityIcons name="bell-outline" size={22} color={colors.textMuted} />
+            <Text style={styles.settingsItemText}>Notificações</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.settingsItem}
+          onPress={() => Alert.alert("Privacidade", currentGroup?.isPrivate ? "Esta comunidade é privada" : "Esta comunidade é pública")}
+        >
+          <View style={styles.settingsItemLeft}>
+            <MaterialCommunityIcons name={currentGroup?.isPrivate ? "lock-outline" : "earth-outline"} size={22} color={colors.textMuted} />
+            <Text style={styles.settingsItemText}>
+              {currentGroup?.isPrivate ? "Comunidade privada" : "Comunidade pública"}
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+      </View>
+
+      {isMember && !isAdmin && (
+        <TouchableOpacity
+          style={[styles.settingsItem, styles.settingsItemDanger]}
+          onPress={handleJoinLeave}
+        >
+          <View style={styles.settingsItemLeft}>
+            <MaterialCommunityIcons name="exit-to-app" size={22} color={colors.error} />
+            <Text style={[styles.settingsItemText, styles.settingsItemTextDanger]}>Sair da comunidade</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color={colors.error} />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   if (loading && !currentGroup) {
     return (
       <View style={styles.loadingScreen}>
@@ -411,7 +541,6 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
       <StatusBar barStyle="light-content" />
 
       <Animated.FlatList
-        entering={FadeIn.duration(700)}
         data={[]}
         keyExtractor={() => "dummy"}
         renderItem={null}
@@ -425,6 +554,7 @@ export default function ComunidadeGrupoDetalhes({ route, navigation }) {
             {innerTab === "posts" && renderPostsContent()}
             {innerTab === "forum" && renderForumContent()}
             {innerTab === "sobre" && renderSobreContent()}
+            {innerTab === "configuracoes" && renderConfiguracoesContent()}
           </View>
         }
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
@@ -595,6 +725,20 @@ function createThemedScreenStyles(c) {
   sobreInfoBox: { marginTop: 20, gap: 12 },
   sobreInfoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   sobreInfoText: { color: c.textSecondary, fontSize: 14 },
+  // SETTINGS
+  settingsBox: { padding: 20 },
+  settingsTitle: { fontSize: 20, fontWeight: "800", color: c.textPrimary, marginBottom: 20 },
+  settingsSection: { marginBottom: 24 },
+  settingsSectionTitle: { fontSize: 13, fontWeight: "700", color: c.textMuted, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.5 },
+  settingsItem: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingVertical: 14, paddingHorizontal: 16, backgroundColor: c.card,
+    borderRadius: 12, marginBottom: 8, borderWidth: 1, borderColor: c.border,
+  },
+  settingsItemLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  settingsItemText: { fontSize: 15, color: c.textPrimary, fontWeight: "500" },
+  settingsItemDanger: { borderColor: `${c.error}20` },
+  settingsItemTextDanger: { color: c.error },
   // MODALS
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
   modalCard: {
@@ -617,43 +761,5 @@ function createThemedScreenStyles(c) {
   submitBtn: { borderRadius: 14, overflow: "hidden", marginTop: 4 },
   submitBtnGradient: { paddingVertical: 14, alignItems: "center", justifyContent: "center" },
   submitBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-});
-
-const postStyles = StyleSheet.create({
-  card: {
-    marginHorizontal: 16, marginBottom: 12, backgroundColor: c.card,
-    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border,
-  },
-  authorRow: { flexDirection: "row", alignItems: "center", marginBottom: 10, gap: 10 },
-  avatar: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: c.surface,
-    justifyContent: "center", alignItems: "center", overflow: "hidden",
-  },
-  avatarImg: { width: 38, height: 38 },
-  authorName: { fontSize: 14, fontWeight: "700", color: c.textPrimary },
-  postDate: { fontSize: 12, color: c.textMuted, marginTop: 1 },
-  content: { fontSize: 14, color: c.textSecondary, lineHeight: 20, marginBottom: 10 },
-  postImage: { width: "100%", height: 200, borderRadius: 12, marginBottom: 10 },
-  actions: { flexDirection: "row", gap: 20, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 10 },
-  actionBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  actionText: { color: c.textMuted, fontSize: 13 },
-});
-
-const threadStyles = StyleSheet.create({
-  card: {
-    marginHorizontal: 16, marginBottom: 10, backgroundColor: c.card,
-    borderRadius: 16, padding: 14, borderWidth: 1, borderColor: c.border,
-  },
-  row: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 8 },
-  avatar: {
-    width: 34, height: 34, borderRadius: 17, backgroundColor: c.surface,
-    justifyContent: "center", alignItems: "center",
-  },
-  title: { fontSize: 14, fontWeight: "700", color: c.textPrimary, flex: 1 },
-  meta: { fontSize: 12, color: c.textMuted, marginTop: 2 },
-  desc: { fontSize: 13, color: c.textSecondary, lineHeight: 18, marginBottom: 10 },
-  stats: { flexDirection: "row", gap: 16, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 },
-  stat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  statText: { fontSize: 12, color: c.textMuted },
 });
 }

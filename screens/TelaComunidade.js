@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
+  Dimensions,
 } from "react-native";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -66,6 +67,10 @@ export default function TelaComunidade({ navigation, route }) {
   const styles = useThemedStyles(createThemedScreenStyles);
   const blurTint = isDark ? "dark" : "light";
   const insets = useSafeAreaInsets();
+
+  const { width } = Dimensions.get("window");
+  const isTablet = width >= 768;
+  const isSmallScreen = width < 375;
 
   const embedded = !!route?.params?.embedded;
   const scrollY = route?.params?.scrollY;
@@ -1277,6 +1282,10 @@ function QuickStat({
 }
 
 function createThemedScreenStyles(c) {
+  const { width } = Dimensions.get("window");
+  const isTablet = width >= 768;
+  const isSmallScreen = width < 375;
+
   return StyleSheet.create({
   container: {
     flex: 1,
@@ -1291,10 +1300,10 @@ function createThemedScreenStyles(c) {
   embeddedToolbar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingTop: 4,
-    paddingBottom: 10,
+    gap: isTablet ? 12 : 10,
+    paddingHorizontal: isTablet ? 16 : 14,
+    paddingTop: isTablet ? 6 : 4,
+    paddingBottom: isTablet ? 12 : 10,
   },
 
   embeddedSearchBox: {
@@ -1361,30 +1370,37 @@ function createThemedScreenStyles(c) {
   },
 
   embeddedGenreRow: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 8,
+    paddingHorizontal: isTablet ? 24 : 20,
+    paddingVertical: isTablet ? 12 : 10,
+    gap: isTablet ? 14 : 12,
   },
 
   embeddedGenreChip: {
-    height: 32,
-    paddingHorizontal: 14,
+    height: isTablet ? 40 : 36,
+    paddingHorizontal: isTablet ? 20 : 18,
     borderRadius: 999,
     backgroundColor: c.surface,
     justifyContent: "center",
-    borderWidth: 1,
+    alignItems: "center",
+    borderWidth: 1.5,
     borderColor: c.border,
   },
 
   embeddedGenreChipActive: {
     backgroundColor: c.primary,
     borderColor: c.primary,
+    shadowColor: c.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   embeddedGenreText: {
-    fontSize: 12,
+    fontSize: isSmallScreen ? 11 : 12,
     color: c.textMuted,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 
   embeddedGenreTextActive: {
@@ -1451,40 +1467,40 @@ function createThemedScreenStyles(c) {
   },
 
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 18,
+    paddingHorizontal: isTablet ? 24 : 20,
+    paddingBottom: isTablet ? 14 : 18,
   },
 
   headerEmbedded: {
-    paddingTop: 4,
-    paddingBottom: 10,
-    paddingHorizontal: 14,
+    paddingTop: isTablet ? 6 : 4,
+    paddingBottom: isTablet ? 12 : 10,
+    paddingHorizontal: isTablet ? 16 : 14,
   },
 
   headerTop: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 20,
+    marginBottom: isTablet ? 16 : 20,
   },
 
   headerTitle: {
     color: "#FFF",
-    fontSize: 20,
+    fontSize: isTablet ? 22 : 20,
     fontWeight: "800",
   },
 
   headerSub: {
     color: "#94A3B8",
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
     marginTop: 6,
     lineHeight: 22,
     paddingRight: 30,
   },
 
   notificationBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 18,
+    width: isTablet ? 52 : 48,
+    height: isTablet ? 52 : 48,
+    borderRadius: isTablet ? 20 : 18,
     backgroundColor:
       "rgba(255,255,255,0.05)",
     justifyContent: "center",
@@ -1497,16 +1513,16 @@ function createThemedScreenStyles(c) {
   heroSearchWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: isTablet ? 14 : 12,
   },
 
   heroSearch: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    height: 72,
+    borderRadius: isTablet ? 22 : 20,
+    paddingHorizontal: isTablet ? 14 : 12,
+    height: isTablet ? 80 : 72,
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
@@ -1514,19 +1530,19 @@ function createThemedScreenStyles(c) {
   },
 
   heroSearchEmbedded: {
-    height: 48,
-    borderRadius: 16,
+    height: isTablet ? 52 : 48,
+    borderRadius: isTablet ? 18 : 16,
   },
 
   searchIconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
+    width: isTablet ? 46 : 42,
+    height: isTablet ? 46 : 42,
+    borderRadius: isTablet ? 16 : 14,
     backgroundColor:
       "rgba(139,92,246,0.12)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: isTablet ? 14 : 12,
   },
 
   searchLabel: {
@@ -1539,30 +1555,30 @@ function createThemedScreenStyles(c) {
   searchInput: {
     flex: 1,
     color: "#FFF",
-    fontSize: 16,
+    fontSize: isTablet ? 18 : 16,
     padding: 0,
   },
 
   searchInputEmbedded: {
-    fontSize: 14,
+    fontSize: isSmallScreen ? 13 : 14,
   },
 
   createButton: {
-    borderRadius: 22,
+    borderRadius: isTablet ? 24 : 22,
     overflow: "hidden",
   },
 
   createButtonGradient: {
-    width: 68,
-    height: 68,
+    width: isTablet ? 72 : 68,
+    height: isTablet ? 72 : 68,
     justifyContent: "center",
     alignItems: "center",
   },
 
   createButtonGradientEmbedded: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: isTablet ? 52 : 48,
+    height: isTablet ? 52 : 48,
+    borderRadius: isTablet ? 18 : 16,
   },
 
   suggestionRow: {
@@ -1589,14 +1605,14 @@ function createThemedScreenStyles(c) {
   },
 
   tabsWrapper: {
-    paddingHorizontal: 20,
-    marginBottom: 12,
+    paddingHorizontal: isTablet ? 24 : 20,
+    marginBottom: isTablet ? 10 : 12,
   },
 
   tabsContainer: {
     flexDirection: "row",
-    borderRadius: 22,
-    padding: 5,
+    borderRadius: isTablet ? 24 : 22,
+    padding: isTablet ? 6 : 5,
     overflow: "hidden",
     borderWidth: 1,
     borderColor:
@@ -1608,9 +1624,9 @@ function createThemedScreenStyles(c) {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
-    height: 48,
-    borderRadius: 16,
+    gap: isTablet ? 10 : 8,
+    height: isTablet ? 52 : 48,
+    borderRadius: isTablet ? 18 : 16,
   },
 
   tabButtonActive: {
@@ -1619,7 +1635,7 @@ function createThemedScreenStyles(c) {
 
   tabText: {
     color: c.textMuted,
-    fontSize: 13,
+    fontSize: isSmallScreen ? 12 : 13,
     fontWeight: "700",
   },
 
@@ -1628,37 +1644,44 @@ function createThemedScreenStyles(c) {
   },
 
   stickyFilters: {
-    paddingTop: 4,
-    paddingBottom: 12,
+    paddingTop: isTablet ? 8 : 6,
+    paddingBottom: isTablet ? 16 : 14,
     backgroundColor: c.background,
+    borderBottomWidth: 1,
+    borderBottomColor: c.glass,
   },
 
   genreRow: {
-    paddingHorizontal: 20,
-    gap: 10,
+    paddingHorizontal: isTablet ? 24 : 20,
+    gap: isTablet ? 14 : 12,
   },
 
   genreChip: {
-    height: 38,
-    paddingHorizontal: 18,
+    height: isTablet ? 44 : 40,
+    paddingHorizontal: isTablet ? 22 : 20,
     borderRadius: 999,
-    backgroundColor:
-      c.glass,
+    backgroundColor: c.glass,
     justifyContent: "center",
-    borderWidth: 1,
-    borderColor:
-      "rgba(255,255,255,0.05)",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.08)",
   },
 
   genreChipActive: {
     backgroundColor: c.primary,
-    borderColor: "#8B5CF6",
+    borderColor: c.primary,
+    shadowColor: c.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
   },
 
   genreText: {
-    color: "#94A3B8",
-    fontSize: 13,
-    fontWeight: "600",
+    color: c.textMuted,
+    fontSize: isSmallScreen ? 12 : 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 
   genreTextActive: {
@@ -1666,32 +1689,32 @@ function createThemedScreenStyles(c) {
   },
 
   quickStatsRow: {
-    paddingHorizontal: 20,
-    gap: 12,
-    paddingBottom: 18,
+    paddingHorizontal: isTablet ? 24 : 20,
+    gap: isTablet ? 16 : 14,
+    paddingBottom: isTablet ? 24 : 20,
   },
 
   quickStatCard: {
-    width: 120,
-    borderRadius: 24,
-    padding: 16,
+    width: isTablet ? 160 : 130,
+    borderRadius: isTablet ? 28 : 24,
+    padding: isTablet ? 20 : 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor:
-      c.glass,
+    borderColor: c.glass,
   },
 
   quickStatValue: {
     color: "#FFF",
-    fontSize: 22,
+    fontSize: isTablet ? 28 : 24,
     fontWeight: "800",
-    marginTop: 12,
+    marginTop: isTablet ? 16 : 12,
   },
 
   quickStatLabel: {
-    color: "#94A3B8",
-    fontSize: 12,
+    color: c.textMuted,
+    fontSize: isSmallScreen ? 11 : isTablet ? 13 : 12,
     marginTop: 4,
+    fontWeight: "600",
   },
 
   centerBox: {

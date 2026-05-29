@@ -234,7 +234,18 @@ export default function AdmQRScanner({ navigation, route }) {
 
       Vibration.vibrate(60);
 
-      const res = await realizarCheckIn(data, eventoId, uid);
+      // Parse do JSON do QR Code (formato: { c: codigoIngresso, e: eventoId })
+      let codigoIngresso = data;
+      try {
+        const qrData = JSON.parse(data);
+        if (qrData.c) {
+          codigoIngresso = qrData.c;
+        }
+      } catch (e) {
+        // Se não for JSON, usa o valor original (pode ser código direto)
+      }
+
+      const res = await realizarCheckIn(codigoIngresso, eventoId, uid);
 
       setDadosResultado(res);
       setEstado(res.valido ? ESTADO.SUCESSO : ESTADO.ERRO);

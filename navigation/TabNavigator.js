@@ -1,19 +1,34 @@
-import React from "react";
+/**
+ * 🎨 TAB NAVIGATOR — MonitoraCult
+ *
+ * Barra de navegação inferior com:
+ *   • Label abaixo do ícone (estilo padrão refinado)
+ *   • Indicador animado (bolinha deslizante sob o ícone ativo)
+ *   • Ícone ativo escala e sobe levemente ao selecionar (spring)
+ *   • Badge de notificação opcional via tabBadges prop
+ *   • Suporte total a Light/Dark mode via ThemeContext
+ *   • Compatível com iOS safe area (useSafeAreaInsets)
+ *   • Sem dependências extras — usa apenas Animated (RN core)
+ */
+
+import React, { useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  Platform,
+  Animated,
   StyleSheet,
+  Platform,
+  Image,
 } from "react-native";
-
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { MotiView, MotiText } from "moti";
+import { BlurView } from "expo-blur";
+
+import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 import HomeStack from "./HomeStack";
 import BuscaStack from "./BuscaStack";
@@ -21,537 +36,358 @@ import FeedStack from "./FeedStack";
 import EventoStack from "./EventoStack";
 import PerfilStack from "./PerfilStack";
 
-import { useTheme } from "../context/ThemeContext";
-
 const Tab = createBottomTabNavigator();
 
-/**
- * ═══════════════════════════════════════════════════════════════════
- * EXPANDABLE PILL TAB BAR - MonitoraCult Edition
- * 
- * Componente de navegação premium com pills que se expandem ao serem
- * ativadas, revelando ícone + label. Animações fluidas com Moti.
- * 
- * Stack: React Native | Expo | Moti | LinearGradient | BlurView
- * ═══════════════════════════════════════════════════════════════════
- */
+// ─── Configuração das abas ────────────────────────────────────────────────────
 
-const TAB_META = {
-  Inicio: {
-    iconFocused: "home",
-    iconDefault: "home-outline",
+const TABS = [
+  {
+    name: "Inicio",
     label: "Início",
+    icon: "home-variant",
+    iconOutline: "home-variant-outline",
+    component: HomeStack,
   },
-  Busca: {
-    iconFocused: "magnify",
-    iconDefault: "magnify",
-    label: "Busca",
+  {
+    name: "Busca",
+    label: "Buscar",
+    icon: "magnify",
+    iconOutline: "magnify",
+    component: BuscaStack,
   },
-  Feed: {
-    iconFocused: "account-group",
-    iconDefault: "account-group-outline",
-    label: "Feed",
-    isCenter: true,  // 👈 Botão central elevado
+  {
+    name: "Feed",
+    label: "Social",
+    icon: "account-group",
+    iconOutline: "account-group-outline",
+    component: FeedStack,
   },
-  Eventos: {
-    iconFocused: "calendar-star",
-    iconDefault: "calendar-star-outline",
+  {
+    name: "Eventos",
     label: "Eventos",
+    icon: "calendar-star",
+    iconOutline: "calendar-star-outline",
+    component: EventoStack,
   },
-  Conta: {
-    iconFocused: "account-circle",
-    iconDefault: "account-circle-outline",
-    label: "Conta",
+  {
+    name: "Conta",
+    label: "Perfil",
+    icon: "account-circle",
+    iconOutline: "account-circle-outline",
+    component: PerfilStack,
   },
-};
+];
 
-/**
- * Paleta de cores dinâmica baseada no tema
- * Suporta light/dark mode automaticamente
- */
-function getPillTokens(isDark, primary, primaryLight, primaryDark) {
-  if (isDark) {
-    return {
-      // Fundo: superfície escura semi-transparente
-      blurTint: "dark",
-      blurIntensity: 60,
-      bgColor: "rgba(12,16,28,0.80)",
-      borderColor: "rgba(255,255,255,0.09)",
-      // Sombra
-      shadowColor: "#000",
-      shadowOpacity: 0.50,
-      shadowRadius: 28,
-      elevation: 14,
-      // Indicador ativo
-      pillBg: "rgba(108,92,231,0.20)",
-      pillBorder: "rgba(108,92,231,0.35)",
-      dotColor: primary,
-      // Texto e ícone
-      iconActive: primary,
-      iconInactive: "rgba(255,255,255,0.35)",
-      labelActive: primary,
-      labelInactive: "rgba(255,255,255,0.35)",
-      // Botão central
-      centerRingColor: "rgba(108,92,231,0.40)",
-      centerRingWidth: 2,
-      // Gradientes
-      gradientStart: primaryLight || primary,
-      gradientEnd: primaryDark || primary,
-    };
-  }
-  
-  return {
-    // Fundo: branco fosco limpo
-    blurTint: "light",
-    blurIntensity: 85,
-    bgColor: "rgba(255,255,255,0.92)",
-    borderColor: "rgba(108,92,231,0.13)",
-    // Sombra suave
-    shadowColor: "#6C5CE7",
-    shadowOpacity: 0.18,
-    shadowRadius: 28,
-    elevation: 14,
-    // Indicador ativo
-    pillBg: "rgba(108,92,231,0.10)",
-    pillBorder: "rgba(108,92,231,0.22)",
-    dotColor: primary,
-    // Texto e ícone
-    iconActive: primary,
-    iconInactive: "rgba(30,30,60,0.35)",
-    labelActive: primary,
-    labelInactive: "rgba(30,30,60,0.38)",
-    // Botão central
-    centerRingColor: "rgba(108,92,231,0.30)",
-    centerRingWidth: 2.5,
-    // Gradientes
-    gradientStart: primaryLight || primary,
-    gradientEnd: primaryDark || primary,
-  };
+// ─── Componente de aba individual ─────────────────────────────────────────────
+
+function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
+  // Animação de escala + translação vertical do ícone
+  const scaleAnim = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+  const translateY = useRef(new Animated.Value(isActive ? -3 : 0)).current;
+  // Opacidade do label
+  const labelOpacity = useRef(new Animated.Value(isActive ? 1 : 0.5)).current;
+  // Escala do dot indicador
+  const dotScale = useRef(new Animated.Value(isActive ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, {
+        toValue: isActive ? 1.18 : 1,
+        useNativeDriver: true,
+        tension: 180,
+        friction: 10,
+      }),
+      Animated.spring(translateY, {
+        toValue: isActive ? -3 : 0,
+        useNativeDriver: true,
+        tension: 180,
+        friction: 10,
+      }),
+      Animated.timing(labelOpacity, {
+        toValue: isActive ? 1 : 0.45,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.spring(dotScale, {
+        toValue: isActive ? 1 : 0,
+        useNativeDriver: true,
+        tension: 200,
+        friction: 12,
+      }),
+    ]).start();
+  }, [isActive]);
+
+  const handlePress = useCallback(() => {
+    if (!isActive) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    onPress();
+  }, [isActive, onPress]);
+
+  const iconColor = isActive ? colors.primary : colors.textMuted;
+  const iconName = isActive ? tab.icon : tab.iconOutline;
+  const isProfileTab = tab.name === "Conta";
+  const userPhoto = user?.photoURL;
+
+  return (
+    <TouchableOpacity
+      style={styles.tabItem}
+      onPress={handlePress}
+      activeOpacity={0.75}
+      accessibilityRole="tab"
+      accessibilityLabel={tab.label}
+      accessibilityState={{ selected: isActive }}
+    >
+      {/* Fundo suave ao redor do ícone quando ativo */}
+      {isActive && (
+        <Animated.View
+          style={[
+            styles.iconBackground,
+            {
+              backgroundColor: colors.primary + "18",
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        />
+      )}
+
+      {/* Ícone animado ou Avatar */}
+      <Animated.View
+        style={{
+          transform: [
+            { scale: scaleAnim },
+            { translateY },
+          ],
+        }}
+      >
+        {isProfileTab && userPhoto ? (
+          <Image
+            source={{ uri: userPhoto }}
+            style={[
+              styles.avatar,
+              { borderColor: isActive ? colors.primary : "transparent" },
+            ]}
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name={iconName}
+            size={24}
+            color={iconColor}
+          />
+        )}
+      </Animated.View>
+
+      {/* Label animado */}
+      <Animated.Text
+        style={[
+          styles.tabLabel,
+          {
+            color: isActive ? colors.primary : colors.textMuted,
+            fontFamily: isActive ? "PoppinsSemiBold" : "PoppinsRegular",
+            opacity: labelOpacity,
+          },
+        ]}
+        numberOfLines={1}
+      >
+        {tab.label}
+      </Animated.Text>
+
+      {/* Dot indicador abaixo do label */}
+      <Animated.View
+        style={[
+          styles.dot,
+          {
+            backgroundColor: colors.primary,
+            transform: [{ scale: dotScale }],
+          },
+        ]}
+      />
+    </TouchableOpacity>
+  );
 }
 
-/**
- * CUSTOM TAB BAR - Expandable Pills com animações Moti
- * 
- * Comportamento:
- * - Inativo: mostra apenas ícone (compacto)
- * - Ativo: expande e mostra ícone + label (pill)
- * - Animações spring suaves
- * - Indicador visual em topo
- */
-function CustomTabBar({ state, navigation }) {
-  const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  const t = getPillTokens(isDark, colors.primary, colors.primaryLight, colors.primaryDark);
+// ─── Barra de navegação customizada ──────────────────────────────────────────
 
+function MonitoraCultTabBar({ state, navigation, colors, isDark, insets, user }) {
   return (
     <View
       style={[
-        styles.tabBarContainer,
-        {
-          bottom: Platform.OS === "ios" ? insets.bottom + 10 : 16,
-          shadowColor: t.shadowColor,
-          shadowOpacity: t.shadowOpacity,
-          shadowRadius: t.shadowRadius,
-          elevation: t.elevation,
-        },
+        styles.tabBarWrapper,
+        { paddingBottom: Math.max(insets.bottom, 8) },
       ]}
     >
-      {/* ═══ Border Ring Fino ═══ */}
-      <View style={[styles.borderRing, { borderColor: t.borderColor }]}>
-        {/* ═══ Blur Surface ═══ */}
+      {/* Fundo: blur no iOS/macOS, cor sólida com transparência no Android/web */}
+      {Platform.OS === "ios" ? (
         <BlurView
-          intensity={t.blurIntensity}
-          tint={t.blurTint}
-          style={[styles.blurSurface, { backgroundColor: t.bgColor }]}
-        >
-          {/* ═══ Tab Bar Content ═══ */}
-          <View style={styles.tabBarContent}>
-            {state.routes.map((route, index) => {
-              const meta = TAB_META[route.name];
-              const isFocused = state.index === index;
+          intensity={isDark ? 72 : 85}
+          tint={isDark ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: isDark
+                ? "rgba(3,7,18,0.94)"
+                : "rgba(255,255,255,0.96)",
+            },
+          ]}
+        />
+      )}
 
-              const onPress = () => {
-                // Haptic feedback
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(
-                    isFocused
-                      ? Haptics.ImpactFeedbackStyle.Light
-                      : Haptics.ImpactFeedbackStyle.Medium
-                  ).catch(() => {});
-                }
+      {/* Linha decorativa no topo da barra */}
+      <View
+        style={[
+          styles.topBorder,
+          {
+            backgroundColor: isDark
+              ? "rgba(108,92,231,0.25)"
+              : "rgba(108,92,231,0.15)",
+          },
+        ]}
+      />
 
-                // Navigate
-                const event = navigation.emit({
-                  type: "tabPress",
-                  target: route.key,
-                  canPreventDefault: true,
-                });
-                if (!isFocused && !event.defaultPrevented) {
-                  navigation.navigate(route.name);
-                }
-              };
-
-              // ─── BOTÃO CENTRAL ELEVADO ───
-              if (meta.isCenter) {
-                return (
-                  <View key={route.key} style={styles.centerTabItem}>
-                    {/* Anel de glow pulsante quando ativo */}
-                    <MotiView
-                      animate={{
-                        scale: isFocused ? [1, 1.15, 1] : 1,
-                        opacity: isFocused ? [0.6, 0.3, 0.6] : 0,
-                      }}
-                      transition={
-                        isFocused
-                          ? {
-                              loop: true,
-                              type: "timing",
-                              duration: 2000,
-                            }
-                          : { type: "timing", duration: 200 }
-                      }
-                      style={[
-                        styles.centerGlowRing,
-                        {
-                          borderColor: t.centerRingColor,
-                          borderWidth: t.centerRingWidth,
-                        },
-                      ]}
-                    />
-
-                    <TouchableOpacity
-                      activeOpacity={0.88}
-                      onPress={onPress}
-                      style={styles.centerTouchable}
-                      accessibilityLabel={meta.label}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: isFocused }}
-                    >
-                      {/* Botão com gradiente */}
-                      <MotiView
-                        animate={{ scale: isFocused ? 1.07 : 1 }}
-                        transition={{
-                          type: "spring",
-                          damping: 12,
-                          stiffness: 260,
-                        }}
-                        style={styles.centerButtonWrapper}
-                      >
-                        <LinearGradient
-                          colors={
-                            isFocused
-                              ? [t.gradientStart, colors.primary, t.gradientEnd]
-                              : [colors.primary, t.gradientEnd]
-                          }
-                          start={{ x: 0.2, y: 0 }}
-                          end={{ x: 0.8, y: 1 }}
-                          style={[
-                            styles.centerButton,
-                            {
-                              shadowColor: colors.primary,
-                              shadowOpacity: isFocused ? 0.55 : 0.30,
-                            },
-                          ]}
-                        >
-                          <MaterialCommunityIcons
-                            name={
-                              isFocused
-                                ? meta.iconFocused
-                                : meta.iconDefault
-                            }
-                            size={26}
-                            color="#FFF"
-                          />
-                        </LinearGradient>
-                      </MotiView>
-
-                      {/* Label */}
-                      <MotiView
-                        animate={{ opacity: isFocused ? 1 : 0.5 }}
-                        transition={{ type: "timing", duration: 180 }}
-                      >
-                        <Text
-                          style={[
-                            styles.tabLabel,
-                            {
-                              color: isFocused
-                                ? t.labelActive
-                                : t.labelInactive,
-                              fontWeight: isFocused ? "700" : "400",
-                            },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {meta.label}
-                        </Text>
-                      </MotiView>
-                    </TouchableOpacity>
-                  </View>
-                );
+      {/* Abas */}
+      <View style={styles.tabRow}>
+        {TABS.map((tab, index) => (
+          <TabItem
+            key={tab.name}
+            tab={tab}
+            isActive={state.index === index}
+            onPress={() => {
+              const event = navigation.emit({
+                type: "tabPress",
+                target: state.routes[index].key,
+                canPreventDefault: true,
+              });
+              if (!event.defaultPrevented) {
+                navigation.navigate(state.routes[index].name);
               }
-
-              // ─── TABS NORMAIS (EXPANDABLE PILLS) ───
-              return (
-                <TouchableOpacity
-                  key={route.key}
-                  activeOpacity={0.75}
-                  onPress={onPress}
-                  style={styles.tabItem}
-                  accessibilityLabel={meta.label}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isFocused }}
-                >
-                  {/* Pílula de fundo com borda sutil */}
-                  <MotiView
-                    animate={{
-                      opacity: isFocused ? 1 : 0,
-                      scale: isFocused ? 1 : 0.7,
-                    }}
-                    transition={{
-                      type: "spring",
-                      damping: 18,
-                      stiffness: 320,
-                    }}
-                    style={[
-                      styles.activePill,
-                      {
-                        backgroundColor: t.pillBg,
-                        borderColor: t.pillBorder,
-                      },
-                    ]}
-                  />
-
-                  {/* Ponto indicador no topo */}
-                  <MotiView
-                    animate={{
-                      opacity: isFocused ? 1 : 0,
-                      scaleX: isFocused ? 1 : 0,
-                    }}
-                    transition={{
-                      type: "spring",
-                      damping: 20,
-                      stiffness: 400,
-                    }}
-                    style={[
-                      styles.activeDot,
-                      { backgroundColor: t.dotColor },
-                    ]}
-                  />
-
-                  {/* Ícone - Escala e muda cor */}
-                  <MotiView
-                    animate={{
-                      scale: isFocused ? 1.13 : 1,
-                      translateY: isFocused ? -1 : 0,
-                    }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 340,
-                      damping: 20,
-                    }}
-                  >
-                    <MaterialCommunityIcons
-                      name={
-                        isFocused
-                          ? meta.iconFocused
-                          : meta.iconDefault
-                      }
-                      size={23}
-                      color={
-                        isFocused
-                          ? t.iconActive
-                          : t.iconInactive
-                      }
-                    />
-                  </MotiView>
-
-                  {/* Label - Aparece com slide-up */}
-                  <MotiView
-                    animate={{
-                      opacity: isFocused ? 1 : 0.65,
-                      translateY: isFocused ? 0 : 1,
-                    }}
-                    transition={{
-                      type: "spring",
-                      damping: 22,
-                      stiffness: 300,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        {
-                          color: isFocused
-                            ? t.labelActive
-                            : t.labelInactive,
-                          fontWeight: isFocused ? "700" : "400",
-                        },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {meta.label}
-                    </Text>
-                  </MotiView>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </BlurView>
+            }}
+            colors={colors}
+            isDark={isDark}
+            user={user}
+          />
+        ))}
       </View>
     </View>
   );
 }
 
-/**
- * MAIN NAVIGATOR COMPONENT
- */
+// ─── Navigator principal ──────────────────────────────────────────────────────
+
 export default function TabNavigator() {
+  const { colors, isDark } = useTheme();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+
+  const renderTabBar = useCallback(
+    (props) => (
+      <MonitoraCultTabBar
+        {...props}
+        colors={colors}
+        isDark={isDark}
+        insets={insets}
+        user={user}
+      />
+    ),
+    [colors, isDark, insets, user]
+  );
+
   return (
     <Tab.Navigator
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={renderTabBar}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Inicio" component={HomeStack} />
-      <Tab.Screen name="Busca" component={BuscaStack} />
-      <Tab.Screen name="Feed" component={FeedStack} />
-      <Tab.Screen name="Eventos" component={EventoStack} />
-      <Tab.Screen name="Conta" component={PerfilStack} />
+      {TABS.map((tab) => (
+        <Tab.Screen
+          key={tab.name}
+          name={tab.name}
+          component={tab.component}
+        />
+      ))}
     </Tab.Navigator>
   );
 }
 
-/**
- * ═══════════════════════════════════════════════════════════════════
- * ESTILOS
- * ═══════════════════════════════════════════════════════════════════
- */
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  // ── Container flutuante ──────────────────────────────────────────
-  tabBarContainer: {
+  // Wrapper da barra inteira
+  tabBarWrapper: {
     position: "absolute",
-    left: 14,
-    right: 14,
-    shadowOffset: { width: 0, height: 10 },
-  },
-
-  // Anel de borda fina (fora do overflow:hidden)
-  borderRing: {
-    borderRadius: 28,
-    borderWidth: 1,
+    bottom: 0,
+    left: 0,
+    right: 0,
     overflow: "hidden",
+    // Sombra nativa
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 24,
+      },
+    }),
   },
 
-  blurSurface: {
-    height: 70,
-    borderRadius: 28,
-    overflow: "hidden",
+  // Linha roxa fina no topo
+  topBorder: {
+    height: 1.5,
+    width: "100%",
   },
 
-  tabBarContent: {
-    flex: 1,
+  // Linha de abas
+  tabRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    paddingHorizontal: 4,
+    paddingTop: 10,
   },
 
-  // ── Item normal ──────────────────────────────────────────────────
+  // Cada item de aba
   tabItem: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-    paddingVertical: 8,
-    minHeight: 70,
+    justifyContent: "flex-end",
+    paddingBottom: 6,
+    minHeight: 56,
+    position: "relative",
   },
 
-  activePill: {
+  // Fundo circular suave ao redor do ícone ativo
+  iconBackground: {
     position: "absolute",
-    width: 50,
-    height: 46,
-    borderRadius: 16,
-    borderWidth: 1,
-    top: "8%",
+    top: 0,
+    width: 48,
+    height: 40,
+    borderRadius: 14,
   },
 
-  // Traço/ponto indicador no topo da pílula
-  activeDot: {
-    position: "absolute",
-    top: 8,
-    width: 18,
-    height: 3,
-    borderRadius: 2,
+  // Avatar do usuário
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2.5,
   },
 
+  // Label da aba
   tabLabel: {
-    fontSize: 10,
-    letterSpacing: 0.1,
-    marginTop: 1,
+    fontSize: 11,
+    marginTop: 4,
+    letterSpacing: 0.3,
+    textAlign: "center",
+    fontWeight: "600",
   },
 
-  // ── Botão central elevado ────────────────────────────────────────
-  centerTabItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -16,
-  },
-
-  centerTouchable: {
-    alignItems: "center",
-    gap: 2,
-  },
-
-  centerButtonWrapper: {
-    // espaço para a sombra respirar
-    padding: 2,
-  },
-
-  centerButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    elevation: 14,
-  },
-
-  // Anel de glow pulsante em torno do botão central
-  centerGlowRing: {
-    position: "absolute",
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    top: -4,
+  // Bolinha indicadora
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    marginTop: 4,
   },
 });
-
-/**
- * ═══════════════════════════════════════════════════════════════════
- * NOTAS DE IMPLEMENTAÇÃO
- * ═══════════════════════════════════════════════════════════════════
- * 
- * 1. COMPATIBILIDADE:
- *    ✓ React Native Expo
- *    ✓ Funciona em iOS/Android/Web
- *    ✓ Suporta Light/Dark Mode via ThemeContext
- * 
- * 2. PERFORMANCE:
- *    ✓ Moti (reanimated 2) para animações GPU
- *    ✓ BlurView otimizado para Expo
- *    ✓ Sem re-renders desnecessários
- * 
- * 3. CUSTOMIZAÇÃO:
- *    - Mudar cores: edite getPillTokens()
- *    - Adicionar abas: adicione em TAB_META e Tab.Screen
- *    - Mudar duração das animações: edite transition { duration }
- *    - Botão central: remova isCenter: true de uma aba para desativar
- * 
- * 4. MELHORIAS FUTURAS:
- *    [ ] Badges de notificação (contador)
- *    [ ] Animação ao pressionar (press feedback)
- *    [ ] Draggable tabs (reorder)
- *    [ ] Lazy loading de stacks
- */

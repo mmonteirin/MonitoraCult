@@ -52,6 +52,10 @@ export default function CriarPost({ navigation }) {
 
 	const insets = useSafeAreaInsets();
 
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
+
 	const [imagem, setImagem] = useState(null);
 
 	const [descricao, setDescricao] = useState("");
@@ -77,10 +81,7 @@ export default function CriarPost({ navigation }) {
 	};
 
 	const showModal = (title, message, type = "success") => {
-		const { colors, isDark } = useTheme();
-		const styles = useThemedStyles(createThemedScreenStyles);
-		const blurTint = isDark ? "dark" : "light";
-setModalData({
+		setModalData({
 			title,
 			message,
 			type,

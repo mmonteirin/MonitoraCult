@@ -5,10 +5,12 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 const CATEGORY_FILTERS = [
   {
@@ -70,6 +72,10 @@ export default function CommunityCategoryFilter({
   const styles = useThemedStyles(createThemedScreenStyles);
   const blurTint = isDark ? "dark" : "light";
 
+  const { width } = Dimensions.get("window");
+  const isTablet = width >= 768;
+  const isSmallScreen = width < 375;
+
   const handlePress = (categoryKey) => {
     if (allowMultiple) {
       const newSelected = selectedCategories.includes(categoryKey)
@@ -96,47 +102,57 @@ export default function CommunityCategoryFilter({
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.filterScroll}
+        contentContainerStyle={styles.filterScrollContent}
       >
-        {CATEGORY_FILTERS.map((category) => {
+        {CATEGORY_FILTERS.map((category, index) => {
           const isSelected = selectedCategories.includes(category.key);
 
           return (
-            <TouchableOpacity
+            <Animated.View
               key={category.key}
-              style={[
-                styles.categoryTag,
-                isSelected && styles.categoryTagActive,
-                { borderColor: isSelected ? category.color : "rgba(255,255,255,0.1)" },
-                { backgroundColor: isSelected ? category.color + "20" : "transparent" },
-              ]}
-              onPress={() => handlePress(category.key)}
-              activeOpacity={0.7}
+              entering={FadeIn.delay(index * 50).springify()}
             >
-              <MaterialCommunityIcons
-                name={category.icon}
-                size={16}
-                color={isSelected ? category.color : colors.textMuted}
-              />
-              <Text
+              <TouchableOpacity
                 style={[
-                  styles.tagLabel,
-                  { color: isSelected ? category.color : colors.textSecondary },
+                  styles.categoryTag,
+                  isSelected && styles.categoryTagActive,
+                  { 
+                    borderColor: isSelected ? category.color : "rgba(255,255,255,0.1)",
+                    backgroundColor: isSelected ? category.color + "25" : "rgba(255,255,255,0.03)",
+                  },
                 ]}
+                onPress={() => handlePress(category.key)}
+                activeOpacity={0.7}
               >
-                {category.label}
-              </Text>
-              {isSelected && (
-                <View
-                  style={[styles.checkmark, { backgroundColor: category.color }]}
+                <MaterialCommunityIcons
+                  name={category.icon}
+                  size={isTablet ? 18 : 16}
+                  color={isSelected ? category.color : colors.textMuted}
+                />
+                <Text
+                  style={[
+                    styles.tagLabel,
+                    { 
+                      color: isSelected ? category.color : colors.textSecondary,
+                      fontSize: isSmallScreen ? 11 : isTablet ? 13 : 12,
+                    },
+                  ]}
                 >
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={10}
-                    color="#FFF"
-                  />
-                </View>
-              )}
-            </TouchableOpacity>
+                  {category.label}
+                </Text>
+                {isSelected && (
+                  <View
+                    style={[styles.checkmark, { backgroundColor: category.color }]}
+                  >
+                    <MaterialCommunityIcons
+                      name="check"
+                      size={isTablet ? 12 : 10}
+                      color="#FFF"
+                    />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </ScrollView>
@@ -147,50 +163,58 @@ export default function CommunityCategoryFilter({
 function createThemedScreenStyles(c) {
   return StyleSheet.create({
   container: {
-    marginVertical: 12,
-    paddingHorizontal: 16,
+    marginVertical: 16,
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
   },
   title: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 15,
+    fontWeight: "700",
     color: c.textPrimary,
+    letterSpacing: 0.3,
   },
   clearBtn: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: c.primary,
   },
   filterScroll: {
     flexGrow: 0,
   },
+  filterScrollContent: {
+    paddingRight: 20,
+  },
   categoryTag: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
     borderWidth: 1.5,
-    marginRight: 10,
-    backgroundColor: "rgba(255,255,255,0.02)",
+    marginRight: 12,
   },
   categoryTagActive: {
     borderWidth: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tagLabel: {
-    fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   checkmark: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 2,
