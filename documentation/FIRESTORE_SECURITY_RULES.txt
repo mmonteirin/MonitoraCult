@@ -1,0 +1,210 @@
+/**
+ * FIRESTORE SECURITY RULES PARA COMUNIDADE
+ * 
+ * Copie e cole as regras abaixo no Firebase Console -> Firestore Rules
+ * Estas regras garantem que apenas usuários autenticados possam acessar dados
+ * e que cada usuário só possa modificar seus próprios dados.
+ */
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================================
+    // REGRAS GERAIS - Autenticação obrigatória
+    // ============================================================
+    
+    // Função auxiliar para verificar autenticação
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Função auxiliar para verificar se é o dono do documento
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    
+    // ============================================================
+    // GRUPOS DE COMUNIDADE
+    // ============================================================
+    
+    match /communityGroups/{groupId} {
+      // Qualquer usuário autenticado pode ler grupos
+      allow read: if isAuthenticated();
+      
+      // Apenas admin pode criar grupos (ajuste conforme necessário)
+      allow create: if isAuthenticated() && request.auth.token.admin == true;
+      
+      // Apenas criador pode atualizar
+      allow update: if isAuthenticated() && isOwner(resource.data.creatorId);
+      
+      // Apenas admin pode deletar
+      allow delete: if isAuthenticated() && request.auth.token.admin == true;
+      
+      // ============================================================
+      // SUBCOLEÇÃO: FÓRUM (tópicos)
+      // ============================================================
+      
+      match /forum/{threadId} {
+        // Qualquer membro do grupo pode ler
+        allow read: if isAuthenticated();
+        
+        // Qualquer usuário autenticado pode criar tópico
+        allow create: if isAuthenticated() && 
+                      request.resource.data.authorId == request.auth.uid;
+        
+        // Apenas autor pode atualizar seu tópico
+        allow update: if isAuthenticated() && 
+                     isOwner(resource.data.authorId);
+        
+        // Apenas autor ou admin pode deletar
+        allow delete: if isAuthenticated() && 
+                     (isOwner(resource.data.authorId) || 
+                      request.auth.token.admin == true);
+        
+        // ============================================================
+        // SUBCOLEÇÃO: RESPOSTAS DE FÓRUM
+        // ============================================================
+        
+        match /replies/{replyId} {
+          // Qualquer membro pode ler respostas
+          allow read: if isAuthenticated();
+          
+          // Qualquer usuário autenticado pode responder
+          allow create: if isAuthenticated() && 
+                       request.resource.data.authorId == request.auth.uid;
+          
+          // Apenas autor pode editar sua resposta
+          allow update: if isAuthenticated() && 
+                       isOwner(resource.data.authorId);
+          
+          // Apenas autor ou admin pode deletar
+          allow delete: if isAuthenticated() && 
+                       (isOwner(resource.data.authorId) || 
+                        request.auth.token.admin == true);
+        }
+      }
+      
+      // ============================================================
+      // SUBCOLEÇÃO: NOTÍCIAS
+      // ============================================================
+      
+      match /news/{newsId} {
+        // Qualquer membro pode ler notícias
+        allow read: if isAuthenticated();
+        
+        // Apenas admin ou moderadores podem criar notícias
+        allow create: if isAuthenticated() && 
+                     (request.auth.token.admin == true || 
+                      request.auth.token.moderator == true);
+        
+        // Apenas autor pode atualizar
+        allow update: if isAuthenticated() && 
+                     isOwner(resource.data.authorId);
+        
+        // Apenas admin pode deletar
+        allow delete: if isAuthenticated() && 
+                     request.auth.token.admin == true;
+      }
+    }
+    
+    // ============================================================
+    // CRIADORES EM DESTAQUE
+    // ============================================================
+    
+    match /highlightedCreators/{creatorId} {
+      // Qualquer usuário autenticado pode ler
+      allow read: if isAuthenticated();
+      
+      // Apenas admin pode criar
+      allow create: if isAuthenticated() && request.auth.token.admin == true;
+      
+      // Apenas admin pode atualizar
+      allow update: if isAuthenticated() && request.auth.token.admin == true;
+      
+      // Apenas admin pode deletar
+      allow delete: if isAuthenticated() && request.auth.token.admin == true;
+    }
+    
+    // ============================================================
+    // COMENTÁRIOS DE NOTÍCIAS (opcional - se implementar)
+    // ============================================================
+    
+    match /communityGroups/{groupId}/news/{newsId}/comments/{commentId} {
+      // Qualquer membro pode ler comentários
+      allow read: if isAuthenticated();
+      
+      // Qualquer membro pode comentar
+      allow create: if isAuthenticated() && 
+                   request.resource.data.authorId == request.auth.uid;
+      
+      // Apenas autor pode editar comentário
+      allow update: if isAuthenticated() && 
+                   isOwner(resource.data.authorId);
+      
+      // Apenas autor ou admin podem deletar
+      allow delete: if isAuthenticated() && 
+                   (isOwner(resource.data.authorId) || 
+                    request.auth.token.admin == true);
+    }
+    
+    // ============================================================
+    // REGRA CATCH-ALL (Nega tudo não explicitamente permitido)
+    // ============================================================
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+/**
+ * INSTRUÇÕES PARA CONFIGURAR NO FIREBASE:
+ * 
+ * 1. Acesse Firebase Console (https://console.firebase.google.com)
+ * 2. Selecione seu projeto
+ * 3. Vá para Firestore Database -> Rules
+ * 4. Substitua as regras existentes pelas regras acima
+ * 5. Clique em "Publish"
+ * 
+ * IMPORTANTE: Para usar custom claims (admin, moderator):
+ * 
+ * a) Use Firebase Admin SDK ou Console para setar claims em usuários:
+ * 
+ * const admin = require('firebase-admin');
+ * 
+ * await admin.auth().setCustomUserClaims(uid, { admin: true });
+ * 
+ * b) Ou no Firebase Console:
+ * - Authentication -> Users -> Selecione usuário
+ * - Custom Claims (JSON) -> Adicione: { "admin": true }
+ * 
+ * ESTRUTURA DE CLAIMS:
+ * {
+ *   "admin": boolean,      // Acesso total
+ *   "moderator": boolean,  // Pode moderar conteúdo
+ *   "creator": boolean     // Status de criador (opcional)
+ * }
+ */
+
+/**
+ * ÍNDICES RECOMENDADOS PARA FIRESTORE:
+ * 
+ * Para melhor performance, crie os seguintes índices:
+ * 
+ * 1. Collection: communityGroups
+ *    Fields: genre (Ascending), membersCount (Descending)
+ * 
+ * 2. Collection: communityGroups/forum
+ *    Fields: createdAt (Descending)
+ * 
+ * 3. Collection: highlightedCreators
+ *    Fields: viewsCount (Descending)
+ * 
+ * 4. Collection: communityGroups/news
+ *    Fields: createdAt (Descending)
+ * 
+ * Você pode criá-los manualmente no Firebase Console:
+ * - Firestore Database -> Indexes -> Create Index
+ * - Ou deixar o Firebase criar automaticamente quando necessário
+ */

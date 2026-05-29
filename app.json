@@ -1,0 +1,76 @@
+{
+  "expo": {
+    "name": "MonitoraCult",
+    "slug": "snack-76330891-d725-4703-84bd-f58504f3c860",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "icon": "./assets/icon.png",
+
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070B14"
+    },
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.monitoracult.app",
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "O MonitoraCult envia notificações sobre eventos culturais, lembretes e atualizações da comunidade."
+      }
+    },
+
+    "android": {
+      "package": "com.monitoracult.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#070B14"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+
+    "plugins": [
+      "expo-font",
+      "@react-native-community/datetimepicker",
+
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O MonitoraCult precisa de acesso às suas fotos para adicionar imagens aos eventos.",
+          "cameraPermission": "O MonitoraCult precisa da câmera para tirar fotos dos eventos."
+        }
+      ],
+
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O MonitoraCult usa sua localização para mostrar eventos próximos.",
+          "locationWhenInUsePermission": "O MonitoraCult usa sua localização para mostrar eventos próximos."
+        }
+      ],
+
+      "expo-web-browser"
+    ],
+
+    "extra": {
+      "eas": {
+        "projectId": "dfcf7cb4-54ce-45a3-b19f-ff8f9045f805"
+      }
+    }
+  }
+}
