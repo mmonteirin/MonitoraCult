@@ -421,7 +421,7 @@ export default function PerfilEditar({ navigation }) {
 					/>
 					<BlurView intensity={60} tint={blurTint} style={styles.modalCard}>
 						<LinearGradient
-							colors={[`${modalConfig.iconColor}1F`, "transparent"]}
+							colors={[`${modalConfig.iconColor || colors.primary}1F`, "transparent"]}
 							style={styles.modalGradient}
 						>
 							<View style={styles.modalIcon}>
@@ -451,7 +451,7 @@ export default function PerfilEditar({ navigation }) {
 									onPress={modalConfig.onConfirm}
 								>
 									<LinearGradient
-										colors={[modalConfig.iconColor, `${modalConfig.iconColor}DD`]}
+										colors={[modalConfig.iconColor || colors.primary, `${modalConfig.iconColor || colors.primary}DD`]}
 										style={styles.confirmGradient}
 									>
 										<AppText style={styles.confirmText}>
