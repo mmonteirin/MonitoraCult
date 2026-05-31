@@ -33,7 +33,11 @@ import { getEventosApp } from "../services/eventosAppService";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 import { getUserLocationWithCity } from "../services/locationService";
-import { getEventos as getEventosMapaCultural } from "../services/mapaCulturalService";
+import {
+	getCategoriaMapaCultural,
+	getEventos as getEventosMapaCultural,
+	getTituloMapaCultural,
+} from "../services/mapaCulturalService";
 
 const { width } = Dimensions.get("window");
 
@@ -370,8 +374,8 @@ export default function TelaExploreCidade({ navigation, route }) {
 			if (eventoMC.location?.latitude && eventoMC.location?.longitude) {
 				todosEventos.push({
 					id: `mc_${eventoMC.id}`,
-					titulo: eventoMC.name || eventoMC.shortDescription,
-					categoria: eventoMC.terms?.linguagem?.[0] || "Cultura",
+					titulo: getTituloMapaCultural(eventoMC),
+					categoria: getCategoriaMapaCultural(eventoMC),
 					localEvento: eventoMC.location?.name || eventoMC.shortDescription,
 					location: {
 						latitude: eventoMC.location.latitude,

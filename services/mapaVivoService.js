@@ -185,6 +185,9 @@ const EVENTOS_MOCK = [
   },
 ];
 
+export const getEventosMapaVivoMock = () =>
+  EVENTOS_MOCK.map((evento) => ({ ...evento }));
+
 const HOTSPOTS_MOCK = [
   { latitude: -3.7220, longitude: -38.5423, intensity: 85, label: "Iracema" },
   { latitude: -3.7828, longitude: -38.5518, intensity: 60, label: "Mondubim" },

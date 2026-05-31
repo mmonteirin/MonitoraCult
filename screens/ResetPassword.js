@@ -8,6 +8,8 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from "react-native";
 
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -21,6 +23,7 @@ import { auth } from "../firebaseConfig";
 import AppText from "../components/AppText";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Status } from "../styles/Colors";
 
 export default function ResetPassword({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -32,6 +35,13 @@ export default function ResetPassword({ navigation }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    icon: "",
+    type: "info", // info, success, error
+  });
 
   const bgGradient = useMemo(
     () => [colors.backgroundDeep, colors.backgroundSecondary, colors.background],
@@ -40,23 +50,56 @@ export default function ResetPassword({ navigation }) {
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      alert("Digite um email válido");
+      setModalConfig({
+        title: "Atenção",
+        message: "Digite um email válido",
+        icon: "alert-circle-outline",
+        type: "error",
+      });
+      setShowModal(true);
       return;
     }
 
     try {
       setLoading(true);
       await sendPasswordResetEmail(auth, email);
-      alert("Email enviado! Verifique sua caixa 📩");
-      navigation.goBack();
+      setModalConfig({
+        title: "Email Enviado!",
+        message: "Verifique sua caixa de entrada 📩",
+        icon: "email-check-outline",
+        type: "success",
+      });
+      setShowModal(true);
+      setTimeout(() => {
+        setShowModal(false);
+        navigation.goBack();
+      }, 2000);
     } catch (error) {
       console.log(error);
       if (error.code === "auth/user-not-found") {
-        alert("Usuário não encontrado");
+        setModalConfig({
+          title: "Usuário não encontrado",
+          message: "Não encontramos uma conta com este email",
+          icon: "account-search-outline",
+          type: "error",
+        });
+        setShowModal(true);
       } else if (error.code === "auth/invalid-email") {
-        alert("Email inválido");
+        setModalConfig({
+          title: "Email inválido",
+          message: "Por favor, insira um email válido",
+          icon: "email-alert-outline",
+          type: "error",
+        });
+        setShowModal(true);
       } else {
-        alert("Erro ao enviar email");
+        setModalConfig({
+          title: "Erro ao enviar email",
+          message: "Tente novamente mais tarde",
+          icon: "alert-circle-outline",
+          type: "error",
+        });
+        setShowModal(true);
       }
     } finally {
       setLoading(false);
@@ -170,6 +213,69 @@ export default function ResetPassword({ navigation }) {
           </TouchableOpacity>
         </BlurView>
       </View>
+
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setShowModal(false)}
+          />
+          <BlurView intensity={60} tint={blurTint} style={styles.modalCard}>
+            <LinearGradient
+              colors={
+                modalConfig.type === "success"
+                  ? [`${colors.success}1F`, "transparent"]
+                  : modalConfig.type === "error"
+                  ? [`${colors.error}1F`, "transparent"]
+                  : [`${colors.primary}1F`, "transparent"]
+              }
+              style={styles.modalGradient}
+            >
+              <View style={styles.modalIcon}>
+                <MaterialCommunityIcons
+                  name={modalConfig.icon}
+                  size={34}
+                  color={
+                    modalConfig.type === "success"
+                      ? colors.success
+                      : modalConfig.type === "error"
+                      ? colors.error
+                      : colors.primary
+                  }
+                />
+              </View>
+              <AppText style={styles.modalTitle}>{modalConfig.title}</AppText>
+              <AppText style={styles.modalText}>{modalConfig.message}</AppText>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.confirmBtn}
+                  onPress={() => setShowModal(false)}
+                >
+                  <LinearGradient
+                    colors={
+                      modalConfig.type === "success"
+                        ? [Status.success, Status.successDark]
+                        : modalConfig.type === "error"
+                        ? [Status.error, Status.errorDark]
+                        : [colors.primary, colors.primaryLight]
+                    }
+                    style={styles.confirmGradient}
+                  >
+                    <AppText style={styles.confirmText}>OK</AppText>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </BlurView>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -279,5 +385,47 @@ function createResetStyles(c) {
     },
     footerButton: { alignItems: "center", marginTop: 14 },
     footerText: { color: c.primary, fontSize: 13, fontWeight: "600" },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: c.overlayStronger,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 24,
+    },
+    modalCard: {
+      width: "100%",
+      borderRadius: 28,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    modalGradient: { padding: 24, alignItems: "center" },
+    modalIcon: {
+      width: 72,
+      height: 72,
+      borderRadius: 24,
+      backgroundColor: "rgba(255,255,255,0.1)",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
+    modalText: {
+      color: c.textSecondary,
+      textAlign: "center",
+      marginTop: 10,
+      fontSize: 14,
+      lineHeight: 22,
+      paddingHorizontal: 12,
+    },
+    modalButtons: { flexDirection: "row", marginTop: 24, width: "100%" },
+    confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+    confirmGradient: {
+      flex: 1,
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
   });
 }

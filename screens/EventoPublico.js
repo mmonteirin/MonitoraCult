@@ -27,7 +27,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 import { useTheme, useGradients } from "../context/ThemeContext";
-import { getEventos } from "../services/mapaCulturalService";
+import {
+  getCategoriaMapaCultural,
+  getDescricaoMapaCultural,
+  getEventos,
+  getImagemMapaCultural,
+  getTituloMapaCultural,
+} from "../services/mapaCulturalService";
 
 const { width } = Dimensions.get("window");
 
@@ -193,33 +199,7 @@ export default function EventosPublicos({ navigation }) {
           // Identificar se o evento já ocorreu
           const jaOcorreu = dataEvento && dataEvento < hoje;
 
-          // Extrair categoria/linguagem dos terms
-          const linguagens = item?.terms?.linguagem || [];
-          let categoria = linguagens.length > 0 ? linguagens[0] : "Cultura";
-
-          // Se não tiver categoria definida, tentar extrair da descrição
-          if (categoria === "Cultura" && item?.shortDescription) {
-            const desc = item.shortDescription.toLowerCase();
-            if (desc.includes("música") || desc.includes("show") || desc.includes("concerto")) {
-              categoria = "Música";
-            } else if (desc.includes("teatro") || desc.includes("peça") || desc.includes("drama")) {
-              categoria = "Teatro";
-            } else if (desc.includes("exposição") || desc.includes("arte") || desc.includes("galeria")) {
-              categoria = "Arte";
-            } else if (desc.includes("cinema") || desc.includes("filme") || desc.includes("sala")) {
-              categoria = "Cinema";
-            } else if (desc.includes("dança") || desc.includes("ballet") || desc.includes("coreografia")) {
-              categoria = "Dança";
-            } else if (desc.includes("literatura") || desc.includes("livro") || desc.includes("leitura")) {
-              categoria = "Literatura";
-            } else if (desc.includes("gastronomia") || desc.includes("comida") || desc.includes("culinária")) {
-              categoria = "Gastronomia";
-            } else if (desc.includes("esporte") || desc.includes("competição") || desc.includes("atletismo")) {
-              categoria = "Esporte";
-            } else if (desc.includes("festival") || desc.includes("feira")) {
-              categoria = "Festival";
-            }
-          }
+          const categoria = getCategoriaMapaCultural(item);
 
           return {
 
@@ -228,8 +208,7 @@ export default function EventosPublicos({ navigation }) {
               String(index),
 
             titulo:
-              item.name ||
-              "Evento Cultural",
+              getTituloMapaCultural(item),
 
             local:
               item?.location?.name ||
@@ -237,15 +216,12 @@ export default function EventosPublicos({ navigation }) {
               "Fortaleza",
 
             descricao:
-              item?.shortDescription ||
-              "Evento cultural disponível.",
+              getDescricaoMapaCultural(item),
 
             imagem:
               getImagemPorCategoria(
                 categoria,
-                item?.files?.avatar?.url ||
-                item?.files?.header?.url ||
-                item?.files?.[0]?.url
+                getImagemMapaCultural(item)
               ),
 
             dataObj:

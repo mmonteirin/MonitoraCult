@@ -1,3 +1,5 @@
+import { getEventosMapaVivoMock } from "./mapaVivoService";
+
 const BASE_URL =
   "https://mapacultural.secult.ce.gov.br/api";
 
@@ -63,6 +65,219 @@ const normalizeResponse =
 
     return [];
 };
+
+const hasUsefulEventFields = (evento) => {
+  const source = getEntitySource(evento);
+  return Boolean(
+    source?.name ||
+    source?.title ||
+    source?.titulo ||
+    source?.nome ||
+    source?.shortDescription ||
+    source?.description ||
+    source?.occurrences?.length ||
+    source?.location?.name
+  );
+};
+
+const normalizarEventoMapaVivoFallback = (evento) => ({
+  id: evento.id,
+  name: evento.title,
+  shortDescription: evento.description,
+  location: {
+    name: evento.address || "Fortaleza",
+    latitude: evento.location?.latitude,
+    longitude: evento.location?.longitude,
+  },
+  occurrences: [
+    {
+      startDate: evento.date,
+      startsOn: evento.date,
+      start: evento.date,
+    },
+  ],
+  terms: {
+    linguagem: [evento.genre || "Cultura"],
+  },
+  fromMapaVivoFallback: true,
+});
+
+const getFallbackEventosMapaVivo = () =>
+  getEventosMapaVivoMock().map(normalizarEventoMapaVivoFallback);
+
+const CATEGORY_KEYWORDS = [
+  { label: "Música", words: ["música", "musica", "show", "concerto", "banda", "cantor", "cantora"] },
+  { label: "Teatro", words: ["teatro", "peça", "peca", "drama", "espetáculo", "espetaculo"] },
+  { label: "Exposição", words: ["exposição", "exposicao", "mostra", "galeria"] },
+  { label: "Cinema", words: ["cinema", "filme", "audiovisual", "curta", "longa"] },
+  { label: "Dança", words: ["dança", "danca", "ballet", "balé", "coreografia"] },
+  { label: "Literatura", words: ["literatura", "livro", "leitura", "poesia", "saraus", "sarau"] },
+  { label: "Gastronomia", words: ["gastronomia", "comida", "culinária", "culinaria"] },
+  { label: "Festival", words: ["festival", "feira", "festa"] },
+  { label: "Fotografia", words: ["fotografia", "foto"] },
+  { label: "Artes Visuais", words: ["artes visuais", "arte visual", "artes plásticas", "artes plasticas"] },
+  { label: "Cultura Popular", words: ["cultura popular", "tradição", "tradicao", "folclore"] },
+];
+
+const GENERIC_CATEGORY_VALUES = new Set([
+  "evento",
+  "eventos",
+  "evento cultural",
+  "eventos culturais",
+  "cultura",
+  "cultural",
+]);
+
+const getTextValue = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).trim();
+  }
+  if (Array.isArray(value)) {
+    return getTextValue(value.find((item) => getTextValue(item)));
+  }
+  if (typeof value === "object") {
+    const namedValue = getTextValue(
+      value.name ||
+      value.title ||
+      value.label ||
+      value.nome ||
+      value.value ||
+      value.term
+    );
+    if (namedValue) return namedValue;
+
+    const firstValue = Object.values(value).find((item) => getTextValue(item));
+    if (firstValue) return getTextValue(firstValue);
+
+    return Object.keys(value).find(Boolean) || "";
+  }
+  return "";
+};
+
+const getTermValue = (terms, key) => {
+  if (!terms) return "";
+
+  if (Array.isArray(terms)) {
+    const found = terms.find((term) => {
+      const group = getTextValue(term?.taxonomy || term?.group || term?.slug || term?.key);
+      return group.toLowerCase().includes(key.toLowerCase());
+    });
+    return getTextValue(found);
+  }
+
+  return getTextValue(terms[key]);
+};
+
+const getEntitySource = (evento) => {
+  if (!evento || Array.isArray(evento) || typeof evento !== "object") return evento;
+
+  if (
+    evento.name ||
+    evento.title ||
+    evento.titulo ||
+    evento.nome ||
+    evento.shortDescription ||
+    evento.description ||
+    evento.terms
+  ) {
+    return evento;
+  }
+
+  const nestedEntity = Object.values(evento).find(
+    (value) =>
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      (
+        value.name ||
+        value.title ||
+        value.titulo ||
+        value.nome ||
+        value.shortDescription ||
+        value.description ||
+        value.terms
+      )
+  );
+
+  return nestedEntity || evento;
+};
+
+const inferCategoryFromText = (text = "") => {
+  const normalizedText = text.toLowerCase();
+  const match = CATEGORY_KEYWORDS.find(({ words }) =>
+    words.some((word) => normalizedText.includes(word))
+  );
+  return match?.label || "";
+};
+
+export const getTituloMapaCultural = (evento, fallback = "Evento sem título") =>
+  {
+    const source = getEntitySource(evento);
+    return (
+      getTextValue(
+        source?.name ||
+        source?.title ||
+        source?.titulo ||
+        source?.nome ||
+        source?.["@name"]
+      ) ||
+      getTextValue(source?.shortDescription || source?.description).slice(0, 80) ||
+      fallback
+    );
+  };
+
+export const getDescricaoMapaCultural = (evento, fallback = "Evento cultural disponível.") =>
+  {
+    const source = getEntitySource(evento);
+    return getTextValue(source?.shortDescription || source?.description || source?.resumo) || fallback;
+  };
+
+export const getCategoriaMapaCultural = (evento, fallback = "Cultura") => {
+  const source = getEntitySource(evento);
+  const terms = source?.terms || source?.termos || {};
+  const termCandidates = [
+    getTermValue(terms, "linguagem"),
+    getTermValue(terms, "area"),
+    getTermValue(terms, "Área de Atuação"),
+    getTermValue(terms, "segmento"),
+    getTermValue(terms, "tag"),
+  ];
+
+  const directCandidates = [
+    source?.categoria,
+    source?.category,
+    source?.linguagem,
+    source?.type?.name,
+    source?.type?.label,
+    source?.type,
+  ];
+
+  const category = [...termCandidates, ...directCandidates]
+    .map(getTextValue)
+    .find((value) => value && !GENERIC_CATEGORY_VALUES.has(value.toLowerCase()));
+
+  if (category) return category;
+
+  return inferCategoryFromText(
+    `${getTituloMapaCultural(evento, "")} ${getDescricaoMapaCultural(evento, "")}`
+  ) || fallback;
+};
+
+export const getImagemMapaCultural = (evento) =>
+  {
+    const source = getEntitySource(evento);
+    return getTextValue(
+      source?.files?.avatar?.url ||
+      source?.files?.avatar ||
+      source?.files?.header?.url ||
+      source?.files?.header ||
+      source?.files?.[0]?.url ||
+      source?.files?.[0] ||
+      source?.imagem ||
+      source?.image
+    );
+  };
 
 // ---------- EVENTOS ----------
 
@@ -150,11 +365,49 @@ export const getEventos = async (optionsOrOffset = {}) => {
     }
 
     const json = await safeFetch(url);
-    return normalizeResponse(json);
+    const eventos = normalizeResponse(json);
+
+    if (eventos.length > 0 && !eventos.some(hasUsefulEventFields)) {
+      const fallbackUrl = url.replace(
+        `@select=${encodeURIComponent(select)}&`,
+        ""
+      );
+      const fallbackJson = await safeFetch(fallbackUrl);
+      const fallbackEventos = normalizeResponse(fallbackJson);
+
+      if (fallbackEventos.length > 0 && !fallbackEventos.some(hasUsefulEventFields)) {
+        const hidratados = await Promise.all(
+          fallbackEventos.map(async (evento) => {
+            const id =
+              getTextValue(evento?.id || evento?.["@id"]) ||
+              (
+                evento &&
+                typeof evento === "object" &&
+                !Array.isArray(evento)
+                  ? Object.keys(evento)[0]
+                  : ""
+              );
+
+            if (!id) return evento;
+
+            const eventoCompleto = await getEventoById(id);
+            return eventoCompleto || evento;
+          })
+        );
+
+        return hidratados.some(hasUsefulEventFields)
+          ? hidratados
+          : getFallbackEventosMapaVivo();
+      }
+
+      return fallbackEventos;
+    }
+
+    return eventos.length > 0 ? eventos : getFallbackEventosMapaVivo();
 
   } catch (error) {
     console.log("Erro ao buscar eventos:", error);
-    return [];
+    return getFallbackEventosMapaVivo();
   }
 };
 

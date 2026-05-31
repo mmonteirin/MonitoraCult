@@ -421,6 +421,7 @@ service cloud.firestore {
         && hasOnly([
           "usuarioId", "userId",
           "referenciaId", "itemId", "itemType",
+          "eventoId",
           "tipo",
           "createdAt"
         ]);

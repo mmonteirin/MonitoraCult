@@ -104,7 +104,7 @@ function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
         friction: 10,
       }),
       Animated.timing(labelOpacity, {
-        toValue: isActive ? 1 : 0.45,
+        toValue: isActive ? 1 : isDark ? 0.72 : 0.88,
         duration: 180,
         useNativeDriver: true,
       }),
@@ -124,7 +124,11 @@ function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
     onPress();
   }, [isActive, onPress]);
 
-  const iconColor = isActive ? colors.primary : colors.textMuted;
+  const inactiveColor = isDark ? colors.textMuted : "#334155";
+  const activeBackground = isDark
+    ? "rgba(108,92,231,0.18)"
+    : "rgba(108,92,231,0.14)";
+  const iconColor = isActive ? colors.primary : inactiveColor;
   const iconName = isActive ? tab.icon : tab.iconOutline;
   const isProfileTab = tab.name === "Conta";
   const userPhoto = user?.photoURL;
@@ -144,7 +148,7 @@ function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
           style={[
             styles.iconBackground,
             {
-              backgroundColor: colors.primary + "18",
+              backgroundColor: activeBackground,
               transform: [{ scale: scaleAnim }],
             },
           ]}
@@ -182,7 +186,7 @@ function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
         style={[
           styles.tabLabel,
           {
-            color: isActive ? colors.primary : colors.textMuted,
+            color: isActive ? colors.primary : inactiveColor,
             fontFamily: isActive ? "PoppinsSemiBold" : "PoppinsRegular",
             opacity: labelOpacity,
           },
@@ -209,29 +213,47 @@ function TabItem({ tab, isActive, onPress, colors, isDark, user }) {
 // ─── Barra de navegação customizada ──────────────────────────────────────────
 
 function MonitoraCultTabBar({ state, navigation, colors, isDark, insets, user }) {
+  const barBackground = isDark
+    ? "rgba(15,23,42,0.92)"
+    : "rgba(255,255,255,0.96)";
+  const borderColor = isDark
+    ? "rgba(148,163,184,0.16)"
+    : "rgba(51,65,85,0.20)";
+  const topBorderColor = isDark
+    ? "rgba(108,92,231,0.35)"
+    : "rgba(108,92,231,0.45)";
+
   return (
     <View
       style={[
         styles.tabBarWrapper,
-        { paddingBottom: Math.max(insets.bottom, 8) },
+        {
+          paddingBottom: Math.max(insets.bottom, 4),
+          backgroundColor: barBackground,
+          borderColor,
+        },
       ]}
     >
       {/* Fundo: blur no iOS/macOS, cor sólida com transparência no Android/web */}
       {Platform.OS === "ios" ? (
-        <BlurView
-          intensity={isDark ? 72 : 85}
-          tint={isDark ? "dark" : "light"}
-          style={StyleSheet.absoluteFill}
-        />
+        <>
+          <BlurView
+            intensity={isDark ? 50 : 35}
+            tint={isDark ? "dark" : "light"}
+            style={StyleSheet.absoluteFill}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: barBackground },
+            ]}
+          />
+        </>
       ) : (
         <View
           style={[
             StyleSheet.absoluteFill,
-            {
-              backgroundColor: isDark
-                ? "rgba(3,7,18,0.94)"
-                : "rgba(255,255,255,0.96)",
-            },
+            { backgroundColor: barBackground },
           ]}
         />
       )}
@@ -241,9 +263,7 @@ function MonitoraCultTabBar({ state, navigation, colors, isDark, insets, user })
         style={[
           styles.topBorder,
           {
-            backgroundColor: isDark
-              ? "rgba(108,92,231,0.25)"
-              : "rgba(108,92,231,0.15)",
+            backgroundColor: topBorderColor,
           },
         ]}
       />
@@ -317,11 +337,12 @@ const styles = StyleSheet.create({
   // Wrapper da barra inteira
   tabBarWrapper: {
     position: "absolute",
-    bottom: 16,
+    bottom: 10,
     left: 16,
     right: 16,
-    borderRadius: 24,
+    borderRadius: 22,
     overflow: "hidden",
+    borderWidth: 1,
     // Sombra nativa
     ...Platform.select({
       ios: {
@@ -345,7 +366,7 @@ const styles = StyleSheet.create({
   // Linha de abas
   tabRow: {
     flexDirection: "row",
-    paddingTop: 10,
+    paddingTop: 6,
   },
 
   // Cada item de aba
@@ -353,8 +374,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-end",
-    paddingBottom: 6,
-    minHeight: 56,
+    paddingBottom: 4,
+    minHeight: 48,
     position: "relative",
   },
 
@@ -362,9 +383,9 @@ const styles = StyleSheet.create({
   iconBackground: {
     position: "absolute",
     top: 0,
-    width: 48,
-    height: 40,
-    borderRadius: 14,
+    width: 44,
+    height: 36,
+    borderRadius: 13,
   },
 
   // Avatar do usuário
@@ -378,7 +399,7 @@ const styles = StyleSheet.create({
   // Label da aba
   tabLabel: {
     fontSize: 11,
-    marginTop: 4,
+    marginTop: 2,
     letterSpacing: 0.3,
     textAlign: "center",
     fontWeight: "600",
@@ -389,6 +410,6 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 3,
-    marginTop: 4,
+    marginTop: 2,
   },
 });
