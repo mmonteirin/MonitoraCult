@@ -16,6 +16,7 @@ import React, {
   useRef,
   useState,
   useCallback,
+  useMemo,
 } from "react";
 
 import { AppState, Platform } from "react-native";
@@ -77,10 +78,10 @@ export function NotificationProvider({ children }) {
     return () => {
       // Cleanup listeners
       const Notifications = notificationsModuleRef.current;
-      if (Notifications && notifRecebidaRef.current) {
+      if (Notifications && notifRecebidaRef.current && typeof Notifications.removeNotificationSubscription === 'function') {
         Notifications.removeNotificationSubscription(notifRecebidaRef.current);
       }
-      if (Notifications && notifRespostaRef.current) {
+      if (Notifications && notifRespostaRef.current && typeof Notifications.removeNotificationSubscription === 'function') {
         Notifications.removeNotificationSubscription(notifRespostaRef.current);
       }
     };
@@ -268,7 +269,7 @@ export function NotificationProvider({ children }) {
     setTemMais(true);
   }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     pushToken,
     permissaoStatus,
     notificacoes,
@@ -285,7 +286,24 @@ export function NotificationProvider({ children }) {
     marcarLida: handleMarcarLida,
     marcarTodasLidas: handleMarcarTodasLidas,
     limparHistorico: handleLimparHistorico,
-  };
+  }), [
+    pushToken,
+    permissaoStatus,
+    notificacoes,
+    naoLidas,
+    carregando,
+    carregandoMais,
+    erro,
+    filtroTipo,
+    temMais,
+    carregarNotificacoes,
+    carregarMais,
+    aplicarFiltro,
+    limparFiltro,
+    handleMarcarLida,
+    handleMarcarTodasLidas,
+    handleLimparHistorico,
+  ]);
 
   return (
     <NotificationContext.Provider value={value}>

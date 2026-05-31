@@ -3,7 +3,7 @@
  * Exibe todas as conversas do usuário com último mensagem
  */
 
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -198,6 +198,32 @@ const ListaConversas = memo(
         }
       },
     });
+
+    const renderItem = useCallback(({ item }) => (
+      <ConversaItem
+        conversa={item}
+        onPress={onConversaPress}
+        userId={userId}
+        onDelete={onDeleteConversa}
+      />
+    ), [onConversaPress, userId, onDeleteConversa]);
+
+    const listProps = useMemo(() => ({
+      data: conversas,
+      renderItem,
+      keyExtractor: (item) => item.id,
+      ItemSeparatorComponent: () => <View style={styles.separador} />,
+      contentContainerStyle: [
+        styles.lista,
+        { paddingBottom: bottomPad },
+        embedded && styles.listaEmbedded,
+      ],
+      scrollEventThrottle: 16,
+      showsVerticalScrollIndicator: false,
+      onScroll: scrollY ? scrollHandler : undefined,
+      style: embedded ? styles.flexFill : undefined,
+    }), [conversas, renderItem, bottomPad, embedded, styles, scrollY, scrollHandler]);
+
     if (loading) {
       return (
         <View style={[styles.loader, embedded && styles.flexFill]}>
@@ -226,29 +252,6 @@ const ListaConversas = memo(
         </View>
       );
     }
-
-    const listProps = {
-      data: conversas,
-      renderItem: ({ item }) => (
-        <ConversaItem
-          conversa={item}
-          onPress={onConversaPress}
-          userId={userId}
-          onDelete={onDeleteConversa}
-        />
-      ),
-      keyExtractor: (item) => item.id,
-      ItemSeparatorComponent: () => <View style={styles.separador} />,
-      contentContainerStyle: [
-        styles.lista,
-        { paddingBottom: bottomPad },
-        embedded && styles.listaEmbedded,
-      ],
-      scrollEventThrottle: 16,
-      showsVerticalScrollIndicator: false,
-      onScroll: scrollY ? scrollHandler : undefined,
-      style: embedded ? styles.flexFill : undefined,
-    };
 
     return <Animated.FlatList {...listProps} />;
   }

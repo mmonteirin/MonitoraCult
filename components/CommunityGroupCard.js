@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 
-export default function CommunityGroupCard({
+function CommunityGroupCard({
   id,
   name,
   genre,
@@ -296,3 +296,5 @@ function createThemedScreenStyles(c) {
   },
 });
 }
+
+export default React.memo(CommunityGroupCard);

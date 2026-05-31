@@ -62,6 +62,22 @@ const TABS = [
   },
 ];
 
+const SUGGESTIONS = [
+  "Música ao vivo",
+  "Cinema",
+  "Eventos gratuitos",
+  "Fotografia",
+  "Teatro",
+];
+
+const normalizeFilterText = (value = "") =>
+  value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
 export default function TelaComunidade({ navigation, route }) {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
@@ -120,51 +136,66 @@ export default function TelaComunidade({ navigation, route }) {
     loadInitialData();
   }, []);
 
-  useEffect(() => {
-    loadGroups(
-      selectedGenre === "Todos" ? null : selectedGenre,
-      searchText || null
-    );
-  }, [selectedGenre, searchText]);
-
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     await Promise.all([
       loadGroups(),
       loadMyGroups(),
       loadHighlightedCreators(),
     ]);
-  };
+  }, [loadGroups, loadMyGroups, loadHighlightedCreators]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-
     await loadInitialData();
-
     setRefreshing(false);
-  };
+  }, [loadInitialData]);
 
-  const groupedByCategory = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     let filtered = groups;
 
     if (selectedGenre !== "Todos") {
+      const genreFilter = normalizeFilterText(selectedGenre);
       filtered = filtered.filter(
-        (g) => g.genre === selectedGenre
+        (g) => normalizeFilterText(g.genre) === genreFilter
       );
     }
 
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter((g) => {
-        const genre = g.genre?.toLowerCase() || "";
+      const categoryFilters = selectedCategories.map(normalizeFilterText);
 
-        return selectedCategories.some((cat) =>
+      filtered = filtered.filter((g) => {
+        const genre = normalizeFilterText(g.genre);
+
+        return categoryFilters.some((cat) =>
           genre.includes(cat)
         );
       });
     }
 
+    if (searchText.trim()) {
+      const term = normalizeFilterText(searchText);
+
+      filtered = filtered.filter((g) => {
+        const searchable = [
+          g.name,
+          g.description,
+          g.genre,
+          ...(Array.isArray(g.tags) ? g.tags : []),
+        ]
+          .map(normalizeFilterText)
+          .join(" ");
+
+        return searchable.includes(term);
+      });
+    }
+
+    return filtered;
+  }, [groups, selectedGenre, selectedCategories, searchText]);
+
+  const groupedByCategory = useMemo(() => {
     const grouped = {};
 
-    filtered.forEach((group) => {
+    filteredGroups.forEach((group) => {
       const genre = group.genre || "Outro";
 
       if (!grouped[genre]) {
@@ -175,7 +206,7 @@ export default function TelaComunidade({ navigation, route }) {
     });
 
     return grouped;
-  }, [groups, selectedGenre, selectedCategories]);
+  }, [filteredGroups]);
 
   const handleCreateCommunity = async () => {
     if (
@@ -230,7 +261,7 @@ export default function TelaComunidade({ navigation, route }) {
     }
   };
 
-  const handleGroupAction = async (group) => {
+  const handleGroupAction = useCallback(async (group) => {
     const isMember = checkIsMember(group);
 
     if (isMember) {
@@ -259,29 +290,17 @@ export default function TelaComunidade({ navigation, route }) {
     } catch (err) {
       Alert.alert("Erro", err.message);
     }
-  };
+  }, [checkIsMember, handleJoinGroup, handleLeaveGroup]);
 
-  const HeaderContainer = embedded
-    ? View
-    : LinearGradient;
+  const HeaderContainer = useMemo(() => embedded ? View : LinearGradient, [embedded]);
 
-  const headerContainerProps = embedded
-    ? {}
-    : {
-        colors: [
-          colors.backgroundSecondary,
-          colors.surface,
-          colors.background,
-        ],
-      };
-
-  const suggestions = [
-    "Música ao vivo",
-    "Cinema",
-    "Eventos gratuitos",
-    "Fotografia",
-    "Teatro",
-  ];
+  const headerContainerProps = useMemo(() => embedded ? {} : {
+    colors: [
+      colors.backgroundSecondary,
+      colors.surface,
+      colors.background,
+    ],
+  }, [embedded, colors.backgroundSecondary, colors.surface, colors.background]);
 
   const navigateToGroup = useCallback(
     (group) => {
@@ -292,7 +311,7 @@ export default function TelaComunidade({ navigation, route }) {
     [navigation]
   );
 
-  const renderEmbeddedExplorar = () => {
+  const renderEmbeddedExplorar = useCallback(() => {
     if (loading && !groups.length) {
       return (
         <View style={styles.centerBox}>
@@ -301,7 +320,7 @@ export default function TelaComunidade({ navigation, route }) {
       );
     }
 
-    if (!groups.length) {
+    if (!filteredGroups.length) {
       return (
         <View style={styles.emptyStateEmbedded}>
           <MaterialCommunityIcons
@@ -319,7 +338,7 @@ export default function TelaComunidade({ navigation, route }) {
 
     return (
       <View style={styles.embeddedGroupsList}>
-        {groups.map((group) => (
+        {filteredGroups.map((group) => (
           <View key={group.id} style={styles.embeddedCardWrap}>
             <CommunityGroupCard
               {...group}
@@ -332,9 +351,9 @@ export default function TelaComunidade({ navigation, route }) {
         ))}
       </View>
     );
-  };
+  }, [loading, groups.length, filteredGroups, colors.primary, colors.textMuted, checkIsMember, navigateToGroup, handleGroupAction]);
 
-  const renderEmbeddedMeus = () => {
+  const renderEmbeddedMeus = useCallback(() => {
     if (!currentUser) {
       return (
         <View style={styles.emptyStateEmbedded}>
@@ -367,9 +386,9 @@ export default function TelaComunidade({ navigation, route }) {
         ))}
       </View>
     );
-  };
+  }, [currentUser, myGroups, navigateToGroup, handleGroupAction]);
 
-  const renderEmbeddedCriadores = () => {
+  const renderEmbeddedCriadores = useCallback(() => {
     if (highlightedCreators.length === 0) {
       return (
         <View style={styles.emptyStateEmbedded}>
@@ -393,7 +412,7 @@ export default function TelaComunidade({ navigation, route }) {
         ))}
       </View>
     );
-  };
+  }, [highlightedCreators, navigation]);
 
   if (embedded) {
     return (
@@ -469,6 +488,7 @@ export default function TelaComunidade({ navigation, route }) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.embeddedGenreScroll}
             contentContainerStyle={styles.embeddedGenreRow}
           >
             {GENEROS.map((genre) => {
@@ -710,7 +730,7 @@ export default function TelaComunidade({ navigation, route }) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.suggestionRow}
           >
-            {suggestions.map((item) => (
+            {SUGGESTIONS.map((item) => (
               <TouchableOpacity
                 key={item}
                 style={styles.suggestionChip}
@@ -1373,6 +1393,12 @@ function createThemedScreenStyles(c) {
     paddingHorizontal: isTablet ? 24 : 20,
     paddingVertical: isTablet ? 12 : 10,
     gap: isTablet ? 14 : 12,
+  },
+
+  embeddedGenreScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: isTablet ? 64 : 56,
   },
 
   embeddedGenreChip: {

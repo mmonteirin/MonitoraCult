@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo, memo } from "react";
 
 import {
 	View,
@@ -52,11 +52,18 @@ const formatarDataEventoLista = (item) => {
 	return "Data não informada";
 };
 
-export default function AdmEvento({ navigation }) {
+const AdmEvento = memo(function AdmEvento({ navigation }) {
 	const { colors, isDark } = useTheme();
 	const styles = useThemedStyles(createThemedScreenStyles);
 	const { user, foto } = useAuth();
 	const blurTint = isDark ? "dark" : "light";
+	const headerColors = useMemo(
+		() =>
+			isDark
+				? ["#240046", "#3C096C", "#5A189A"]
+				: [colors.backgroundElevated, colors.surfaceLight, "#EEF2FF"],
+		[colors.backgroundElevated, colors.surfaceLight, isDark]
+	);
 
 	const [eventos, setEventos] = useState([]);
 
@@ -109,19 +116,19 @@ export default function AdmEvento({ navigation }) {
 		return () => unsub();
 	}, [user?.uid]);
 
-	const onRefresh = async () => {
+	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
 
 		setTimeout(() => {
 			setRefreshing(false);
 		}, 1200);
-	};
+	}, []);
 
-	const deletarEvento = (id) => {
+	const deletarEvento = useCallback((id) => {
 		setDeleteModal({ visible: true, id });
-	};
+	}, []);
 
-	const confirmarExclusao = async () => {
+	const confirmarExclusao = useCallback(async () => {
 		const id = deleteModal.id;
 		if (!id) return;
 
@@ -136,9 +143,9 @@ export default function AdmEvento({ navigation }) {
 				message: "Não foi possível excluir o evento. Tente novamente.",
 			});
 		}
-	};
+	}, [deleteModal.id]);
 
-	const renderItem = ({ item, index }) => (
+	const renderItem = useCallback(({ item, index }) => (
 		<MotiView
 			from={{
 				opacity: 0,
@@ -210,7 +217,7 @@ export default function AdmEvento({ navigation }) {
 						<MaterialCommunityIcons
 							name="map-marker"
 							size={16}
-							color="#A855F7"
+							color={colors.primary}
 						/>
 
 						<Text style={styles.infoText} numberOfLines={1}>
@@ -222,7 +229,7 @@ export default function AdmEvento({ navigation }) {
 						<MaterialCommunityIcons
 							name="calendar-month"
 							size={16}
-							color="#A855F7"
+							color={colors.primary}
 						/>
 
 						<Text style={styles.infoText}>
@@ -290,12 +297,12 @@ export default function AdmEvento({ navigation }) {
 				</BlurView>
 			</View>
 		</MotiView>
-	);
+	), [colors, navigation, deletarEvento, styles]);
 
 	if (loading) {
 		return (
 			<View style={styles.loading}>
-				<ActivityIndicator size="large" color="#9333EA" />
+				<ActivityIndicator size="large" color={colors.primary} />
 
 				<Text style={styles.loadingText}>
 					Carregando seus eventos...
@@ -309,12 +316,12 @@ export default function AdmEvento({ navigation }) {
 			<StatusBar
 				translucent
 				backgroundColor="transparent"
-				barStyle="light-content"
+				barStyle={isDark ? "light-content" : "dark-content"}
 			/>
 
 			{/* HEADER */}
 			<LinearGradient
-				colors={["#240046", "#3C096C", "#5A189A"]}
+				colors={headerColors}
 				style={styles.header}
 			>
 				<BlurView intensity={35} tint={blurTint} style={styles.headerBlur}>
@@ -326,7 +333,7 @@ export default function AdmEvento({ navigation }) {
 							<MaterialCommunityIcons
 								name="arrow-left"
 								size={24}
-								color="#FFF"
+								color={colors.textPrimary}
 							/>
 						</TouchableOpacity>
 
@@ -368,7 +375,7 @@ export default function AdmEvento({ navigation }) {
 						<MaterialCommunityIcons
 							name="calendar-remove"
 							size={72}
-							color="rgba(255,255,255,0.18)"
+							color={colors.textMuted}
 						/>
 
 						<Text style={styles.empty}>
@@ -426,9 +433,9 @@ export default function AdmEvento({ navigation }) {
 			/>
 		</View>
 	);
-}
+});
 
-function createThemedScreenStyles(c) {
+function createThemedScreenStyles(c, isDark) {
   return StyleSheet.create({
 	container: {
 		flex: 1,
@@ -442,6 +449,8 @@ function createThemedScreenStyles(c) {
 		borderBottomLeftRadius: 30,
 		borderBottomRightRadius: 30,
 		overflow: "hidden",
+		borderBottomWidth: 1,
+		borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.10)",
 	},
 
 	headerBlur: {
@@ -464,19 +473,21 @@ function createThemedScreenStyles(c) {
 		width: 44,
 		height: 44,
 		borderRadius: 14,
-		backgroundColor: c.glassStrong,
+		backgroundColor: isDark ? c.glassStrong : "rgba(255,255,255,0.86)",
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: isDark ? c.glassBorder : "rgba(15,23,42,0.14)",
 	},
 
 	title: {
-		color: "#FFF",
+		color: c.textPrimary,
 		fontSize: 24,
 		fontWeight: "bold",
 	},
 
 	subtitle: {
-		color: "rgba(255,255,255,0.68)",
+		color: c.textSecondary,
 		fontSize: 13,
 		marginTop: 3,
 	},
@@ -486,19 +497,20 @@ function createThemedScreenStyles(c) {
 		height: 44,
 		borderRadius: 22,
 		borderWidth: 2,
-		borderColor: "rgba(255,255,255,0.16)",
+		borderColor: isDark ? "rgba(255,255,255,0.20)" : "rgba(108,92,231,0.26)",
 	},
 
 	card: {
 		borderRadius: 30,
 		overflow: "hidden",
 		marginBottom: 22,
-		backgroundColor: "rgba(255,255,255,0.045)",
+		backgroundColor: isDark ? c.surface : c.backgroundElevated,
 		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.05)",
-		shadowColor: "#7C3AED",
-		shadowOpacity: 0.16,
+		borderColor: isDark ? "rgba(255,255,255,0.14)" : "rgba(15,23,42,0.12)",
+		shadowColor: c.shadow,
+		shadowOpacity: isDark ? 0.22 : 0.12,
 		shadowRadius: 18,
+		shadowOffset: { width: 0, height: 10 },
 		elevation: 10,
 	},
 
@@ -537,10 +549,11 @@ function createThemedScreenStyles(c) {
 
 	content: {
 		padding: 18,
+		backgroundColor: isDark ? "rgba(17,24,39,0.90)" : "rgba(255,255,255,0.96)",
 	},
 
 	titulo: {
-		color: "#FFF",
+		color: c.textPrimary,
 		fontSize: 21,
 		fontWeight: "bold",
 		marginBottom: 14,
@@ -553,7 +566,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	infoText: {
-		color: "rgba(255,255,255,0.74)",
+		color: c.textSecondary,
 		marginLeft: 8,
 		fontSize: 13,
 		flex: 1,
@@ -600,9 +613,9 @@ function createThemedScreenStyles(c) {
 		paddingVertical: 14,
 		paddingHorizontal: 14,
 		borderRadius: 16,
-		backgroundColor: c.surface,
+		backgroundColor: isDark ? c.surfaceLight : c.surface,
 		borderWidth: 1,
-		borderColor: c.glassBorder,
+		borderColor: isDark ? c.glassBorder : "rgba(15,23,42,0.12)",
 		gap: 10,
 	},
 
@@ -622,7 +635,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	dashboardChevron: {
-		opacity: 0.5,
+		opacity: isDark ? 0.76 : 0.62,
 	},
 
 	loading: {
@@ -633,7 +646,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	loadingText: {
-		color: "rgba(255,255,255,0.65)",
+		color: c.textSecondary,
 		marginTop: 14,
 		fontSize: 14,
 	},
@@ -645,7 +658,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	empty: {
-		color: "rgba(255,255,255,0.62)",
+		color: c.textPrimary,
 		marginTop: 18,
 		fontSize: 16,
 		textAlign: "center",
@@ -653,7 +666,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	emptySub: {
-		color: "rgba(255,255,255,0.34)",
+		color: c.textMuted,
 		marginTop: 8,
 		fontSize: 13,
 		textAlign: "center",
@@ -678,3 +691,5 @@ function createThemedScreenStyles(c) {
 	},
 });
 }
+
+export default AdmEvento;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import { ActivityIndicator, View, Dimensions } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -28,6 +28,55 @@ export default function DrawerNavigator() {
   const { isAdmin, loading } = useAuth();
   const Colors = useColors();
 
+  const drawerContent = useCallback((props) => <CustomDrawerContent {...props} />, []);
+
+  const screenOptions = useCallback(({ navigation }) => ({
+    drawerType: "slide",
+    swipeEnabled: true,
+    overlayColor: "rgba(0, 0, 0, 0.7)",
+
+    /* 🎨 DRAWER STYLES */
+    drawerStyle: {
+      backgroundColor: Colors.background,
+      width: SCREEN_WIDTH * 0.8,
+    },
+    sceneContainerStyle: {
+      backgroundColor: Colors.background,
+    },
+    drawerActiveTintColor: Colors.primary,
+    drawerInactiveTintColor: Colors.textSecondary,
+    drawerLabelStyle: {
+      fontSize: 16,
+      marginLeft: -8,
+      fontFamily: Typography?.medium || "System",
+      fontWeight: "600",
+      letterSpacing: 0.2,
+    },
+    drawerItemStyle: {
+      minHeight: 52,
+      marginVertical: 2,
+      borderRadius: 16,
+      marginHorizontal: 8,
+    },
+    drawerActiveBackgroundColor: Colors.primary + "20",
+
+    /* 🎨 HEADER CONFIGS */
+    headerShown: true,
+    headerTitle: "",
+    headerShadowVisible: false,
+    headerStyle: {
+      backgroundColor: Colors.background,
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    headerTintColor: Colors.primary,
+    headerLeft: () => <DrawerAvatar navigation={navigation} />,
+  }), [Colors]);
+
+  const drawerIcon = useCallback(({ color, size, iconName }) => (
+    <MaterialCommunityIcons name={iconName} color={color} size={size} />
+  ), []);
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background }}>
@@ -40,49 +89,8 @@ export default function DrawerNavigator() {
     <Drawer.Navigator
       key={isAdmin ? "admin" : "user"}
       initialRouteName="HomeTabs"
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
-      screenOptions={({ navigation }) => ({
-        drawerType: "slide",
-        swipeEnabled: true,
-        overlayColor: "rgba(0, 0, 0, 0.7)",
-
-        /* 🎨 DRAWER STYLES */
-        drawerStyle: {
-          backgroundColor: Colors.background,
-          width: SCREEN_WIDTH * 0.8,
-        },
-        sceneContainerStyle: {
-          backgroundColor: Colors.background,
-        },
-        drawerActiveTintColor: Colors.primary,
-        drawerInactiveTintColor: Colors.textSecondary,
-        drawerLabelStyle: {
-          fontSize: 16,
-          marginLeft: -8,
-          fontFamily: Typography?.medium || "System",
-          fontWeight: "600",
-          letterSpacing: 0.2,
-        },
-        drawerItemStyle: {
-          minHeight: 52,
-          marginVertical: 2,
-          borderRadius: 16,
-          marginHorizontal: 8,
-        },
-        drawerActiveBackgroundColor: Colors.primary + "20",
-
-        /* 🎨 HEADER CONFIGS */
-        headerShown: true,
-        headerTitle: "",
-        headerShadowVisible: false,
-        headerStyle: {
-          backgroundColor: Colors.background,
-          elevation: 0,
-          shadowOpacity: 0,
-        },
-        headerTintColor: Colors.primary,
-        headerLeft: () => <DrawerAvatar navigation={navigation} />,
-      })}
+      drawerContent={drawerContent}
+      screenOptions={screenOptions}
     >
       {/* 🏠 TELA INICIAL */}
       <Drawer.Screen
@@ -90,7 +98,7 @@ export default function DrawerNavigator() {
         component={TabNavigator}
         options={{
           drawerLabel: "Tela Inicial",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="home-variant-outline" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "home-variant-outline" }),
         }}
       />
 
@@ -100,7 +108,7 @@ export default function DrawerNavigator() {
         component={PerfilStack}
         options={{
           drawerLabel: "Meu Perfil",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="account-circle-outline" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "account-circle-outline" }),
         }}
       />
 
@@ -110,7 +118,7 @@ export default function DrawerNavigator() {
         component={TelaLocaisVisitados}
         options={{
           drawerLabel: "Locais Visitados",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-multiple-outline" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "map-marker-multiple-outline" }),
         }}
       />
 
@@ -120,7 +128,7 @@ export default function DrawerNavigator() {
         component={MeusIngressos}
         options={{
           drawerLabel: "Meus Ingressos",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="ticket-confirmation-outline" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "ticket-confirmation-outline" }),
         }}
       />
 
@@ -131,7 +139,7 @@ export default function DrawerNavigator() {
         options={{
           headerShown: false,
           drawerLabel: "Configurações",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="cog-outline" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "cog-outline" }),
         }}
       />
 
@@ -162,7 +170,7 @@ export default function DrawerNavigator() {
         component={Suporte}
         options={{
           drawerLabel: "Suporte",
-          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="lifebuoy" color={color} size={size} />,
+          drawerIcon: (props) => drawerIcon({ ...props, iconName: "lifebuoy" }),
         }}
       />
 
@@ -174,7 +182,7 @@ export default function DrawerNavigator() {
           options={{
             drawerLabel: "Área do Organizador",
             unmountOnBlur: true,
-            drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="shield-crown-outline" color={color} size={size} />,
+            drawerIcon: (props) => drawerIcon({ ...props, iconName: "shield-crown-outline" }),
           }}
         />
       )}

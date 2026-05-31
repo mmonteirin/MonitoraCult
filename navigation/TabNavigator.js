@@ -317,20 +317,21 @@ const styles = StyleSheet.create({
   // Wrapper da barra inteira
   tabBarWrapper: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    bottom: 16,
+    left: 16,
+    right: 16,
+    borderRadius: 24,
     overflow: "hidden",
     // Sombra nativa
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
+        shadowOpacity: 0.2,
+        shadowRadius: 28,
       },
       android: {
-        elevation: 24,
+        elevation: 28,
       },
     }),
   },

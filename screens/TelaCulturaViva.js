@@ -21,6 +21,7 @@ import { MotiView } from "moti";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getEventos } from "../services/mapaCulturalService";
+import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 
@@ -89,6 +90,17 @@ export default function TelaCulturaViva({ navigation }) {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
   const blurTint = isDark ? "dark" : "light";
+  const overlayColors = isDark
+    ? [
+        "rgba(5,8,18,0.97)",
+        "rgba(10,12,24,0.96)",
+        "rgba(22,14,50,0.96)",
+      ]
+    : [
+        "rgba(241,245,249,0.96)",
+        "rgba(248,250,252,0.94)",
+        "rgba(226,232,240,0.95)",
+      ];
 
   const insets = useSafeAreaInsets();
 
@@ -227,7 +239,7 @@ export default function TelaCulturaViva({ navigation }) {
   return (
     <View style={styles.container}>
 
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       <ImageBackground
         source={require("../assets/fundoTelaLogin.png")}
@@ -236,11 +248,7 @@ export default function TelaCulturaViva({ navigation }) {
       >
 
         <LinearGradient
-          colors={[
-            "rgba(5,8,18,0.97)",
-            "rgba(10,12,24,0.96)",
-            "rgba(22,14,50,0.96)",
-          ]}
+          colors={overlayColors}
           style={styles.overlay}
         >
 
@@ -266,20 +274,24 @@ export default function TelaCulturaViva({ navigation }) {
               ]}
             >
 
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() =>
-                  navigation.goBack()
-                }
-              >
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() =>
+                    navigation.goBack()
+                  }
+                >
 
-                <MaterialCommunityIcons
-                  name="arrow-left"
-                  size={22}
-                  color="#FFF"
-                />
+                  <MaterialCommunityIcons
+                    name="arrow-left"
+                    size={22}
+                    color={colors.textPrimary}
+                  />
 
-              </TouchableOpacity>
+                </TouchableOpacity>
+
+                <ThemeToggle size={20} style={styles.themeButton} />
+              </View>
 
               <MotiView
                 from={{
@@ -462,7 +474,7 @@ export default function TelaCulturaViva({ navigation }) {
   );
 }
 
-function createThemedScreenStyles(c) {
+function createThemedScreenStyles(c, isDark) {
   return StyleSheet.create({
 
   container:{
@@ -486,7 +498,7 @@ function createThemedScreenStyles(c) {
   },
 
   loadingText:{
-    color:"#FFF",
+    color:c.textPrimary,
     marginTop:16,
     fontSize:16,
   },
@@ -498,7 +510,7 @@ function createThemedScreenStyles(c) {
     width:300,
     height:300,
     borderRadius:200,
-    backgroundColor:c.purpleGlow,
+    backgroundColor:isDark ? c.purpleGlow : "rgba(108,92,231,0.18)",
   },
 
   glowBottom:{
@@ -508,12 +520,19 @@ function createThemedScreenStyles(c) {
     width:260,
     height:260,
     borderRadius:200,
-    backgroundColor:"rgba(34,211,238,0.10)",
+    backgroundColor:isDark ? "rgba(34,211,238,0.10)" : "rgba(34,211,238,0.16)",
   },
 
   header:{
     paddingHorizontal:24,
     paddingBottom:24,
+  },
+
+  headerActions:{
+    flexDirection:"row",
+    justifyContent:"space-between",
+    alignItems:"center",
+    marginBottom:24,
   },
 
   backButton:{
@@ -523,7 +542,16 @@ function createThemedScreenStyles(c) {
     justifyContent:"center",
     alignItems:"center",
     backgroundColor:c.glass,
-    marginBottom:24,
+    borderWidth:1,
+    borderColor:c.glassBorder,
+  },
+
+  themeButton:{
+    width:46,
+    height:46,
+    borderRadius:16,
+    justifyContent:"center",
+    alignItems:"center",
   },
 
   heroIcon:{
@@ -536,13 +564,13 @@ function createThemedScreenStyles(c) {
   },
 
   title:{
-    color:"#FFF",
+    color:c.textPrimary,
     fontSize: width < 380 ? 34 : 40,
     fontWeight:"800",
   },
 
   subtitle:{
-    color:"rgba(255,255,255,0.7)",
+    color:c.textSecondary,
     marginTop:12,
     fontSize:15,
     lineHeight:24,
@@ -558,16 +586,16 @@ function createThemedScreenStyles(c) {
     alignItems:"center",
     overflow:"hidden",
     borderWidth:1,
-    borderColor:c.glass,
+    borderColor:c.glassBorder,
   },
 
   statusLabel:{
-    color:"rgba(255,255,255,0.55)",
+    color:c.textMuted,
     marginBottom:6,
   },
 
   statusTitle:{
-    color:"#FFF",
+    color:c.textPrimary,
     fontSize:16,
     fontWeight:"800",
   },
@@ -586,7 +614,7 @@ function createThemedScreenStyles(c) {
   },
 
   sectionTitle:{
-    color:"#FFF",
+    color:c.textPrimary,
     fontSize:22,
     fontWeight:"800",
     paddingHorizontal:22,
@@ -600,7 +628,7 @@ function createThemedScreenStyles(c) {
     overflow:"hidden",
     height:220,
     borderWidth:1,
-    borderColor:c.glass,
+    borderColor:c.glassBorder,
   },
 
   eventImage:{

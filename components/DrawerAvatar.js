@@ -3,17 +3,17 @@
 import React from "react";
 
 import {
-	Image,
+	View,
 	TouchableOpacity,
 } from "react-native";
 
-import { useAuth } from "../context/AuthContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useColors } from "../context/ThemeContext";
 
 export default function DrawerAvatar({
 	navigation,
 }) {
-	const { foto, user } = useAuth();
 	const colors = useColors();
 
 	return (
@@ -22,23 +22,22 @@ export default function DrawerAvatar({
 			onPress={() =>
 				navigation.openDrawer()
 			}
+			style={{
+				marginLeft: 15,
+				width: 42,
+				height: 42,
+				borderRadius: 12,
+				backgroundColor: colors.primary + "15",
+				justifyContent: "center",
+				alignItems: "center",
+				borderWidth: 1.5,
+				borderColor: colors.primary + "30",
+			}}
 		>
-			<Image
-				source={{
-					uri:
-						foto ||
-						user?.photoURL ||
-						"https://i.pravatar.cc/100",
-				}}
-				style={{
-					width: 38,
-					height: 38,
-					borderRadius: 22,
-					marginLeft: 15,
-					borderWidth: 2,
-					borderColor:
-						colors.primary,
-				}}
+			<MaterialCommunityIcons
+				name="menu"
+				size={24}
+				color={colors.primary}
 			/>
 		</TouchableOpacity>
 	);

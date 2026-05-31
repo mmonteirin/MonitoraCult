@@ -36,7 +36,6 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, {
   FadeInDown,
-  FadeInUp,
   FadeInLeft,
   useAnimatedScrollHandler,
   useAnimatedStyle,
@@ -74,23 +73,6 @@ const statusConfig = (colors) => ({
   utilizado:  { label: "Usado",  color: colors.textMuted, icon: "history"  },
   cancelado:  { label: "Cancelado", color: colors.error, icon: "close-circle" },
 });
-
-// ── StatCard ──────────────────────────────────────────────────────────────────
-
-const StatCard = memo(({ value, label, icon, color, delay, active, onPress, colors, styles }) => (
-  <Animated.View
-    entering={FadeInUp.delay(delay).springify()}
-    style={[styles.statCard, { borderColor: color + "30" }, active && { borderColor: color, backgroundColor: color + "12" }]}
-  >
-    <TouchableOpacity style={styles.statCardInner} onPress={onPress} activeOpacity={0.75}>
-      <View style={[styles.statIconWrap, { backgroundColor: color + "20" }]}>
-        <MaterialCommunityIcons name={icon} size={18} color={color} />
-      </View>
-      <Text style={[styles.statNumber, active && { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, active && { color }]}>{label}</Text>
-    </TouchableOpacity>
-  </Animated.View>
-));
 
 // ── QR Modal ──────────────────────────────────────────────────────────────────
 
@@ -314,14 +296,14 @@ export default function MeusIngressos({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { ingressos, carregarIngressos, loading } = useIngressos();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const gradients = useGradients();
 
   const [filtro, setFiltro] = useState("todos");
   const [refreshing, setRefreshing] = useState(false);
   const [modalIngresso, setModalIngresso] = useState(null); // { ingresso, compra }
 
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isDark);
 
   // parallax scroll
   const scrollY = useSharedValue(0);
@@ -413,32 +395,46 @@ export default function MeusIngressos({ navigation }) {
         <Animated.View style={headerStyle}>
           <LinearGradient
             colors={gradients.primary}
-            style={[styles.header, { paddingTop: insets.top + 16 }]}
+            style={[styles.header, { paddingTop: insets.top + 20 }]}
           >
-            {/* Glows decorativos */}
-            <View style={[styles.headerGlow, { backgroundColor: colors.primary + "18" }]} />
-            <View style={[styles.headerGlow2, { backgroundColor: colors.accentCyan + "10" }]} />
-
             {/* Top row */}
             <View style={styles.headerTop}>
-              <TouchableOpacity style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }]} onPress={() => navigation.goBack()}>
-                <MaterialCommunityIcons name="arrow-left" size={22} color={colors.onPrimary} />
+              <TouchableOpacity 
+                style={[styles.headerBtn, { 
+                  backgroundColor: "rgba(255,255,255,0.15)", 
+                  borderColor: "rgba(255,255,255,0.25)",
+                  shadowColor: "rgba(0,0,0,0.15)",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }]} 
+                onPress={() => navigation.goBack()}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="arrow-left" size={20} color={colors.onPrimary} />
               </TouchableOpacity>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={[styles.headerGreeting, { color: colors.onPrimary + "CC" }]}>Sua carteira</Text>
+              <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={[styles.headerTitle, { color: colors.onPrimary }]}>Meus Ingressos</Text>
+                <Text style={[styles.headerSubtitle, { color: colors.onPrimary + "CC" }]}>
+                  {totalTodos} ingresso{totalTodos !== 1 ? "s" : ""} na carteira
+                </Text>
               </View>
-              <TouchableOpacity style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.12)", borderColor: "rgba(255,255,255,0.2)" }]} onPress={onRefresh}>
-                <MaterialCommunityIcons name="refresh" size={22} color={colors.onPrimary} />
+              <TouchableOpacity 
+                style={[styles.headerBtn, { 
+                  backgroundColor: "rgba(255,255,255,0.15)", 
+                  borderColor: "rgba(255,255,255,0.25)",
+                  shadowColor: "rgba(0,0,0,0.15)",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }]} 
+                onPress={onRefresh}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="refresh" size={20} color={colors.onPrimary} />
               </TouchableOpacity>
-            </View>
-
-            {/* Stat cards */}
-            <View style={styles.statsRow}>
-              <StatCard value={totalTodos}     label="Total"     icon="ticket-confirmation" color={colors.primary}    delay={0}   active={filtro === "todos"}      onPress={() => setFiltro("todos")} colors={colors} styles={styles} />
-              <StatCard value={totalAtivos}    label="Ativos"    icon="check-circle"        color={colors.success}    delay={80}  active={filtro === "ativos"}     onPress={() => setFiltro("ativos")} colors={colors} styles={styles} />
-              <StatCard value={totalUsados}    label="Usados"    icon="history"             color={colors.textMuted}  delay={160} active={filtro === "utilizados"} onPress={() => setFiltro("utilizados")} colors={colors} styles={styles} />
-              <StatCard value={totalCancelados}label="Cancelados"icon="close-circle"        color={colors.error}      delay={240} active={filtro === "cancelados"} onPress={() => setFiltro("cancelados")} colors={colors} styles={styles} />
             </View>
           </LinearGradient>
         </Animated.View>
@@ -559,7 +555,7 @@ export default function MeusIngressos({ navigation }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors, isDark) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -587,93 +583,40 @@ const createStyles = (colors) => StyleSheet.create({
 
   // ── Header ──
   header: {
-    paddingBottom: 28,
+    paddingBottom: 24,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: "hidden",
-  },
-  headerGlow: {
-    position: "absolute",
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: "rgba(108,92,231,0.18)",
-    top: -100,
-    right: -80,
-  },
-  headerGlow2: {
-    position: "absolute",
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: "rgba(34,211,238,0.08)",
-    top: 30,
-    left: -50,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: isDark ? 0.3 : 0.18,
+    shadowRadius: 16,
+    elevation: 8,
   },
   headerTop: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
   },
   headerBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
-  },
-  headerGreeting: {
-    color: "rgba(255,255,255,0.45)",
-    fontSize: 12,
-    fontWeight: "600",
-    letterSpacing: 0.8,
+    borderWidth: 1,
   },
   headerTitle: {
     color: "#FFF",
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: "800",
-    marginTop: 2,
+    letterSpacing: 0,
   },
-
-  // ── Stat cards ──
-  statsRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 18,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  statCardInner: {
-    padding: 12,
-    alignItems: "center",
-  },
-  statIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 11,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  statNumber: {
-    color: "#FFF",
-    fontSize: 20,
-    fontWeight: "800",
-  },
-  statLabel: {
-    color: "rgba(255,255,255,0.4)",
-    fontSize: 9,
+  headerSubtitle: {
+    fontSize: 13,
+    fontWeight: "600",
     marginTop: 3,
-    textAlign: "center",
-    fontWeight: "700",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
   },
 
   // ── Filtros ──
@@ -681,7 +624,7 @@ const createStyles = (colors) => StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: 16,
-    paddingTop: 18,
+    paddingTop: 16,
     paddingBottom: 4,
     gap: 8,
   },
@@ -692,9 +635,9 @@ const createStyles = (colors) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : colors.surface,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: isDark ? "rgba(255,255,255,0.08)" : colors.borderLight,
   },
   filtroPillText: {
     color: colors.textMuted,

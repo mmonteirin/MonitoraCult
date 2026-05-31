@@ -3,7 +3,7 @@
  * Exibe mensagens com input para enviar novas
  */
 
-import React, { memo, useState, useRef, useEffect } from "react";
+import React, { memo, useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,12 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 
 const TAB_BAR_CLEARANCE = 96;
 
+const formatarHora = (timestamp) => {
+  if (!timestamp) return "";
+  const date = timestamp.toDate?.() || new Date(timestamp);
+  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
+
 // ✅ Item de mensagem
 const MensagemItem = memo(
   ({ mensagem, isPropia, onDelete, onEdit }) => {
@@ -30,12 +36,6 @@ const MensagemItem = memo(
 
     const { colors } = useTheme();
     const styles = useThemedStyles(createThemedScreenStyles);
-
-    const formatarHora = (timestamp) => {
-      if (!timestamp) return "";
-      const date = timestamp.toDate?.() || new Date(timestamp);
-      return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    };
 
     if (mensagem.deletado) {
       return (
@@ -202,13 +202,14 @@ const ChatViewer = memo(
     const bottomClearance = TAB_BAR_CLEARANCE + insets.bottom;
 
     // ✅ Filtrar mensagens pela busca
-    const mensagensFiltradas = termoBusca
-      ? mensagens.filter(
-          (m) =>
-            !m.deletado &&
-            m.texto?.toLowerCase().includes(termoBusca.toLowerCase())
-        )
-      : mensagens;
+    const mensagensFiltradas = useMemo(() => {
+      if (!termoBusca) return mensagens;
+      return mensagens.filter(
+        (m) =>
+          !m.deletado &&
+          m.texto?.toLowerCase().includes(termoBusca.toLowerCase())
+      );
+    }, [mensagens, termoBusca]);
 
     // ✅ Auto-scroll para última mensagem
     useEffect(() => {
@@ -219,7 +220,7 @@ const ChatViewer = memo(
       }
     }, [mensagens]);
 
-    const handleEnviar = async () => {
+    const handleEnviar = useCallback(async () => {
       if (!texto.trim()) return;
 
       if (editandoId) {
@@ -235,7 +236,16 @@ const ChatViewer = memo(
       }
 
       setTexto("");
-    };
+    }, [texto, editandoId, onEdit, onEnviar, nomePerfil]);
+
+    const renderItem = useCallback(({ item }) => (
+      <MensagemItem
+        mensagem={item}
+        isPropia={item.remetenteId === userId}
+        onDelete={() => onDelete?.(item.id)}
+        onEdit={() => setEditandoId(item.id)}
+      />
+    ), [userId, onDelete]);
 
     return (
       <KeyboardAvoidingView
@@ -261,14 +271,7 @@ const ChatViewer = memo(
           <FlatList
             ref={flatListRef}
             data={mensagensFiltradas}
-            renderItem={({ item }) => (
-              <MensagemItem
-                mensagem={item}
-                isPropia={item.remetenteId === userId}
-                onDelete={() => onDelete?.(item.id)}
-                onEdit={() => setEditandoId(item.id)}
-              />
-            )}
+            renderItem={renderItem}
             keyExtractor={(item) => item.id}
             scrollEventThrottle={16}
             contentContainerStyle={styles.mensagensContainer}

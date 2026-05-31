@@ -96,9 +96,14 @@ export async function obterPushToken() {
     }
     if (status !== "granted") return null;
     await configurarCanaisAndroid();
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: "snack-76330891-d725-4703-84bd-f58504f3c860",
-    });
+    
+    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+    if (!projectId) {
+      console.log("[Notificações] obterPushToken: EXPO_PUBLIC_PROJECT_ID não configurado");
+      return null;
+    }
+    
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     return tokenData.data;
   } catch (e) {
     console.log("[Notificações] obterPushToken:", e.message);
@@ -166,25 +171,38 @@ export async function agendarLembretesEvento(evento) {
     : new Date(evento.dataEventoTimestamp);
   const ids = [];
   const umDia = new Date(dataEvento.getTime() - 24 * 60 * 60 * 1000);
+  const umaHora = new Date(dataEvento.getTime() - 60 * 60 * 1000);
+  
+  const lembretes = [];
+  
   if (umDia > new Date()) {
-    const id = await agendarNotificacao({
+    lembretes.push({
       titulo: "🎭 Amanhã tem evento!",
       corpo: `"${evento.tituloEvento}" acontece amanhã em ${evento.localEvento || "local a confirmar"}`,
       dados: { tipo: NOTIFICATION_TYPES.EVENTO_LEMBRETE, eventoId: evento.id },
       dataHora: umDia,
     });
-    if (id) ids.push(id);
   }
-  const umaHora = new Date(dataEvento.getTime() - 60 * 60 * 1000);
+  
   if (umaHora > new Date()) {
-    const id = await agendarNotificacao({
+    lembretes.push({
       titulo: "⏰ Já está chegando!",
       corpo: `"${evento.tituloEvento}" começa em 1 hora!`,
       dados: { tipo: NOTIFICATION_TYPES.EVENTO_LEMBRETE, eventoId: evento.id },
       dataHora: umaHora,
     });
-    if (id) ids.push(id);
   }
+  
+  const results = await Promise.allSettled(
+    lembretes.map(lembrete => agendarNotificacao(lembrete))
+  );
+  
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled' && result.value) {
+      ids.push(result.value);
+    }
+  });
+  
   return ids;
 }
 
@@ -225,9 +243,10 @@ export async function buscarNotificacoesPaginadas(uid, { limit: limite = 30, ult
     }
     
     if (ultimoDoc) {
-      q = query(collection(db, "users", uid, "notifications"), orderBy("criadoEm", "desc"), startAfter(ultimoDoc), limit(limite + 1));
       if (tipo) {
         q = query(collection(db, "users", uid, "notifications"), where("tipo", "==", tipo), orderBy("criadoEm", "desc"), startAfter(ultimoDoc), limit(limite + 1));
+      } else {
+        q = query(collection(db, "users", uid, "notifications"), orderBy("criadoEm", "desc"), startAfter(ultimoDoc), limit(limite + 1));
       }
     }
     

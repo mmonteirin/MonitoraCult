@@ -41,19 +41,22 @@ const GOOGLE_CLIENT_ID =
 	"133936734015-pcbmnj1enlb6aocob9qck2mnoeg28i8j.apps.googleusercontent.com";
 
 const FACEBOOK_APP_ID =
-	process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || "Monitora Cult";
+	process.env.EXPO_PUBLIC_FACEBOOK_APP_ID;
+
 const FACEBOOK_APP_SECRET =
-	process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET || "MonitoraCult";
+	process.env.EXPO_PUBLIC_FACEBOOK_APP_SECRET;
 
 const MICROSOFT_CLIENT_ID =
-	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID || "Monitora Cult";
+	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_ID;
+
 const MICROSOFT_CLIENT_SECRET =
-	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_SECRET || "MonitoraCult";
+	process.env.EXPO_PUBLIC_MICROSOFT_CLIENT_SECRET;
 
 const TWITTER_CLIENT_ID =
-	process.env.EXPO_PUBLIC_TWITTER_CLIENT_ID || "Monitora Cult";
+	process.env.EXPO_PUBLIC_TWITTER_CLIENT_ID;
+
 const TWITTER_CLIENT_SECRET =
-	process.env.EXPO_PUBLIC_TWITTER_CLIENT_SECRET || "MonitoraCult";
+	process.env.EXPO_PUBLIC_TWITTER_CLIENT_SECRET;
 
 const AuthContext =
 	createContext({});
@@ -266,7 +269,7 @@ export function AuthProvider({
 
 		const provider = new OAuthProvider("microsoft.com");
 
-		const credential = provider.credential({ idToken: code });
+		const credential = provider.credential({ code });
 
 		signInWithCredential(auth, credential).catch((e) =>
 			logger.error("AuthContext", "Microsoft signIn error", e)
@@ -289,7 +292,7 @@ export function AuthProvider({
 
 		const provider = new OAuthProvider("twitter.com");
 
-		const credential = provider.credential({ idToken: code });
+		const credential = provider.credential({ code });
 
 		signInWithCredential(auth, credential).catch((e) =>
 			logger.error("AuthContext", "Twitter signIn error", e)

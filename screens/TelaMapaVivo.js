@@ -11,6 +11,8 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
+  memo,
 } from "react";
 
 import {
@@ -101,7 +103,7 @@ const heatColor = (
 
 /* ───────────────────────────────────────────── */
 
-export default function TelaMapaVivo({
+const TelaMapaVivo = memo(function TelaMapaVivo({
   navigation,
 }) {
   /**
@@ -141,10 +143,7 @@ export default function TelaMapaVivo({
   const [region, setRegion] =
     useState(null);
 
-  const [liveIndicator] =
-    useState(
-      new Animated.Value(1)
-    );
+  const liveIndicator = useRef(new Animated.Value(1)).current;
 
   /* ───────────────────────────────────────── */
 
@@ -263,6 +262,61 @@ export default function TelaMapaVivo({
     () => clusterMapEvents(eventos, region),
     [eventos, region]
   );
+
+  const renderHeatmapCircles = useMemo(() => {
+    if (!mostrarHeatmap || !hotspots.length) return null;
+    return hotspots.map((h, i) => {
+      const { fill, stroke } = heatColor(h.intensity);
+      return Circle ? (
+        <Circle
+          key={`hs_${i}`}
+          center={{
+            latitude: h.latitude,
+            longitude: h.longitude,
+          }}
+          radius={400 + h.intensity * 12}
+          fillColor={fill}
+          strokeColor={stroke}
+          strokeWidth={1.5}
+        />
+      ) : null;
+    });
+  }, [mostrarHeatmap, hotspots]);
+
+  const renderMarkers = useMemo(() => {
+    return markers.map((marker) =>
+      Marker ? (
+        <Marker
+          key={marker.id}
+          coordinate={marker.coordinate}
+          onPress={() =>
+            marker.type === "cluster"
+              ? abrirCluster(marker)
+              : focarEvento(marker.evento)
+          }
+          tracksViewChanges={false}
+        >
+          {marker.type === "cluster" ? (
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.clusterMarker}
+              onPress={() => abrirCluster(marker)}
+            >
+              <Text style={styles.clusterText}>
+                {marker.count}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <MapEventMarker
+              {...marker.evento}
+              isSelected={eventoSelecionado?.id === marker.evento.id}
+              onPress={() => focarEvento(marker.evento)}
+            />
+          )}
+        </Marker>
+      ) : null
+    );
+  }, [markers, abrirCluster, focarEvento, eventoSelecionado]);
 
   const abrirCluster = useCallback(
     (cluster) => {
@@ -423,107 +477,11 @@ export default function TelaMapaVivo({
         >
           {/* HEATMAP */}
 
-          {mostrarHeatmap &&
-            hotspots.map(
-              (h, i) => {
-                const {
-                  fill,
-                  stroke,
-                } = heatColor(
-                  h.intensity
-                );
-
-                return Circle ? (
-                  <Circle
-                    key={`hs_${i}`}
-                    center={{
-                      latitude:
-                        h.latitude,
-
-                      longitude:
-                        h.longitude,
-                    }}
-                    radius={
-                      400 +
-                      h.intensity *
-                        12
-                    }
-                    fillColor={
-                      fill
-                    }
-                    strokeColor={
-                      stroke
-                    }
-                    strokeWidth={
-                      1.5
-                    }
-                  />
-                ) : null;
-              }
-            )}
+          {renderHeatmapCircles}
 
           {/* MARCADORES */}
 
-          {markers.map(
-            (marker) =>
-              Marker ? (
-                <Marker
-                  key={marker.id}
-                  coordinate={
-                    marker.coordinate
-                  }
-                  onPress={() =>
-                    marker.type ===
-                    "cluster"
-                      ? abrirCluster(
-                          marker
-                        )
-                      : focarEvento(
-                          marker.evento
-                        )
-                  }
-                  tracksViewChanges={
-                    false
-                  }
-                >
-                  {marker.type ===
-                  "cluster" ? (
-                    <TouchableOpacity
-                      activeOpacity={0.85}
-                      style={
-                        styles.clusterMarker
-                      }
-                      onPress={() =>
-                        abrirCluster(
-                          marker
-                        )
-                      }
-                    >
-                      <Text
-                        style={
-                          styles.clusterText
-                        }
-                      >
-                        {marker.count}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <MapEventMarker
-                      {...marker.evento}
-                      isSelected={
-                        eventoSelecionado?.id ===
-                        marker.evento.id
-                      }
-                      onPress={() =>
-                        focarEvento(
-                          marker.evento
-                        )
-                      }
-                    />
-                  )}
-                </Marker>
-              ) : null
-          )}
+          {renderMarkers}
         </MapView>
       ) : null}
 
@@ -741,7 +699,7 @@ export default function TelaMapaVivo({
       </Animated.View>
     </View>
   );
-}
+});
 
 /* ───────────────────────────────────────── */
 
@@ -811,7 +769,7 @@ const styles =
       left: 0,
       right: 0,
       backgroundColor:
-        "rgba(15,15,20,0.94)",
+        "rgba(15,15,20,0.96)",
       borderBottomWidth: 1,
       borderBottomColor:
         Colors.border,
@@ -821,6 +779,14 @@ const styles =
           ? 48
           : StatusBar.currentHeight +
             8,
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
     },
 
     liveRow: {
@@ -832,18 +798,26 @@ const styles =
     },
 
     liveDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
+      width: 10,
+      height: 10,
+      borderRadius: 5,
       backgroundColor:
         "#EF4444",
+      shadowColor: "#EF4444",
+      shadowOffset: {
+        width: 0,
+        height: 0,
+      },
+      shadowOpacity: 0.6,
+      shadowRadius: 4,
+      elevation: 4,
     },
 
     liveLabel: {
-      fontSize: 10,
-      fontWeight: "700",
+      fontSize: 11,
+      fontWeight: "800",
       color: "#EF4444",
-      letterSpacing: 1,
+      letterSpacing: 1.2,
     },
 
     legendaContainer: {
@@ -865,9 +839,9 @@ const styles =
     },
 
     fab: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
+      width: 50,
+      height: 50,
+      borderRadius: 25,
       backgroundColor:
         Colors.surface,
       justifyContent:
@@ -876,12 +850,20 @@ const styles =
       borderWidth: 1,
       borderColor:
         Colors.border,
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
+      elevation: 6,
     },
 
     clusterMarker: {
-      width: 54,
-      height: 54,
-      borderRadius: 27,
+      width: 58,
+      height: 58,
+      borderRadius: 29,
       backgroundColor:
         Colors.primary,
       justifyContent:
@@ -889,21 +871,21 @@ const styles =
       alignItems: "center",
       borderWidth: 3,
       borderColor:
-        "rgba(255,255,255,0.85)",
+        "rgba(255,255,255,0.9)",
       shadowColor:
         Colors.primary,
-      shadowOpacity: 0.35,
-      shadowRadius: 10,
+      shadowOpacity: 0.4,
+      shadowRadius: 12,
       shadowOffset: {
         width: 0,
         height: 4,
       },
-      elevation: 8,
+      elevation: 10,
     },
 
     clusterText: {
       color: "#FFF",
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: "900",
     },
 
@@ -914,12 +896,20 @@ const styles =
       right: 0,
       backgroundColor:
         Colors.background,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
       borderTopWidth: 1,
       borderTopColor:
         Colors.border,
       overflow: "hidden",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: -4,
+      },
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      elevation: 12,
     },
 
     painelHandle: {
@@ -929,13 +919,13 @@ const styles =
     },
 
     handleBar: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
+      width: 48,
+      height: 5,
+      borderRadius: 3,
       backgroundColor:
         Colors.border,
       alignSelf: "center",
-      marginBottom: 10,
+      marginBottom: 12,
     },
 
     painelHeader: {
@@ -961,14 +951,22 @@ const styles =
     eventBadge: {
       backgroundColor:
         Colors.primary,
-      borderRadius: 10,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
+      borderRadius: 12,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      shadowColor: Colors.primary,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.4,
+      shadowRadius: 6,
+      elevation: 6,
     },
 
     eventBadgeText: {
-      fontSize: 11,
-      fontWeight: "700",
+      fontSize: 12,
+      fontWeight: "800",
       color: "#fff",
     },
   });
@@ -999,3 +997,5 @@ const darkMapStyle = [
     ],
   },
 ];
+
+export default TelaMapaVivo;

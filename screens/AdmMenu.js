@@ -34,6 +34,20 @@ export default function AdmMenu() {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
   const blurTint = useMemo(() => isDark ? "dark" : "light", [isDark]);
+  const overlayColors = useMemo(() => (
+    isDark
+      ? [
+          "rgba(3,7,18,0.94)",
+          "rgba(15,23,42,0.90)",
+          "rgba(3,7,18,0.96)",
+        ]
+      : [
+          "rgba(248,250,252,0.98)",
+          "rgba(241,245,249,0.96)",
+          "rgba(226,232,240,0.98)",
+        ]
+  ), [isDark]);
+  const badgeIconColor = isDark ? colors.onPrimary : colors.primary;
   const navigation = useNavigation();
 
   const {
@@ -67,6 +81,41 @@ export default function AdmMenu() {
     }
   }, [logout]);
 
+  const menuItems = useMemo(() => [
+    {
+      icon: "plus-circle",
+      label: "Criar Evento",
+      subtitle: "Novo evento",
+      gradient: ["#7C3AED", "#5B21B6"],
+      screen: "CriarEvento",
+    },
+    {
+      icon: "calendar",
+      label: "Meus Eventos",
+      subtitle: "Gerencie",
+      gradient: ["#2563EB", "#1D4ED8"],
+      screen: "AdmEvento",
+    },
+    {
+      icon: "chart-bar",
+      label: "Métricas",
+      subtitle: "Analytics",
+      gradient: ["#059669", "#047857"],
+      screen: "Metricas",
+    },
+    {
+      icon: "headset",
+      label: "Atendimento",
+      subtitle: "Fila de suporte",
+      gradient: ["#EA580C", "#C2410C"],
+      screen: "AdmSuporte",
+    },
+  ], []);
+
+  const handleMenuPress = useCallback((screen) => {
+    goToAdmin(screen);
+  }, [goToAdmin]);
+
   return (
     <ImageBackground
       source={require("../assets/fundoTelaLogin.png")}
@@ -74,16 +123,12 @@ export default function AdmMenu() {
       resizeMode="cover"
     >
       <StatusBar
-        barStyle="light-content"
+        barStyle={isDark ? "light-content" : "dark-content"}
       />
 
       {/* OVERLAY */}
       <LinearGradient
-        colors={[
-          "rgba(0,0,0,0.88)",
-          "rgba(15,15,35,0.78)",
-          "rgba(0,0,0,0.94)",
-        ]}
+        colors={overlayColors}
         style={styles.overlay}
       >
         {/* HEADER */}
@@ -97,7 +142,7 @@ export default function AdmMenu() {
             <MaterialCommunityIcons
               name="arrow-left"
               size={24}
-              color="#FFF"
+              color={colors.textPrimary}
             />
           </TouchableOpacity>
 
@@ -203,7 +248,7 @@ export default function AdmMenu() {
                       <MaterialCommunityIcons
                         name="shield-check"
                         size={14}
-                        color="#FFF"
+                        color={badgeIconColor}
                       />
 
                       <Text
@@ -223,7 +268,7 @@ export default function AdmMenu() {
                       <MaterialCommunityIcons
                         name="star"
                         size={14}
-                        color="#FFF"
+                        color={badgeIconColor}
                       />
 
                       <Text
@@ -246,75 +291,19 @@ export default function AdmMenu() {
           </Text>
 
           <View style={styles.grid}>
-            <MenuCard
-              icon="plus-circle"
-              label="Criar Evento"
-              subtitle="Novo evento"
-              styles={styles}
-              colors={colors}
-              gradient={[
-                "#7C3AED",
-                "#5B21B6",
-              ]}
-              onPress={() =>
-                goToAdmin(
-                  "CriarEvento"
-                )
-              }
-              index={0}
-            />
-
-            <MenuCard
-              icon="calendar"
-              label="Meus Eventos"
-              subtitle="Gerencie"
-              styles={styles}
-              colors={colors}
-              gradient={[
-                "#2563EB",
-                "#1D4ED8",
-              ]}
-              onPress={() =>
-                goToAdmin(
-                  "AdmEvento"
-                )
-              }
-              index={1}
-            />
-
-            <MenuCard
-              icon="chart-bar"
-              label="Métricas"
-              subtitle="Analytics"
-              styles={styles}
-              colors={colors}
-              gradient={[
-                "#059669",
-                "#047857",
-              ]}
-              onPress={() =>
-                goToAdmin(
-                  "Metricas"
-                )
-              }
-              index={2}
-            />
-
-            <MenuCard
-              icon="headset"
-              label="Atendimento"
-              subtitle="Fila de suporte"
-              styles={styles}
-              colors={colors}
-              gradient={[
-                "#EA580C",
-                "#C2410C",
-              ]}
-              onPress={() =>
-                goToAdmin("AdmSuporte")
-              }
-              index={3}
-            />
+            {menuItems.map((item, index) => (
+              <MenuCard
+                key={item.screen}
+                icon={item.icon}
+                label={item.label}
+                subtitle={item.subtitle}
+                styles={styles}
+                colors={colors}
+                gradient={item.gradient}
+                onPress={() => handleMenuPress(item.screen)}
+                index={index}
+              />
+            ))}
           </View>
 
           {/* SAIR */}
@@ -544,7 +533,7 @@ const MenuCard = React.memo(function MenuCard({
 });
 
 /* STYLES */
-function createThemedScreenStyles(c) {
+function createThemedScreenStyles(c, isDark) {
   return StyleSheet.create({
   background: {
     flex: 1,
@@ -575,11 +564,14 @@ function createThemedScreenStyles(c) {
     alignItems: "center",
 
     backgroundColor:
-      c.glassStrong,
+      isDark ? "rgba(17,24,39,0.86)" : "rgba(255,255,255,0.94)",
+
+    borderWidth: 1,
+    borderColor: isDark ? "rgba(255,255,255,0.22)" : "rgba(15,23,42,0.18)",
   },
 
   headerTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
 
     fontSize: 21,
     fontWeight: "bold",
@@ -606,10 +598,16 @@ function createThemedScreenStyles(c) {
     borderWidth: 1,
 
     borderColor:
-      c.glassStrong,
+      isDark ? "rgba(255,255,255,0.20)" : "rgba(15,23,42,0.14)",
 
     backgroundColor:
-      c.glass,
+      isDark ? "rgba(17,24,39,0.88)" : "rgba(255,255,255,0.94)",
+
+    shadowColor: c.shadow,
+    shadowOpacity: isDark ? 0.28 : 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
 
   profileRow: {
@@ -629,7 +627,7 @@ function createThemedScreenStyles(c) {
 
     borderRadius: 50,
 
-    backgroundColor: "#222",
+    backgroundColor: c.surface,
   },
 
   profileInfo: {
@@ -639,15 +637,14 @@ function createThemedScreenStyles(c) {
   },
 
   name: {
-    color: "#FFF",
+    color: c.textPrimary,
 
     fontSize: 22,
     fontWeight: "bold",
   },
 
   subtitle: {
-    color:
-      "rgba(255,255,255,0.65)",
+    color: c.textSecondary,
 
     marginTop: 6,
 
@@ -674,7 +671,10 @@ function createThemedScreenStyles(c) {
     gap: 6,
 
     backgroundColor:
-      c.glassStrong,
+      isDark ? "rgba(255,255,255,0.14)" : c.primarySoft,
+
+    borderWidth: 1,
+    borderColor: isDark ? "rgba(255,255,255,0.20)" : "rgba(108,92,231,0.28)",
 
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -683,7 +683,7 @@ function createThemedScreenStyles(c) {
   },
 
   badgeText: {
-    color: "#FFF",
+    color: isDark ? c.textPrimary : c.primaryDark,
 
     fontSize: 12,
 
@@ -692,7 +692,7 @@ function createThemedScreenStyles(c) {
 
   /* SECTION */
   section: {
-    color: "#FFF",
+    color: c.textPrimary,
 
     fontSize: 18,
     fontWeight: "bold",
@@ -722,10 +722,16 @@ function createThemedScreenStyles(c) {
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: c.surface,
+    minHeight: 74,
+    backgroundColor: isDark ? "rgba(17,24,39,0.94)" : "rgba(255,255,255,0.98)",
     borderWidth: 1,
-    borderColor: c.glassBorder,
+    borderColor: isDark ? "rgba(255,255,255,0.16)" : "rgba(15,23,42,0.14)",
     gap: 10,
+    shadowColor: c.shadow,
+    shadowOpacity: isDark ? 0.20 : 0.10,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
 
   acaoIconCircle: {
@@ -754,7 +760,7 @@ function createThemedScreenStyles(c) {
   },
 
   acaoChevron: {
-    opacity: 0.5,
+    opacity: isDark ? 0.75 : 0.62,
   },
 
   /* LOGOUT */
@@ -770,6 +776,15 @@ function createThemedScreenStyles(c) {
     paddingVertical: 16,
 
     borderRadius: 16,
+
+    borderWidth: 1,
+    borderColor: isDark ? "rgba(255,255,255,0.18)" : "rgba(127,29,29,0.26)",
+
+    shadowColor: "#991B1B",
+    shadowOpacity: isDark ? 0.26 : 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
 
   logoutText: {
@@ -784,7 +799,7 @@ function createThemedScreenStyles(c) {
     flex: 1,
 
     backgroundColor:
-      "rgba(0,0,0,0.65)",
+      isDark ? "rgba(0,0,0,0.65)" : "rgba(15,23,42,0.42)",
 
     justifyContent: "center",
     alignItems: "center",
@@ -802,7 +817,9 @@ function createThemedScreenStyles(c) {
     borderWidth: 1,
 
     borderColor:
-      c.glassStrong,
+      isDark ? "rgba(255,255,255,0.18)" : "rgba(15,23,42,0.14)",
+
+    backgroundColor: isDark ? c.surface : "#FFFFFF",
   },
 
   modalGradient: {
@@ -827,7 +844,7 @@ function createThemedScreenStyles(c) {
   },
 
   modalTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
 
     fontSize: 22,
 
@@ -835,8 +852,7 @@ function createThemedScreenStyles(c) {
   },
 
   modalText: {
-    color:
-      "rgba(255,255,255,0.65)",
+    color: c.textSecondary,
 
     textAlign: "center",
 
@@ -865,6 +881,9 @@ function createThemedScreenStyles(c) {
     backgroundColor:
       c.glassStrong,
 
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+
     justifyContent: "center",
     alignItems: "center",
 
@@ -872,7 +891,7 @@ function createThemedScreenStyles(c) {
   },
 
   cancelText: {
-    color: "#FFF",
+    color: c.textPrimary,
 
     fontWeight: "600",
   },
