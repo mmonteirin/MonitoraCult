@@ -126,7 +126,7 @@ export default function CustomDrawerContent(props) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.version}>MonitoraCult • v0.6</Text>
+        <Text style={styles.version}>MonitoraCult • v1.0.1</Text>
       </View>
 
       {/* MODAL PADRONIZADO DE LOGOUT */}

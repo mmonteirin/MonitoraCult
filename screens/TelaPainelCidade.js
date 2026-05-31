@@ -20,10 +20,10 @@ import {
 	Modal,
 	KeyboardAvoidingView,
 	TextInput,
+	ScrollView,
 } from "react-native";
 
 import * as Clipboard from "expo-clipboard";
-
 import { Image } from "expo-image";
 
 import Animated, {
@@ -38,17 +38,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import * as Location from "expo-location";
-
 import { LinearGradient } from "expo-linear-gradient";
-
 import { BlurView } from "expo-blur";
-
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { useNavigation } from "@react-navigation/native";
-
 import { FlashList } from "@shopify/flash-list";
 
 import {
@@ -64,12 +58,9 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../firebaseConfig";
-
 import { useAuth } from "../context/AuthContext";
-
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
-
 import { getMapaSummary } from "../services/mapaVivoService";
 
 import {
@@ -90,11 +81,8 @@ const { width, height } = Dimensions.get("window");
 const DEFAULT_EVENT_IMAGE =
 	"https://placehold.co/600x600/1B1D26/6C5CE7?text=Evento";
 
-const AnimatedFlashList =
-	Animated.createAnimatedComponent(FlashList);
-
-const AnimatedImage =
-	Animated.createAnimatedComponent(Image);
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 const categorias = [
 	"Todos",
@@ -160,6 +148,9 @@ function formatarData(timestamp) {
 	return data.toLocaleDateString("pt-BR");
 }
 
+// Alias para compatibilidade (usado no modal de comentários)
+const formatDate = formatarData;
+
 function formatarNum(n) {
 	if (!n) return "0";
 	if (n >= 1000) return (n / 1000).toFixed(1) + "K";
@@ -169,7 +160,7 @@ function formatarNum(n) {
 // ──────────────────────────────────────────────
 // LikeButton
 // ──────────────────────────────────────────────
-const LikeButton = memo(({ isLiked, onPress, styles }) => {
+const LikeButton = memo(({ isLiked, onPress, styles, colors }) => {
 	const scale = useSharedValue(1);
 
 	const animatedStyle = useAnimatedStyle(() => ({
@@ -185,15 +176,12 @@ const LikeButton = memo(({ isLiked, onPress, styles }) => {
 	};
 
 	return (
-		<TouchableOpacity
-			style={styles.actionBtn}
-			onPress={handlePress}
-		>
+		<TouchableOpacity style={styles.actionBtn} onPress={handlePress}>
 			<Animated.View style={animatedStyle}>
 				<MaterialCommunityIcons
 					name={isLiked ? "heart" : "heart-outline"}
 					size={24}
-					color={isLiked ? "#A855F7" : "#FFF"}
+					color={isLiked ? "#A855F7" : colors.textPrimary}
 				/>
 			</Animated.View>
 		</TouchableOpacity>
@@ -236,9 +224,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index, styles, colors }) => (
 					color={acao.color}
 				/>
 			</View>
-			<Text style={styles.acaoLabel}>
-				{acao.label}
-			</Text>
+			<Text style={styles.acaoLabel}>{acao.label}</Text>
 			<MaterialCommunityIcons
 				name="chevron-right"
 				size={18}
@@ -250,7 +236,7 @@ const AcaoRapidaCard = memo(({ acao, onPress, index, styles, colors }) => (
 ));
 
 // ──────────────────────────────────────────────
-// FeedCard (padronizado com TelaFeed)
+// FeedCard
 // ──────────────────────────────────────────────
 const FeedCard = memo(
 	({ item, index, isLiked, isSubscribed, onLike, onNotification, onShare, onComment, onPress, styles, colors, blurTint }) => {
@@ -302,9 +288,7 @@ const FeedCard = memo(
 									<Text style={styles.feedBadgeText}>{item.categoria}</Text>
 								</View>
 							) : null}
-							<Text numberOfLines={2} style={styles.feedTitle}>
-								{item.titulo}
-							</Text>
+							<Text numberOfLines={2} style={styles.feedTitle}>{item.titulo}</Text>
 							{item.descricao ? (
 								<Text numberOfLines={2} style={styles.feedDesc}>{item.descricao}</Text>
 							) : null}
@@ -318,6 +302,7 @@ const FeedCard = memo(
 								isLiked={isLiked}
 								onPress={() => onLike(item.id, item.type)}
 								styles={styles}
+								colors={colors}
 							/>
 							<TouchableOpacity style={styles.actionBtn} onPress={() => onComment?.(item)}>
 								<MaterialCommunityIcons
@@ -336,15 +321,25 @@ const FeedCard = memo(
 						</View>
 						{item.type === "evento" ? (
 							<TouchableOpacity
-								style={[styles.notifBtn, isSubscribed && styles.notifBtnActive]}
+								style={[
+									styles.notifBtn,
+									isSubscribed
+										? { backgroundColor: colors.primary + "18" }
+										: { backgroundColor: colors.textPrimary + "10" },
+								]}
 								onPress={() => onNotification(item)}
 							>
 								<MaterialCommunityIcons
 									name={isSubscribed ? "bell-ring" : "bell-plus-outline"}
 									size={16}
-									color={isSubscribed ? colors.primary : "#FFF"}
+									color={isSubscribed ? colors.primary : colors.textPrimary}
 								/>
-								<Text style={[styles.notifBtnText, isSubscribed && styles.notifBtnTextActive]}>
+								<Text
+									style={[
+										styles.notifBtnText,
+										{ color: isSubscribed ? colors.primary : colors.textPrimary },
+									]}
+								>
 									{isSubscribed ? "Inscrito" : "Notificar"}
 								</Text>
 							</TouchableOpacity>
@@ -365,9 +360,9 @@ const FeedCard = memo(
 // MAIN SCREEN
 // ──────────────────────────────────────────────
 export default function TelaPainelCidade() {
-  const { colors, isDark } = useTheme();
-  const styles = useThemedStyles(createThemedScreenStyles);
-  const blurTint = isDark ? "dark" : "light";
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles(createThemedScreenStyles);
+	const blurTint = isDark ? "dark" : "light";
 	const navigation = useNavigation();
 	const insets = useSafeAreaInsets();
 	const { user, nome, foto } = useAuth();
@@ -453,8 +448,7 @@ export default function TelaPainelCidade() {
 
 	async function carregarGeolocalizacao() {
 		try {
-			const { status } =
-				await Location.requestForegroundPermissionsAsync();
+			const { status } = await Location.requestForegroundPermissionsAsync();
 			if (status !== "granted") return;
 
 			const localizacao = await Location.getCurrentPositionAsync({
@@ -467,9 +461,7 @@ export default function TelaPainelCidade() {
 					localizacao.coords.latitude,
 					localizacao.coords.longitude
 				);
-			} catch (_e) {
-				/* fallback silencioso */
-			}
+			} catch (_e) {}
 
 			setPainelCidade((prev) => ({
 				...prev,
@@ -483,11 +475,7 @@ export default function TelaPainelCidade() {
 			const data = await response.json();
 
 			setCidade(data?.address?.city || "Fortaleza");
-			setBairro(
-				data?.address?.suburb ||
-					data?.address?.neighbourhood ||
-					"Sua região"
-			);
+			setBairro(data?.address?.suburb || data?.address?.neighbourhood || "Sua região");
 			const estado = data?.address?.state || "CE";
 			const siglaEstado = data?.address?.["ISO3166-2-lvl4"]?.split("-")?.[1] || estado;
 			setRegiao(siglaEstado);
@@ -607,16 +595,10 @@ export default function TelaPainelCidade() {
 				const isSubscribed = subscribedEvents[evento.id];
 				if (isSubscribed) {
 					await unsubscribeFromEvent(user?.uid, evento.id);
-					setSubscribedEvents((prev) => ({
-						...prev,
-						[evento.id]: false,
-					}));
+					setSubscribedEvents((prev) => ({ ...prev, [evento.id]: false }));
 				} else {
 					await subscribeToEvent(user?.uid, evento);
-					setSubscribedEvents((prev) => ({
-						...prev,
-						[evento.id]: true,
-					}));
+					setSubscribedEvents((prev) => ({ ...prev, [evento.id]: true }));
 				}
 			} catch (error) {
 				console.log(error);
@@ -676,18 +658,12 @@ export default function TelaPainelCidade() {
 	const eventosFiltrados = useMemo(() => {
 		if (categoriaAtiva === "Todos") return eventos;
 		return eventos.filter((evento) =>
-			evento.categoria
-				?.toLowerCase()
-				.includes(categoriaAtiva.toLowerCase())
+			evento.categoria?.toLowerCase().includes(categoriaAtiva.toLowerCase())
 		);
 	}, [eventos, categoriaAtiva]);
 
 	const destaques = useMemo(
-		() =>
-			eventosFiltrados
-				.slice()
-				.sort((a, b) => b.score - a.score)
-				.slice(0, 6),
+		() => eventosFiltrados.slice().sort((a, b) => b.score - a.score).slice(0, 6),
 		[eventosFiltrados]
 	);
 
@@ -696,18 +672,13 @@ export default function TelaPainelCidade() {
 		[eventosFiltrados]
 	);
 
-	// ── animated header parallax ──
+	// ── Animated styles ──
 	const headerStyle = useAnimatedStyle(() => {
-		const translateY = interpolate(
-			scrollY.value,
-			[0, 300],
-			[0, -100]
-		);
+		const translateY = interpolate(scrollY.value, [0, 300], [0, -100]);
 		const scale = interpolate(scrollY.value, [-100, 0], [1.08, 1]);
 		return { transform: [{ translateY }, { scale }] };
 	});
 
-	// ── sticky top bar opacity ──
 	const stickyBarStyle = useAnimatedStyle(() => {
 		const opacity = interpolate(scrollY.value, [200, 280], [0, 1]);
 		return { opacity };
@@ -718,14 +689,12 @@ export default function TelaPainelCidade() {
 		return (
 			<View style={styles.loadingContainer}>
 				<ActivityIndicator size="large" color={colors.primary} />
-				<Text style={styles.loadingText}>
-					Carregando experiências...
-				</Text>
+				<Text style={styles.loadingText}>Carregando experiências...</Text>
 			</View>
 		);
 	}
 
-	// ──────────── HeroCard (destaques horizontais) ────────────
+	// ──────────── HeroCard ────────────
 	const HeroCard = ({ item, index }) => {
 		const imageStyle = useAnimatedStyle(() => {
 			const imageScale = interpolate(
@@ -741,9 +710,7 @@ export default function TelaPainelCidade() {
 		});
 
 		return (
-			<Animated.View
-				entering={FadeInUp.delay(index * 80).springify()}
-			>
+			<Animated.View entering={FadeInUp.delay(index * 80).springify()}>
 				<TouchableOpacity
 					activeOpacity={0.94}
 					style={styles.heroCard}
@@ -765,16 +732,10 @@ export default function TelaPainelCidade() {
 					/>
 					<View style={styles.heroContent}>
 						<View style={styles.heroBadge}>
-							<Text style={styles.heroBadgeText}>
-								{item.categoria}
-							</Text>
+							<Text style={styles.heroBadgeText}>{item.categoria}</Text>
 						</View>
-						<Text numberOfLines={2} style={styles.heroTitle}>
-							{item.titulo}
-						</Text>
-						<Text style={styles.heroLocation}>
-							📍 {item.local}
-						</Text>
+						<Text numberOfLines={2} style={styles.heroTitle}>{item.titulo}</Text>
+						<Text style={styles.heroLocation}>📍 {item.local}</Text>
 					</View>
 				</TouchableOpacity>
 			</Animated.View>
@@ -783,359 +744,267 @@ export default function TelaPainelCidade() {
 
 	// ──────────── RENDER ────────────
 	return (
-		<View style={styles.container}>
-			<StatusBar barStyle="light-content" />
+		<>
+			<View style={styles.container}>
+				<StatusBar barStyle="light-content" />
 
-			{/* Sticky top bar (aparece ao rolar) */}
-			<Animated.View
-				style={[
-					styles.stickyBar,
-					{ paddingTop: insets.top },
-					stickyBarStyle,
-				]}
-			>
-				<BlurView intensity={60} tint={blurTint} style={styles.stickyBarBlur}>
-					<MaterialCommunityIcons
-						name="map-marker-radius"
-						size={16}
-						color="#A78BFA"
-					/>
-					<Text style={styles.stickyBarText}>
-						{bairro} • {cidade}
-					</Text>
-				</BlurView>
-			</Animated.View>
-
-			<Animated.ScrollView
-				onScroll={scrollHandler}
-				scrollEventThrottle={16}
-				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{ paddingBottom: 140 }}
-			>
-				{/* ── HEADER ── */}
-				<Animated.View style={headerStyle}>
-					<LinearGradient
-						colors={["#111827", "#0F172A", "#05060A"]}
-						style={[styles.header, { paddingTop: insets.top + 16 }]}
-					>
-						{/* Glow decorativo */}
-						<View style={styles.headerGlow} />
-						<View style={styles.headerGlow2} />
-
-						{/* Top row */}
-						<View style={styles.headerTop}>
-							<View>
-								<Text style={styles.greeting}>
-									{saudacaoHorario}
-								</Text>
-								<Text style={styles.name}>{nomeUsuario}</Text>
-								<View style={styles.locationRow}>
-									<MaterialCommunityIcons
-										name="map-marker-radius"
-										size={16}
-										color="#A78BFA"
-									/>
-									<Text style={styles.locationTextHeader}>
-										{bairro} • {cidade}
-									</Text>
-								</View>
-							</View>
-
-							<View style={styles.headerButtons}>
-								<TouchableOpacity
-									style={styles.headerBtn}
-									onPress={() =>
-										navigation.navigate("HomeTabs", {
-											screen: "Feed",
-											params: { screen: "CriarPost" },
-										})
-									}
-								>
-									<MaterialCommunityIcons
-										name="plus"
-										size={22}
-										color="#FFF"
-									/>
-								</TouchableOpacity>
-								<TouchableOpacity
-									style={styles.headerBtn}
-									onPress={() =>
-										navigation.navigate("HomeTabs", {
-											screen: "Feed",
-											params: { screen: "Notificacoes" },
-										})
-									}
-								>
-									<MaterialCommunityIcons
-										name="bell-outline"
-										size={22}
-										color="#FFF"
-									/>
-								</TouchableOpacity>
-							</View>
-						</View>
-
-						{/* City Card */}
-						<View style={styles.cityCard}>
-							<View style={styles.cityTop}>
-								<View>
-									<Text style={styles.cityLabel}>
-										SUA REGIÃO
-									</Text>
-									<Text style={styles.cityTitle}>
-										{cidade}
-									</Text>
-									<Text style={styles.citySub}>
-										{bairro} • {regiao}
-									</Text>
-								</View>
-								<View style={styles.livePill}>
-									<View style={styles.liveDot} />
-									<Text style={styles.liveText}>AO VIVO</Text>
-								</View>
-							</View>
-
-							{/* Stats */}
-							<View style={styles.statsRow}>
-								<StatCard
-									value={painelCidade.eventos}
-									label="Eventos"
-									icon="calendar-star"
-									color="#6C5CE7"
-									delay={0}
-									styles={styles}
-								/>
-								<StatCard
-									value={painelCidade.proximos}
-									label="Próximos"
-									icon="clock-fast"
-									color="#22D3EE"
-									delay={80}
-									styles={styles}
-								/>
-								<StatCard
-									value={painelCidade.hotspots}
-									label="Hotspots"
-									icon="fire"
-									color="#F97316"
-									delay={160}
-									styles={styles}
-								/>
-							</View>
-
-							{/* Botão mapa */}
-							<TouchableOpacity
-								style={styles.mapButton}
-								onPress={() =>
-									navigation.navigate("MapaVivo")
-								}
-							>
-								<LinearGradient
-									colors={["#6C5CE7", "#5746D6"]}
-									start={{ x: 0, y: 0 }}
-									end={{ x: 1, y: 0 }}
-									style={styles.mapButtonGradient}
-								>
-									<MaterialCommunityIcons
-										name="radar"
-										size={20}
-										color="#FFF"
-									/>
-									<Text style={styles.mapButtonText}>
-										Explorar mapa cultural
-									</Text>
-									<MaterialCommunityIcons
-										name="chevron-right"
-										size={20}
-										color="rgba(255,255,255,0.7)"
-									/>
-								</LinearGradient>
-							</TouchableOpacity>
-						</View>
-					</LinearGradient>
+				{/* Sticky top bar */}
+				<Animated.View
+					style={[styles.stickyBar, { paddingTop: insets.top }, stickyBarStyle]}
+				>
+					<BlurView intensity={60} tint={blurTint} style={styles.stickyBarBlur}>
+						<MaterialCommunityIcons name="map-marker-radius" size={16} color="#A78BFA" />
+						<Text style={styles.stickyBarText}>{bairro} • {cidade}</Text>
+					</BlurView>
 				</Animated.View>
 
-				{/* ── AÇÕES RÁPIDAS ── */}
-				<View style={styles.sectionHeader}>
-					<Text style={styles.sectionTitle}>Acesso rápido</Text>
-				</View>
-				<View style={styles.acoesGrid}>
-					{ACOES_RAPIDAS.map((acao, i) => (
-						<AcaoRapidaCard
-							key={acao.id}
-							acao={acao}
-							index={i}
-							onPress={(route, nested) =>
-							nested
-								? navigation.navigate(route, nested)
-								: navigation.navigate(route)
-						}
+				<Animated.ScrollView
+					onScroll={scrollHandler}
+					scrollEventThrottle={16}
+					showsVerticalScrollIndicator={false}
+					contentContainerStyle={{ paddingBottom: 140 }}
+				>
+					{/* ── HEADER ── */}
+					<Animated.View style={headerStyle}>
+						<LinearGradient
+							colors={isDark ? ["#111827", "#0F172A", "#05060A"] : [colors.backgroundSecondary, colors.surface, colors.background]}
+							style={[styles.header, { paddingTop: insets.top + 16 }]}
+						>
+							<View style={styles.headerGlow} />
+							<View style={styles.headerGlow2} />
+
+							<View style={styles.headerTop}>
+								<View>
+									<Text style={styles.greeting}>{saudacaoHorario}</Text>
+									<Text style={styles.name}>{nomeUsuario}</Text>
+									<View style={styles.locationRow}>
+										<MaterialCommunityIcons name="map-marker-radius" size={16} color="#A78BFA" />
+										<Text style={styles.locationTextHeader}>{bairro} • {cidade}</Text>
+									</View>
+								</View>
+
+								<View style={styles.headerButtons}>
+									<TouchableOpacity
+										style={styles.headerBtn}
+										onPress={() =>
+											navigation.navigate("HomeTabs", {
+												screen: "Feed",
+												params: { screen: "CriarPost" },
+											})
+										}
+									>
+										<MaterialCommunityIcons name="plus" size={22} color={colors.textPrimary} />
+									</TouchableOpacity>
+									<TouchableOpacity
+										style={styles.headerBtn}
+										onPress={() =>
+											navigation.navigate("HomeTabs", {
+												screen: "Feed",
+												params: { screen: "Notificacoes" },
+											})
+										}
+									>
+										<MaterialCommunityIcons name="bell-outline" size={22} color={colors.textPrimary} />
+									</TouchableOpacity>
+								</View>
+							</View>
+
+							{/* City Card */}
+							<View style={styles.cityCard}>
+								<View style={styles.cityTop}>
+									<View>
+										<Text style={styles.cityLabel}>SUA REGIÃO</Text>
+										<Text style={styles.cityTitle}>{cidade}</Text>
+										<Text style={styles.citySub}>{bairro} • {regiao}</Text>
+									</View>
+									<View style={styles.livePill}>
+										<View style={styles.liveDot} />
+										<Text style={styles.liveText}>AO VIVO</Text>
+									</View>
+								</View>
+
+								<View style={styles.statsRow}>
+									<StatCard value={painelCidade.eventos} label="Eventos" icon="calendar-star" color="#6C5CE7" delay={0} styles={styles} />
+									<StatCard value={painelCidade.proximos} label="Próximos" icon="clock-fast" color="#22D3EE" delay={80} styles={styles} />
+									<StatCard value={painelCidade.hotspots} label="Hotspots" icon="fire" color="#F97316" delay={160} styles={styles} />
+								</View>
+
+								<TouchableOpacity
+									style={styles.mapButton}
+									onPress={() => navigation.navigate("MapaVivo")}
+								>
+									<LinearGradient
+										colors={["#6C5CE7", "#5746D6"]}
+										start={{ x: 0, y: 0 }}
+										end={{ x: 1, y: 0 }}
+										style={styles.mapButtonGradient}
+									>
+										<MaterialCommunityIcons name="radar" size={20} color="#FFF" />
+										<Text style={styles.mapButtonText}>Explorar mapa cultural</Text>
+										<MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.7)" />
+									</LinearGradient>
+								</TouchableOpacity>
+							</View>
+						</LinearGradient>
+					</Animated.View>
+
+					{/* ── AÇÕES RÁPIDAS ── */}
+					<View style={styles.sectionHeader}>
+						<Text style={styles.sectionTitle}>Acesso rápido</Text>
+					</View>
+					<View style={styles.acoesGrid}>
+						{ACOES_RAPIDAS.map((acao, i) => (
+							<AcaoRapidaCard
+								key={acao.id}
+								acao={acao}
+								index={i}
+								onPress={(route, nested) =>
+									nested ? navigation.navigate(route, nested) : navigation.navigate(route)
+								}
+								styles={styles}
+								colors={colors}
+							/>
+						))}
+					</View>
+
+					{/* ── CATEGORIAS ── */}
+					<FlatList
+						data={categorias}
+						horizontal
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={styles.categoriasList}
+						keyExtractor={(item) => item}
+						renderItem={({ item }) => {
+							const active = categoriaAtiva === item;
+							return (
+								<TouchableOpacity
+									onPress={() => setCategoriaAtiva(item)}
+									style={[styles.categoryPill, active && styles.categoryPillActive]}
+								>
+									<Text style={[styles.categoryText, active && styles.categoryTextActive]}>
+										{item}
+									</Text>
+								</TouchableOpacity>
+							);
+						}}
+					/>
+
+					{/* ── DESTAQUES ── */}
+					<View style={styles.sectionHeader}>
+						<View>
+							<Text style={styles.sectionTitle}>Destaques</Text>
+							<Text style={styles.sectionSub}>Eventos em alta na sua região</Text>
+						</View>
+						<TouchableOpacity
+							onPress={() =>
+								navigation.navigate("HomeTabs", {
+									screen: "Eventos",
+									params: { screen: "EventosApp" },
+								})
+							}
+						>
+							<Text style={styles.sectionLink}>Ver todos</Text>
+						</TouchableOpacity>
+					</View>
+
+					{destaques.length === 0 ? (
+						<View style={styles.emptySection}>
+							<MaterialCommunityIcons name="calendar-blank-outline" size={42} color="rgba(255,255,255,0.2)" />
+							<Text style={styles.emptyText}>Nenhum destaque encontrado</Text>
+						</View>
+					) : (
+						<AnimatedFlashList
+							data={destaques}
+							horizontal
+							renderItem={({ item, index }) => <HeroCard item={item} index={index} />}
+							keyExtractor={(item) => item.id.toString()}
+							estimatedItemSize={320}
+							showsHorizontalScrollIndicator={false}
+							contentContainerStyle={{ paddingHorizontal: 18 }}
+							onScroll={horizontalHandler}
+							scrollEventThrottle={16}
+						/>
+					)}
+
+					{/* ── DIVISOR ── */}
+					<View style={styles.divider} />
+
+					{/* ── FEED VERTICAL ── */}
+					<View style={styles.sectionHeader}>
+						<View>
+							<Text style={styles.sectionTitle}>Explorar</Text>
+							<Text style={styles.sectionSub}>Todos os eventos recentes</Text>
+						</View>
+					</View>
+
+					{proximosEventos.map((item, index) => (
+						<FeedCard
+							key={item.id}
+							item={item}
+							index={index}
+							isLiked={likedIds.includes(`${item.type}-${item.id}`)}
+							isSubscribed={!!subscribedEvents[item.id]}
+							onLike={toggleLike}
+							onNotification={toggleNotification}
+							onShare={handleShare}
+							onComment={abrirComentarios}
+							onPress={(evt) =>
+								navigation.navigate("HomeTabs", {
+									screen: "Eventos",
+									params: { screen: "Detalhes", params: { evento: evt } },
+								})
+							}
 							styles={styles}
 							colors={colors}
+							blurTint={blurTint}
 						/>
 					))}
-				</View>
 
-				{/* ── CATEGORIAS ── */}
-				<FlatList
-					data={categorias}
-					horizontal
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={styles.categoriasList}
-					keyExtractor={(item) => item}
-					renderItem={({ item }) => {
-						const active = categoriaAtiva === item;
-						return (
-							<TouchableOpacity
-								onPress={() => setCategoriaAtiva(item)}
-								style={[
-									styles.categoryPill,
-									active && styles.categoryPillActive,
-								]}
-							>
-								<Text
-									style={[
-										styles.categoryText,
-										active && styles.categoryTextActive,
-									]}
-								>
-									{item}
-								</Text>
-							</TouchableOpacity>
-						);
-					}}
-				/>
+					{proximosEventos.length === 0 && (
+						<View style={styles.emptySection}>
+							<MaterialCommunityIcons name="calendar-search" size={42} color="rgba(255,255,255,0.2)" />
+							<Text style={styles.emptyText}>Nenhum evento encontrado para esta categoria</Text>
+						</View>
+					)}
+				</Animated.ScrollView>
 
-				{/* ── DESTAQUES (carrossel horizontal) ── */}
-				<View style={styles.sectionHeader}>
-					<View>
-						<Text style={styles.sectionTitle}>Destaques</Text>
-						<Text style={styles.sectionSub}>
-							Eventos em alta na sua região
-						</Text>
-					</View>
+				{/* ── FAB ── */}
+				<Animated.View
+					entering={FadeInDown.delay(400).springify()}
+					style={[styles.fab, { bottom: insets.bottom + 90 }]}
+				>
 					<TouchableOpacity
 						onPress={() =>
 							navigation.navigate("HomeTabs", {
-								screen: "Eventos",
-								params: { screen: "EventosApp" },
+								screen: "Feed",
+								params: { screen: "CriarPost" },
 							})
 						}
+						activeOpacity={0.85}
 					>
-						<Text style={styles.sectionLink}>Ver todos</Text>
+						<LinearGradient colors={["#8B7CFF", "#6C5CE7"]} style={styles.fabGradient}>
+							<MaterialCommunityIcons name="plus" size={26} color="#FFF" />
+						</LinearGradient>
 					</TouchableOpacity>
-				</View>
-
-				{destaques.length === 0 ? (
-					<View style={styles.emptySection}>
-						<MaterialCommunityIcons
-							name="calendar-blank-outline"
-							size={42}
-							color="rgba(255,255,255,0.2)"
-						/>
-						<Text style={styles.emptyText}>
-							Nenhum destaque encontrado
-						</Text>
-					</View>
-				) : (
-					<AnimatedFlashList
-						data={destaques}
-						horizontal
-						renderItem={({ item, index }) => (
-							<HeroCard item={item} index={index} />
-						)}
-						keyExtractor={(item) => item.id.toString()}
-						estimatedItemSize={320}
-						showsHorizontalScrollIndicator={false}
-						contentContainerStyle={{ paddingHorizontal: 18 }}
-						onScroll={horizontalHandler}
-						scrollEventThrottle={16}
-					/>
-				)}
-
-				{/* ── DIVISOR ── */}
-				<View style={styles.divider} />
-
-				{/* ── FEED VERTICAL ── */}
-				<View style={styles.sectionHeader}>
-					<View>
-						<Text style={styles.sectionTitle}>Explorar</Text>
-						<Text style={styles.sectionSub}>
-							Todos os eventos recentes
-						</Text>
-					</View>
-				</View>
-
-				{proximosEventos.map((item, index) => (
-					<FeedCard
-						key={item.id}
-						item={item}
-						index={index}
-						isLiked={likedIds.includes(
-							`${item.type}-${item.id}`
-						)}
-						isSubscribed={!!subscribedEvents[item.id]}
-						onLike={toggleLike}
-						onNotification={toggleNotification}
-						onShare={handleShare}
-						onComment={abrirComentarios}
-						onPress={(evt) =>
-							navigation.navigate("HomeTabs", {
-								screen: "Eventos",
-								params: { screen: "Detalhes", params: { evento: evt } },
-							})
-						}
-						styles={styles}
-						colors={colors}
-						blurTint={blurTint}
-					/>
-				))}
-
-				{proximosEventos.length === 0 && (
-					<View style={styles.emptySection}>
-						<MaterialCommunityIcons
-							name="calendar-search"
-							size={42}
-							color="rgba(255,255,255,0.2)"
-						/>
-						<Text style={styles.emptyText}>
-							Nenhum evento encontrado para esta categoria
-						</Text>
-					</View>
-				)}
-			</Animated.ScrollView>
-
-			{/* ── FAB criar evento ── */}
-			<Animated.View
-				entering={FadeInDown.delay(400).springify()}
-				style={[styles.fab, { bottom: insets.bottom + 90 }]}
-			>
-				<TouchableOpacity
-					onPress={() =>
-						navigation.navigate("HomeTabs", {
-							screen: "Feed",
-							params: { screen: "CriarPost" },
-						})
-					}
-					activeOpacity={0.85}
-				>
-					<LinearGradient
-						colors={["#8B7CFF", "#6C5CE7"]}
-						style={styles.fabGradient}
-					>
-						<MaterialCommunityIcons
-							name="plus"
-							size={26}
-							color="#FFF"
-						/>
-					</LinearGradient>
-				</TouchableOpacity>
-			</Animated.View>
+				</Animated.View>
+			</View>
 
 			{/* ── Modal de comentários ── */}
-			<Modal visible={!!selectedItem} transparent animationType="slide" onRequestClose={fecharComentarios}>
-				<KeyboardAvoidingView style={styles.modalWrap} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-					<TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={fecharComentarios} />
+			<Modal
+				visible={!!selectedItem}
+				transparent
+				animationType="slide"
+				onRequestClose={fecharComentarios}
+			>
+				<KeyboardAvoidingView
+					style={styles.modalWrap}
+					behavior={Platform.OS === "ios" ? "padding" : undefined}
+				>
+					<TouchableOpacity
+						style={styles.modalBackdrop}
+						activeOpacity={1}
+						onPress={fecharComentarios}
+					/>
 					<View style={[styles.sheet, { paddingBottom: insets.bottom + 14 }]}>
 						<View style={styles.handle} />
 
@@ -1161,6 +1030,7 @@ export default function TelaPainelCidade() {
 								keyExtractor={(c) => c.id}
 								contentContainerStyle={styles.commentList}
 								showsVerticalScrollIndicator={false}
+								style={{ flex: 1 }}
 								ListEmptyComponent={
 									<View style={styles.emptyComment}>
 										<MaterialCommunityIcons name="comment-text-outline" size={36} color={colors.textMuted} />
@@ -1175,8 +1045,8 @@ export default function TelaPainelCidade() {
 										/>
 										<View style={styles.commentBubble}>
 											<View style={styles.commentTop}>
-												<Text style={styles.commentAuthor} numberOfLines={1}>{c.userName || c.nome || "Usuário"}</Text>
-												<Text style={styles.commentDate}>{formatarData(c.createdAt)}</Text>
+												<Text style={styles.commentAuthor}>{c.userName}</Text>
+												<Text style={styles.commentDate}>{formatDate(c.createdAt)}</Text>
 											</View>
 											<Text style={styles.commentBody}>{c.texto}</Text>
 										</View>
@@ -1185,639 +1055,262 @@ export default function TelaPainelCidade() {
 							/>
 						)}
 
+						{/* Composer */}
 						<View style={styles.composer}>
-							<Image source={{ uri: foto || "https://i.pravatar.cc/100" }} style={styles.composerAvatar} />
+							<Image
+								source={{ uri: foto || "https://i.pravatar.cc/100" }}
+								style={styles.composerAvatar}
+							/>
 							<View style={styles.composerInput}>
 								<TextInput
+									style={styles.composerText}
+									placeholder="Adicione um comentário..."
+									placeholderTextColor={colors.textMuted}
 									value={commentText}
 									onChangeText={setCommentText}
-									placeholder={`Comentar como ${nomeUsuario}…`}
-									placeholderTextColor={colors.textMuted}
-									style={styles.composerText}
 									multiline
 									maxLength={500}
 								/>
 								<TouchableOpacity
-									style={[styles.sendBtn, (!commentText.trim() || sending) && styles.sendBtnOff]}
-									disabled={!commentText.trim() || sending}
+									style={[styles.sendBtn, !commentText.trim() && styles.sendBtnOff]}
 									onPress={enviarComentario}
+									disabled={!commentText.trim() || sending}
 								>
-									{sending
-										? <ActivityIndicator size="small" color="#fff" />
-										: <MaterialCommunityIcons name="send" size={16} color="#fff" />}
+									{sending ? (
+										<ActivityIndicator size="small" color="#fff" />
+									) : (
+										<MaterialCommunityIcons name="send" size={16} color="#fff" />
+									)}
 								</TouchableOpacity>
 							</View>
 						</View>
 					</View>
 				</KeyboardAvoidingView>
 			</Modal>
-		</View>
+		</>
 	);
 }
 
-// ──────────────────────────────────────────────
-// STYLES
-// ──────────────────────────────────────────────
 function createThemedScreenStyles(c) {
-  return StyleSheet.create({
-	container: {
-		flex: 1,
-		backgroundColor: c.background,
-	},
+	return StyleSheet.create({
+		container: { flex: 1, backgroundColor: c.background },
 
-	// ── Loading ──
-	loadingContainer: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		backgroundColor: c.background,
-	},
-	loadingText: {
-		color: "rgba(255,255,255,0.6)",
-		marginTop: 16,
-		fontSize: 15,
-	},
+		// ── Loading ──
+		loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: c.background },
+		loadingText: { color: c.textSecondary, marginTop: 16, fontSize: 15 },
 
-	// ── Sticky bar ──
-	stickyBar: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		zIndex: 100,
-	},
-	stickyBarBlur: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		paddingVertical: 12,
-		gap: 6,
-	},
-	stickyBarText: {
-		color: "rgba(255,255,255,0.8)",
-		fontSize: 13,
-		fontWeight: "600",
-	},
+		// ── Sticky bar ──
+		stickyBar: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 100 },
+		stickyBarBlur: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, gap: 6 },
+		stickyBarText: { color: c.textPrimary, fontSize: 13, fontWeight: "600" },
 
-	// ── Header ──
-	header: {
-		paddingBottom: 34,
-		paddingHorizontal: 20,
-		borderBottomLeftRadius: 36,
-		borderBottomRightRadius: 36,
-		overflow: "hidden",
-	},
-	headerGlow: {
-		position: "absolute",
-		width: 280,
-		height: 280,
-		borderRadius: 140,
-		backgroundColor: "rgba(139,92,246,0.18)",
-		top: -120,
-		right: -100,
-	},
-	headerGlow2: {
-		position: "absolute",
-		width: 180,
-		height: 180,
-		borderRadius: 90,
-		backgroundColor: "rgba(34,211,238,0.08)",
-		top: 40,
-		left: -60,
-	},
-	headerTop: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-	},
-	greeting: {
-		color: "rgba(255,255,255,0.55)",
-		fontSize: 15,
-	},
-	name: {
-		color: "#FFF",
-		fontSize: 32,
-		fontWeight: "800",
-		marginTop: 4,
-	},
-	locationRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		marginTop: 10,
-		gap: 5,
-	},
-	locationTextHeader: {
-		color: "rgba(255,255,255,0.6)",
-		fontSize: 13,
-	},
-	headerButtons: {
-		flexDirection: "row",
-		gap: 10,
-	},
-	headerBtn: {
-		width: 48,
-		height: 48,
-		borderRadius: 18,
-		backgroundColor: c.glassStrong,
-		justifyContent: "center",
-		alignItems: "center",
-	},
+		// ── Header ──
+		header: {
+			paddingBottom: 34,
+			paddingHorizontal: 20,
+			borderBottomLeftRadius: 36,
+			borderBottomRightRadius: 36,
+			overflow: "hidden",
+		},
+		headerGlow: {
+			position: "absolute",
+			width: 280, height: 280, borderRadius: 140,
+			backgroundColor: "rgba(139,92,246,0.18)",
+			top: -120, right: -100,
+		},
+		headerGlow2: {
+			position: "absolute",
+			width: 180, height: 180, borderRadius: 90,
+			backgroundColor: "rgba(34,211,238,0.08)",
+			top: 40, left: -60,
+		},
+		headerTop: { flexDirection: "row", justifyContent: "space-between" },
+		greeting: { color: c.textSecondary, fontSize: 15 },
+		name: { color: c.textPrimary, fontSize: 32, fontWeight: "800", marginTop: 4 },
+		locationRow: { flexDirection: "row", alignItems: "center", marginTop: 10, gap: 5 },
+		locationTextHeader: { color: c.textSecondary, fontSize: 13 },
+		headerButtons: { flexDirection: "row", gap: 10 },
+		headerBtn: {
+			width: 48, height: 48, borderRadius: 18,
+			backgroundColor: c.glassStrong,
+			justifyContent: "center", alignItems: "center",
+		},
 
-	// ── City card ──
-	cityCard: {
-		marginTop: 28,
-		backgroundColor: c.glass,
-		borderRadius: 28,
-		padding: 20,
-		borderWidth: 1,
-		borderColor: "rgba(255,255,255,0.09)",
-	},
-	cityTop: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-start",
-	},
-	cityLabel: {
-		color: "rgba(255,255,255,0.4)",
-		fontSize: 11,
-		fontWeight: "700",
-		letterSpacing: 1.4,
-	},
-	cityTitle: {
-		color: "#FFF",
-		fontSize: 30,
-		fontWeight: "800",
-		marginTop: 4,
-	},
-	citySub: {
-		color: "rgba(255,255,255,0.55)",
-		marginTop: 4,
-		fontSize: 13,
-	},
-	livePill: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "rgba(34,197,94,0.14)",
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-		borderRadius: 20,
-		gap: 6,
-	},
-	liveDot: {
-		width: 8,
-		height: 8,
-		borderRadius: 4,
-		backgroundColor: "#22C55E",
-	},
-	liveText: {
-		color: "#22C55E",
-		fontWeight: "700",
-		fontSize: 11,
-	},
+		// ── City card ──
+		cityCard: {
+			marginTop: 28,
+			backgroundColor: c.glass,
+			borderRadius: 28,
+			padding: 20,
+			borderWidth: 1,
+			borderColor: c.glassBorder,
+		},
+		cityTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+		cityLabel: { color: c.textMuted, fontSize: 11, fontWeight: "700", letterSpacing: 1.4 },
+		cityTitle: { color: c.textPrimary, fontSize: 30, fontWeight: "800", marginTop: 4 },
+		citySub: { color: c.textSecondary, marginTop: 4, fontSize: 13 },
+		livePill: {
+			flexDirection: "row", alignItems: "center",
+			backgroundColor: "rgba(34,197,94,0.14)",
+			paddingHorizontal: 12, paddingVertical: 8,
+			borderRadius: 20, gap: 6,
+		},
+		liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#22C55E" },
+		liveText: { color: "#22C55E", fontWeight: "700", fontSize: 11 },
 
-	// ── Stat cards ──
-	statsRow: {
-		flexDirection: "row",
-		gap: 10,
-		marginTop: 22,
-	},
-	statCard: {
-		flex: 1,
-		backgroundColor: "rgba(255,255,255,0.05)",
-		borderRadius: 18,
-		padding: 14,
-		alignItems: "center",
-		borderWidth: 1,
-	},
-	statIconWrap: {
-		width: 36,
-		height: 36,
-		borderRadius: 12,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 8,
-	},
-	statNumber: {
-		color: "#FFF",
-		fontSize: 24,
-		fontWeight: "800",
-	},
-	statLabel: {
-		color: "rgba(255,255,255,0.45)",
-		fontSize: 11,
-		marginTop: 4,
-		textAlign: "center",
-	},
+		// ── Stat cards ──
+		statsRow: { flexDirection: "row", gap: 10, marginTop: 22 },
+		statCard: { flex: 1, backgroundColor: c.glass, borderRadius: 18, padding: 14, alignItems: "center", borderWidth: 1 },
+		statIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: "center", alignItems: "center", marginBottom: 8 },
+		statNumber: { color: c.textPrimary, fontSize: 24, fontWeight: "800" },
+		statLabel: { color: c.textMuted, fontSize: 11, marginTop: 4, textAlign: "center" },
 
-	// ── Map button ──
-	mapButton: {
-		marginTop: 18,
-		borderRadius: 20,
-		overflow: "hidden",
-	},
-	mapButtonGradient: {
-		height: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 10,
-	},
-	mapButtonText: {
-		color: "#FFF",
-		fontWeight: "700",
-		fontSize: 15,
-	},
+		// ── Map button ──
+		mapButton: { marginTop: 18, borderRadius: 20, overflow: "hidden" },
+		mapButtonGradient: { height: 56, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
+		mapButtonText: { color: "#FFF", fontWeight: "700", fontSize: 15 },
 
-	// ── Ações rápidas ──
-	acoesGrid: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		paddingHorizontal: 18,
-		gap: 10,
-		marginBottom: 12,
-	},
-	acaoCardWrapper: {
-		width: (width - 46) / 2,
-	},
-	acaoCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 14,
-		paddingHorizontal: 14,
-		borderRadius: 18,
-		backgroundColor: c.glassStrong,
-		borderWidth: 1,
-		borderColor: c.glassStrong,
-		gap: 10,
-	},
-	acaoIconCircle: {
-		width: 40,
-		height: 40,
-		borderRadius: 12,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	acaoLabel: {
-		flex: 1,
-		fontSize: 12,
-		fontWeight: "700",
-		color: c.textPrimary,
-	},
-	acaoChevron: {
-		opacity: 0.5,
-	},
+		// ── Ações rápidas ──
+		acoesGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 18, gap: 10, marginBottom: 12 },
+		acaoCardWrapper: { width: (width - 46) / 2 },
+		acaoCard: {
+			flexDirection: "row", alignItems: "center",
+			paddingVertical: 14, paddingHorizontal: 14,
+			borderRadius: 18,
+			backgroundColor: c.glassStrong,
+			borderWidth: 1, borderColor: c.glassStrong,
+			gap: 10,
+		},
+		acaoIconCircle: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+		acaoLabel: { flex: 1, fontSize: 12, fontWeight: "700", color: c.textPrimary },
+		acaoChevron: { opacity: 0.5 },
 
-	// ── Categorias ──
-	categoriasList: {
-		paddingHorizontal: 18,
-		paddingVertical: 8,
-		gap: 10,
-	},
-	categoryPill: {
-		height: 40,
-		paddingHorizontal: 18,
-		borderRadius: 20,
-		backgroundColor: c.glassBorder,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	categoryPillActive: {
-		backgroundColor: c.primary,
-	},
-	categoryText: {
-		color: "rgba(255,255,255,0.6)",
-		fontWeight: "600",
-		fontSize: 14,
-	},
-	categoryTextActive: {
-		color: "#FFF",
-	},
+		// ── Categorias ──
+		categoriasList: { paddingHorizontal: 18, paddingVertical: 8, gap: 10 },
+		categoryPill: { height: 40, paddingHorizontal: 18, borderRadius: 20, backgroundColor: c.glassBorder, justifyContent: "center", alignItems: "center" },
+		categoryPillActive: { backgroundColor: c.primary },
+		categoryText: { color: c.textSecondary, fontWeight: "600", fontSize: 14 },
+		categoryTextActive: { color: "#FFF" },
 
-	// ── Section ──
-	sectionHeader: {
-		paddingHorizontal: 18,
-		marginTop: 28,
-		marginBottom: 14,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-end",
-	},
-	sectionTitle: {
-		color: "#FFF",
-		fontSize: 24,
-		fontWeight: "800",
-	},
-	sectionSub: {
-		color: "rgba(255,255,255,0.45)",
-		marginTop: 4,
-		fontSize: 13,
-	},
-	sectionLink: {
-		color: c.primaryLight,
-		fontWeight: "600",
-		fontSize: 14,
-	},
+		// ── Section ──
+		sectionHeader: {
+			paddingHorizontal: 18, marginTop: 28, marginBottom: 14,
+			flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end",
+		},
+		sectionTitle: { color: c.textPrimary, fontSize: 24, fontWeight: "800" },
+		sectionSub: { color: c.textMuted, marginTop: 4, fontSize: 13 },
+		sectionLink: { color: c.primaryLight, fontWeight: "600", fontSize: 14 },
 
-	// ── Hero card ──
-	heroCard: {
-		width: width * 0.78,
-		height: height * 0.35, // Responsivo: 35% da altura da tela
-		marginRight: 16,
-		borderRadius: 30,
-		overflow: "hidden",
-	},
-	heroImage: {
-		width: "100%",
-		height: "100%",
-	},
-	heroGradient: {
-		...StyleSheet.absoluteFillObject,
-	},
-	heroContent: {
-		position: "absolute",
-		left: 20,
-		right: 20,
-		bottom: 20,
-	},
-	heroBadge: {
-		alignSelf: "flex-start",
-		backgroundColor: c.primary,
-		paddingHorizontal: 12,
-		paddingVertical: 6,
-		borderRadius: 20,
-		marginBottom: 12,
-	},
-	heroBadgeText: {
-		color: "#FFF",
-		fontWeight: "700",
-		fontSize: 11,
-	},
-	heroTitle: {
-		color: "#FFF",
-		fontSize: 24,
-		fontWeight: "800",
-	},
-	heroLocation: {
-		color: "rgba(255,255,255,0.7)",
-		marginTop: 8,
-		fontSize: 13,
-	},
+		// ── Hero card ──
+		heroCard: { width: width * 0.78, height: height * 0.35, marginRight: 16, borderRadius: 30, overflow: "hidden" },
+		heroImage: { width: "100%", height: "100%" },
+		heroGradient: { ...StyleSheet.absoluteFillObject },
+		heroContent: { position: "absolute", left: 20, right: 20, bottom: 20 },
+		heroBadge: {
+			alignSelf: "flex-start", backgroundColor: c.primary,
+			paddingHorizontal: 12, paddingVertical: 6,
+			borderRadius: 20, marginBottom: 12,
+		},
+		heroBadgeText: { color: "#FFF", fontWeight: "700", fontSize: 11 },
+		heroTitle: { color: "#FFF", fontSize: 24, fontWeight: "800" },
+		heroLocation: { color: "rgba(255,255,255,0.7)", marginTop: 8, fontSize: 13 },
 
-	// ── Divisor ──
-	divider: {
-		height: 1,
-		backgroundColor: c.glassBorder,
-		marginHorizontal: 18,
-		marginTop: 30,
-	},
+		// ── Divisor ──
+		divider: { height: 1, backgroundColor: c.glassBorder, marginHorizontal: 18, marginTop: 30 },
 
-	// ── Feed card ──
-	feedCard: {
-		backgroundColor: c.surface,
-		marginHorizontal: 18,
-		marginBottom: 20,
-		borderRadius: 28,
-		overflow: "hidden",
-	},
-	feedCardHeader: {
-		padding: 14,
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 12,
-	},
-	feedAvatar: {
-		width: 46,
-		height: 46,
-		borderRadius: 23,
-		backgroundColor: c.card,
-	},
-	feedCardAutor: {
-		color: c.textPrimary,
-		fontWeight: "700",
-		fontSize: 14,
-	},
-	feedLocalRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		gap: 3,
-		marginTop: 3,
-	},
-	feedLocalText: {
-		color: c.textMuted,
-		fontSize: 11,
-	},
-	feedDatePill: {
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 14,
-		overflow: "hidden",
-	},
-	feedDateText: {
-		color: "#fff",
-		fontSize: 11,
-		fontWeight: "700",
-	},
-	feedImgWrapper: {
-		width: "100%",
-		height: 400,
-		backgroundColor: "#000",
-	},
-	feedImage: {
-		width: "100%",
-		height: "100%",
-	},
-	feedImgOverlay: {
-		position: "absolute",
-		left: 0,
-		right: 0,
-		bottom: 0,
-		padding: 16,
-	},
-	feedBadge: {
-		alignSelf: "flex-start",
-		backgroundColor: "rgba(108,92,231,0.85)",
-		paddingHorizontal: 10,
-		paddingVertical: 6,
-		borderRadius: 18,
-		marginBottom: 8,
-	},
-	feedBadgeText: {
-		color: "#FFF",
-		fontWeight: "800",
-		fontSize: 11,
-	},
-	feedTitle: {
-		color: "#fff",
-		fontSize: 24,
-		fontWeight: "800",
-		lineHeight: 30,
-	},
-	feedDesc: {
-		color: "rgba(255,255,255,0.7)",
-		marginTop: 6,
-		fontSize: 13,
-		lineHeight: 19,
-	},
-	feedActions: {
-		paddingHorizontal: 6,
-		paddingVertical: 8,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-	},
-	feedActionsLeft: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	actionBtn: {
-		padding: 8,
-	},
-	notifBtn: {
-		flexDirection: "row",
-		alignItems: "center",
-		backgroundColor: "rgba(255,255,255,0.10)",
-		paddingHorizontal: 14,
-		paddingVertical: 9,
-		borderRadius: 20,
-		gap: 6,
-	},
-	notifBtnActive: {
-		backgroundColor: "rgba(108,92,231,0.18)",
-	},
-	notifBtnText: {
-		color: "#FFF",
-		fontWeight: "600",
-		fontSize: 13,
-	},
-	notifBtnTextActive: {
-		color: c.primary,
-	},
-	feedMetrics: {
-		paddingHorizontal: 16,
-		paddingBottom: 14,
-	},
-	feedLikes: {
-		color: c.textPrimary,
-		fontWeight: "700",
-		fontSize: 13,
-	},
+		// ── Feed card ──
+		feedCard: { backgroundColor: c.surface, marginHorizontal: 18, marginBottom: 20, borderRadius: 28, overflow: "hidden" },
+		feedCardHeader: { padding: 14, flexDirection: "row", alignItems: "center", gap: 12 },
+		feedAvatar: { width: 46, height: 46, borderRadius: 23, backgroundColor: c.card },
+		feedCardAutor: { color: c.textPrimary, fontWeight: "700", fontSize: 14 },
+		feedLocalRow: { flexDirection: "row", alignItems: "center", gap: 3, marginTop: 3 },
+		feedLocalText: { color: c.textMuted, fontSize: 11 },
+		feedDatePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, overflow: "hidden" },
+		feedDateText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+		feedImgWrapper: { width: "100%", height: 400, backgroundColor: "#000" },
+		feedImage: { width: "100%", height: "100%" },
+		feedImgOverlay: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 16 },
+		feedBadge: { alignSelf: "flex-start", backgroundColor: "rgba(108,92,231,0.85)", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, marginBottom: 8 },
+		feedBadgeText: { color: "#FFF", fontWeight: "800", fontSize: 11 },
+		feedTitle: { color: "#fff", fontSize: 24, fontWeight: "800", lineHeight: 30 },
+		feedDesc: { color: "rgba(255,255,255,0.7)", marginTop: 6, fontSize: 13, lineHeight: 19 },
+		feedActions: { paddingHorizontal: 6, paddingVertical: 8, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+		feedActionsLeft: { flexDirection: "row", alignItems: "center" },
+		actionBtn: { padding: 8 },
+		notifBtn: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, gap: 6 },
+		notifBtnText: { fontWeight: "600", fontSize: 13 },
+		feedMetrics: { paddingHorizontal: 16, paddingBottom: 14 },
+		feedLikes: { color: c.textPrimary, fontWeight: "700", fontSize: 13 },
 
-	// ── Empty state ──
-	emptySection: {
-		alignItems: "center",
-		paddingVertical: 40,
-		gap: 12,
-	},
-	emptyText: {
-		color: "rgba(255,255,255,0.3)",
-		fontSize: 14,
-		textAlign: "center",
-		paddingHorizontal: 40,
-	},
+		// ── Empty state ──
+		emptySection: { alignItems: "center", paddingVertical: 40, gap: 12 },
+		emptyText: { color: c.textMuted, fontSize: 14, textAlign: "center", paddingHorizontal: 40 },
 
-	// ── FAB ──
-	fab: {
-		position: "absolute",
-		right: 22,
-		borderRadius: 30,
-		overflow: "hidden",
-		shadowColor: "#6C5CE7",
-		shadowOpacity: 0.5,
-		shadowRadius: 16,
-		shadowOffset: { width: 0, height: 8 },
-		elevation: 12,
-	},
-	fabGradient: {
-		width: 58,
-		height: 58,
-		borderRadius: 30,
-		justifyContent: "center",
-		alignItems: "center",
-	},
+		// ── FAB ──
+		fab: {
+			position: "absolute", right: 22, borderRadius: 30, overflow: "hidden",
+			shadowColor: "#6C5CE7", shadowOpacity: 0.5, shadowRadius: 16,
+			shadowOffset: { width: 0, height: 8 }, elevation: 12,
+		},
+		fabGradient: { width: 58, height: 58, borderRadius: 30, justifyContent: "center", alignItems: "center" },
 
-	// ── Modal Comentários ──
-	modalWrap: { flex: 1, justifyContent: "flex-end" },
-	modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
-	sheet: {
-		backgroundColor: c.surface,
-		borderTopLeftRadius: 22,
-		borderTopRightRadius: 22,
-		maxHeight: "75%",
-		minHeight: 340,
-	},
-	handle: {
-		width: 40,
-		height: 4,
-		borderRadius: 2,
-		backgroundColor: "rgba(255,255,255,0.18)",
-		alignSelf: "center",
-		marginTop: 10,
-		marginBottom: 6,
-	},
-	sheetHeader: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingHorizontal: 18,
-		paddingVertical: 10,
-		borderBottomWidth: StyleSheet.hairlineWidth,
-		borderBottomColor: c.glassStrong,
-	},
-	sheetTitle: { color: c.textPrimary, fontWeight: "800", fontSize: 17 },
-	sheetSub: { color: c.textMuted, fontSize: 12, marginTop: 2 },
-	sheetClose: {
-		width: 34,
-		height: 34,
-		borderRadius: 17,
-		backgroundColor: c.glassStrong,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
-	commentList: { paddingHorizontal: 16, paddingVertical: 12 },
-	commentRow: { flexDirection: "row", marginBottom: 14, gap: 10 },
-	commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.glassStrong },
-	commentBubble: {
-		flex: 1,
-		backgroundColor: c.glass,
-		borderRadius: 14,
-		paddingHorizontal: 12,
-		paddingVertical: 8,
-	},
-	commentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-	commentAuthor: { color: c.textPrimary, fontWeight: "700", fontSize: 13, flex: 1, marginRight: 8 },
-	commentDate: { color: c.textMuted, fontSize: 11 },
-	commentBody: { color: c.textSecondary, fontSize: 13, lineHeight: 18 },
-	emptyComment: { alignItems: "center", paddingVertical: 40, gap: 10 },
-	emptyCommentText: { color: c.textMuted, fontSize: 14 },
-	composer: {
-		flexDirection: "row",
-		alignItems: "flex-end",
-		paddingHorizontal: 14,
-		paddingTop: 10,
-		borderTopWidth: StyleSheet.hairlineWidth,
-		borderTopColor: c.glassStrong,
-		gap: 10,
-	},
-	composerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.glassStrong },
-	composerInput: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "flex-end",
-		backgroundColor: c.glass,
-		borderRadius: 20,
-		paddingLeft: 14,
-		paddingRight: 4,
-		paddingVertical: 6,
-		minHeight: 38,
-	},
-	composerText: { flex: 1, color: c.textPrimary, fontSize: 14, maxHeight: 80, paddingVertical: 0 },
-	sendBtn: {
-		width: 30,
-		height: 30,
-		borderRadius: 15,
-		backgroundColor: c.primary,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	sendBtnOff: { opacity: 0.35 },
-});
+		// ── Modal Comentários ──
+		modalWrap: { flex: 1, justifyContent: "flex-end" },
+		modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.55)" },
+		sheet: {
+			backgroundColor: c.surface,
+			borderTopLeftRadius: 22,
+			borderTopRightRadius: 22,
+			maxHeight: "75%",
+			minHeight: 340,
+		},
+		handle: {
+			width: 40, height: 4, borderRadius: 2,
+			backgroundColor: c.glassBorder,
+			alignSelf: "center",
+			marginTop: 10, marginBottom: 6,
+		},
+		sheetHeader: {
+			flexDirection: "row", alignItems: "center",
+			paddingHorizontal: 18, paddingVertical: 10,
+			borderBottomWidth: StyleSheet.hairlineWidth,
+			borderBottomColor: c.glassStrong,
+		},
+		sheetTitle: { color: c.textPrimary, fontWeight: "800", fontSize: 17 },
+		sheetSub: { color: c.textMuted, fontSize: 12, marginTop: 2 },
+		sheetClose: {
+			width: 34, height: 34, borderRadius: 17,
+			backgroundColor: c.glassStrong,
+			justifyContent: "center", alignItems: "center",
+		},
+		sheetLoading: { flex: 1, justifyContent: "center", alignItems: "center", paddingVertical: 40 },
+		commentList: { paddingHorizontal: 16, paddingVertical: 12 },
+		commentRow: { flexDirection: "row", marginBottom: 14, gap: 10 },
+		commentAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: c.glassStrong },
+		commentBubble: { flex: 1, backgroundColor: c.glass, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8 },
+		commentTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
+		commentAuthor: { color: c.textPrimary, fontWeight: "700", fontSize: 13, flex: 1, marginRight: 8 },
+		commentDate: { color: c.textMuted, fontSize: 11 },
+		commentBody: { color: c.textSecondary, fontSize: 13, lineHeight: 18 },
+		emptyComment: { alignItems: "center", paddingVertical: 40, gap: 10 },
+		emptyCommentText: { color: c.textMuted, fontSize: 14 },
+		composer: {
+			flexDirection: "row", alignItems: "flex-end",
+			paddingHorizontal: 14, paddingTop: 10,
+			borderTopWidth: StyleSheet.hairlineWidth,
+			borderTopColor: c.glassStrong,
+			gap: 10,
+		},
+		composerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: c.glassStrong },
+		composerInput: {
+			flex: 1, flexDirection: "row", alignItems: "flex-end",
+			backgroundColor: c.glass,
+			borderRadius: 20,
+			paddingLeft: 14, paddingRight: 4, paddingVertical: 6,
+			minHeight: 38,
+		},
+		composerText: { flex: 1, color: c.textPrimary, fontSize: 14, maxHeight: 80, paddingVertical: 0 },
+		sendBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: c.primary, justifyContent: "center", alignItems: "center" },
+		sendBtnOff: { opacity: 0.35 },
+	});
 }

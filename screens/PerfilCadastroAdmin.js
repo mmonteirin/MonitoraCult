@@ -61,6 +61,7 @@ export default function PerfilCadastroAdmin({ navigation }) {
   const [loadingCode, setLoadingCode] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
 
   const [step, setStep] = useState("form");
 
@@ -127,6 +128,7 @@ export default function PerfilCadastroAdmin({ navigation }) {
     setLoading(false);
 
     if (result.success) {
+      setGeneratedCode(result.code);
       setStep("verify");
       setCodeError("");
     } else {
@@ -220,7 +222,10 @@ export default function PerfilCadastroAdmin({ navigation }) {
 
     if (!result.success) {
       setCodeError(result.message);
+      return;
     }
+
+    setGeneratedCode(result.code);
   };
 
   const renderInput = (field, label, icon, options = {}) => {
@@ -407,14 +412,15 @@ export default function PerfilCadastroAdmin({ navigation }) {
               </View>
 
               <Text style={styles.modalTitle}>
-                Código enviado!
+                Código de confirmação
               </Text>
 
               <Text style={styles.modalSubtitle}>
-                Verifique sua caixa de entrada em{"\n"}
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>
-                  {form.email}
-                </Text>
+                Use este código para confirmar o cadastro.
+              </Text>
+
+              <Text style={styles.generatedCode}>
+                {generatedCode}
               </Text>
 
               <Text style={styles.modalHint}>
@@ -655,6 +661,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 8,
+  },
+
+  generatedCode: {
+    color: "#fff",
+    fontSize: 30,
+    fontWeight: "bold",
+    letterSpacing: 8,
+    marginTop: 16,
+    textAlign: "center",
   },
 
   codeInputContainer: {

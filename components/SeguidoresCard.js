@@ -74,7 +74,7 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
       onPress={() => onNavigateProfile?.()}
     >
       <LinearGradient
-        colors={[colors.surface, colors.surface + "dd"]}
+        colors={[colors.surface, colors.surfaceLight]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.content}
@@ -136,44 +136,55 @@ const SeguidoresCard = memo(({ creator, onNavigateProfile }) => {
             />
           </View>
         )}
+        {/* BOTÃO AÇÃO */}
+        <TouchableOpacity
+          style={[
+            styles.actionButton,
+            isFollowing && {
+              backgroundColor: "transparent",
+              borderWidth: 1,
+              borderColor: colors.primary,
+            },
+          ]}
+          onPress={handleFollowToggle}
+          disabled={loading}
+          activeOpacity={0.7}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : isOwnProfile ? (
+            <>
+              <MaterialCommunityIcons name="pencil" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Editar</Text>
+            </>
+          ) : isFollowing ? (
+            <>
+              <MaterialCommunityIcons
+                name="check"
+                size={16}
+                color={colors.primary}
+              />
+              <Text style={[styles.actionButtonText, { color: colors.primary }]}>
+                Seguindo
+              </Text>
+            </>
+          ) : (
+            <>
+              <MaterialCommunityIcons name="plus" size={16} color="#fff" />
+              <Text style={styles.actionButtonText}>Seguir</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </LinearGradient>
-
-      {/* BOTÃO AÇÃO */}
-      <TouchableOpacity
-        style={styles.actionButton}
-        onPress={handleFollowToggle}
-        disabled={loading}
-        activeOpacity={0.7}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : isOwnProfile ? (
-          <>
-            <MaterialCommunityIcons name="pencil" size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>Editar Perfil</Text>
-          </>
-        ) : isFollowing ? (
-          <>
-            <MaterialCommunityIcons
-              name="check"
-              size={16}
-              color="#fff"
-            />
-            <Text style={styles.actionButtonText}>Seguindo</Text>
-          </>
-        ) : (
-          <>
-            <MaterialCommunityIcons name="plus" size={16} color="#fff" />
-            <Text style={styles.actionButtonText}>Seguir</Text>
-          </>
-        )}
-      </TouchableOpacity>
     </Pressable>
   );
 });
 
 // ✅ Componente com suporte a múltiplos seguindo/seguidores
 const SeguindoList = memo(({ usuarios, title, onNavigateProfile }) => {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(createThemedScreenStyles);
+
   if (!usuarios || usuarios.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -305,16 +316,17 @@ function createThemedScreenStyles(c) {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
+    gap: 4,
     backgroundColor: c.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 11,
+    borderRadius: 10,
+    marginLeft: 8,
+    alignSelf: "center",
   },
 
   actionButtonText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     color: "#fff",
   },

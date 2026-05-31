@@ -297,7 +297,8 @@ service cloud.firestore {
           "mensagem", "status", "prioridade", "respostaAdmin",
           "assignedAdminId", "assignedAdminName",
           "lastMessage", "lastMessageAt", "lastMessageBy",
-          "unreadAdmin", "unreadUser"
+          "unreadAdmin", "unreadUser",
+          "createdAt", "updatedAt"
         ]);
       allow update: if isAdmin()
         || (
@@ -420,6 +421,7 @@ service cloud.firestore {
         && hasOnly([
           "usuarioId", "userId",
           "referenciaId", "itemId", "itemType",
+          "eventoId",
           "tipo",
           "createdAt"
         ]);

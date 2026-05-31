@@ -1,4 +1,9 @@
-import { getEventos } from "./mapaCulturalService";
+import {
+  getCategoriaMapaCultural,
+  getDescricaoMapaCultural,
+  getEventos,
+  getTituloMapaCultural,
+} from "./mapaCulturalService";
 import { gerarInsightsComOpenAI } from "./openaiService";
 
 /**
@@ -118,10 +123,10 @@ export async function gerarInsightsCulturais(termoFoco, eventosAtuais = [], user
 
       baseEventos = lista.map((item, index) => ({
         id: item.id || `ai-${index}`,
-        titulo: item.name || "Evento Cultural",
-        descricao: item.shortDescription || item.description || "",
+        titulo: getTituloMapaCultural(item),
+        descricao: getDescricaoMapaCultural(item, ""),
         local: item.location?.name || "Local não informado",
-        categoria: "Recomendado para Você",
+        categoria: getCategoriaMapaCultural(item, "Recomendado para Você"),
         gratuito: true,
         score: 50,
         original: item

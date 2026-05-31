@@ -57,16 +57,21 @@ export default function PerfilCadastro({ navigation }) {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  const [generatedCode, setGeneratedCode] = useState("");
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleChange = (field, value) => {
+    const nextValue =
+      field === "email"
+        ? value.trim().toLowerCase()
+        : field === "verificationCode"
+          ? value.replace(/[^0-9]/g, "").slice(0, 6)
+          : value;
+
     setForm((prev) => ({
       ...prev,
-      [field]:
-        field === "email"
-          ? value.trim().toLowerCase()
-          : value,
+      [field]: nextValue,
     }));
   };
 
@@ -136,6 +141,7 @@ export default function PerfilCadastro({ navigation }) {
     setLoading(false);
 
     if (result.success) {
+      setGeneratedCode(result.code);
       setShowCodeModal(true);
       setError("");
     } else {
@@ -444,11 +450,11 @@ export default function PerfilCadastro({ navigation }) {
         </KeyboardAvoidingView>
       </LinearGradient>
 
-      {/* MODAL EMAIL */}
+      {/* MODAL CODIGO */}
       <ConfirmModal
         visible={showCodeModal}
-        title="Código enviado!"
-        message={`Verifique sua caixa de entrada em\n${form.email}`}
+        title="Código de confirmação"
+        message={`Use este código para confirmar o cadastro:\n\n${generatedCode}`}
         type="info"
         confirmText="Entendido"
         onConfirm={() => setShowCodeModal(false)}

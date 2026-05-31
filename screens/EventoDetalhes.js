@@ -1683,7 +1683,7 @@ function createThemedScreenStyles(c) {
 			alignItems:
 				"center",
 			backgroundColor:
-				c.glassStrong,
+				"rgba(255,255,255,0.12)",
 			paddingHorizontal: 14,
 			paddingVertical: 10,
 			borderRadius: 18,
@@ -1694,7 +1694,7 @@ function createThemedScreenStyles(c) {
 			width: 40,
 			height: 40,
 			borderRadius: 12,
-			backgroundColor: c.glassStrong,
+			backgroundColor: "rgba(255,255,255,0.16)",
 			justifyContent: "center",
 			alignItems: "center",
 		},
@@ -1936,7 +1936,7 @@ function createThemedScreenStyles(c) {
 			borderRadius: 18,
 			padding: 14,
 			minHeight: 90,
-			color: "#FFF",
+			color: c.textPrimary,
 			borderWidth: 1,
 			borderColor:
 				c.glass,
@@ -2008,7 +2008,7 @@ function createThemedScreenStyles(c) {
 		},
 
 		avalNome: {
-			color: "#FFF",
+			color: c.textPrimary,
 			fontWeight: "800",
 			fontSize: 14,
 		},

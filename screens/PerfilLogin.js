@@ -10,9 +10,8 @@ import {
   StatusBar,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from "react-native";
-
-import { FontAwesome6 } from "@expo/vector-icons";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -28,19 +27,18 @@ import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
 
 import ConfirmModal from "../components/ConfirmModal";
-import { useAuth } from "../context/AuthContext"; // Integrado com seu gerenciador de sessão
+import { useAuth } from "../context/AuthContext";
 
 export default function PerfilLogin({ navigation }) {
   const styles = useThemedStyles(createThemedScreenStyles);
   const { colors } = useTheme();
-  const { googleLogin, facebookLogin, microsoftLogin, twitterLogin } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [modalData, setModalData] = useState({
     title: "",
@@ -71,31 +69,21 @@ export default function PerfilLogin({ navigation }) {
     try {
       setLoading(true);
 
-      // 1. Autenticação no Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
 
-      // 2. Busca o perfil e a Role (User/Admin) no Firestore para validação de rota
       const userDocRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
-        
-        // Exemplo de roteamento inteligente baseado nas suas regras de negócio
         if (userData.role === "admin") {
-          // Se for administrador/organizador, você pode mandar para um fluxo ou home customizada
           console.log("Organizador logado com sucesso.");
         }
       }
-
-      // O Firebase escuta o estado no App.js/AuthContext e muda a rota automaticamente,
-      // mas caso precise forçar a navegação manual:
-      // navigation.replace("MainTabs");
-
     } catch (error) {
       console.log("Erro ao efetuar login:", error.code, error.message);
-      
+
       switch (error.code) {
         case "auth/invalid-credential":
         case "auth/user-not-found":
@@ -152,13 +140,11 @@ export default function PerfilLogin({ navigation }) {
               transition={{ type: "timing", duration: 700 }}
               style={styles.logoContainer}
             >
-              <LinearGradient
-                colors={[colors.primaryLight, colors.primary]}
-                style={styles.logoCircle}
-              >
-                <Feather name="zap" size={30} color="#FFF" />
-              </LinearGradient>
-
+              <Image
+                source={require("../assets/logo/Logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
               <AppText style={styles.appName}>MonitoraCult</AppText>
               <AppText style={styles.subtitle}>Entre na sua conta</AppText>
             </MotiView>
@@ -170,16 +156,11 @@ export default function PerfilLogin({ navigation }) {
               transition={{ type: "timing", duration: 850 }}
             >
               <BlurView intensity={65} tint="dark" style={styles.card}>
-                
+
                 {/* EMAIL */}
                 <AppText style={styles.label}>Email</AppText>
                 <View style={[styles.inputContainer, focusedInput === "email" && styles.inputFocused]}>
-                  <Feather
-                    name="mail"
-                    size={18}
-                    color={colors.textMuted}
-                    style={styles.icon}
-                  />
+                  <Feather name="mail" size={18} color={colors.textMuted} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     value={email}
@@ -197,12 +178,7 @@ export default function PerfilLogin({ navigation }) {
                 {/* SENHA */}
                 <AppText style={styles.label}>Senha</AppText>
                 <View style={[styles.inputContainer, focusedInput === "password" && styles.inputFocused]}>
-                  <Feather
-                    name="lock"
-                    size={18}
-                    color={colors.textMuted}
-                    style={styles.icon}
-                  />
+                  <Feather name="lock" size={18} color={colors.textMuted} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     value={password}
@@ -251,53 +227,11 @@ export default function PerfilLogin({ navigation }) {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* REDIRECIONAMENTO DE CADASTROS */}
+                {/* REDIRECIONAMENTO DE CADASTRO */}
                 <View style={styles.row}>
                   <AppText style={styles.rowText}>Não possui conta?</AppText>
                   <TouchableOpacity onPress={() => navigation.navigate("Cadastro")}>
                     <AppText style={styles.linkBold}>Criar conta</AppText>
-                  </TouchableOpacity>
-                </View>
-
-                {/* DIVIDER TRADICIONAL */}
-                <View style={styles.dividerContainer}>
-                  <View style={styles.line} />
-                  <AppText style={styles.divider}>ou continue com</AppText>
-                  <View style={styles.line} />
-                </View>
-
-                {/* LOGIN SOCIAL */}
-                <View style={styles.socialContainer}>
-                  <TouchableOpacity
-                    style={styles.socialButton}
-                    activeOpacity={0.8}
-                    onPress={googleLogin}
-                  >
-                    <FontAwesome6 name="google" size={20} color="#FFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.socialButton}
-                    activeOpacity={0.8}
-                    onPress={facebookLogin}
-                  >
-                    <FontAwesome6 name="facebook" size={20} color="#FFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.socialButton}
-                    activeOpacity={0.8}
-                    onPress={microsoftLogin}
-                  >
-                    <FontAwesome6 name="microsoft" size={20} color="#FFF" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.socialButton}
-                    activeOpacity={0.8}
-                    onPress={twitterLogin}
-                  >
-                    <FontAwesome6 name="x-twitter" size={20} color="#FFF" />
                   </TouchableOpacity>
                 </View>
 
@@ -323,7 +257,6 @@ export default function PerfilLogin({ navigation }) {
         </KeyboardAvoidingView>
       </LinearGradient>
 
-      {/* MODAL DE ALERTAS INTEGRADO */}
       <ConfirmModal
         visible={modalVisible}
         title={modalData.title}
@@ -338,34 +271,29 @@ export default function PerfilLogin({ navigation }) {
 
 function createThemedScreenStyles(c) {
   return StyleSheet.create({
-  background: { flex: 1 },
-  overlay: { flex: 1 },
-  container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 },
-  logoContainer: { alignItems: "center", marginBottom: 18 },
-  logoCircle: { width: 72, height: 72, borderRadius: 40, justifyContent: "center", alignItems: "center" },
-  appName: { fontSize: 24, fontWeight: "bold", color: "#FFF", marginTop: 12 },
-  subtitle: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 13 },
-  card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: c.glassStrong },
-  label: { color: "rgba(255,255,255,0.75)", marginBottom: 6, marginLeft: 4, fontSize: 13 },
-  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: c.glass, borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: c.glassStrong },
-  inputFocused: { borderColor: c.primary },
-  icon: { marginRight: 8 },
-  input: { flex: 1, color: "#FFF", paddingVertical: 14, fontSize: 14 },
-  forgot: { alignSelf: "flex-end" },
-  link: { color: c.primary, fontWeight: "600", fontSize: 13 },
-  buttonWrapper: { marginTop: 18, borderRadius: 16, overflow: "hidden" },
-  button: { paddingVertical: 15, alignItems: "center" },
-  buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 15 },
-  row: { flexDirection: "row", justifyContent: "center", marginTop: 16, gap: 5, flexWrap: "wrap" },
-  rowText: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
-  linkBold: { color: c.primary, fontWeight: "bold", fontSize: 13 },
-  dividerContainer: { flexDirection: "row", alignItems: "center", marginVertical: 18 },
-  line: { flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.10)" },
-  divider: { marginHorizontal: 10, color: "rgba(255,255,255,0.45)", fontSize: 11 },
-  socialContainer: { flexDirection: "row", justifyContent: "center", gap: 14, marginBottom: 18 },
-  socialButton: { width: 50, height: 50, borderRadius: 16, justifyContent: "center", alignItems: "center", backgroundColor: c.glassBorder },
-  organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: c.glass },
-  organizadorText: { color: c.warning, fontWeight: "bold", fontSize: 13 },
-  footer: { marginTop: 18, textAlign: "center", fontSize: 11, lineHeight: 18, color: "rgba(255,255,255,0.45)" },
-});
+    background: { flex: 1 },
+    overlay: { flex: 1 },
+    container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 },
+    logoContainer: { alignItems: "center", marginBottom: 18 },
+    logoImage: { width: 110, height: 110, marginBottom: 8 },
+    appName: { fontSize: 24, fontWeight: "bold", color: "#FFF", marginTop: 12 },
+    subtitle: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 13 },
+    card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: c.glassStrong },
+    label: { color: "rgba(255,255,255,0.75)", marginBottom: 6, marginLeft: 4, fontSize: 13 },
+    inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: c.glass, borderRadius: 16, paddingHorizontal: 12, marginBottom: 14, borderWidth: 1, borderColor: c.glassStrong },
+    inputFocused: { borderColor: c.primary },
+    icon: { marginRight: 8 },
+    input: { flex: 1, color: "#FFF", paddingVertical: 14, fontSize: 14 },
+    forgot: { alignSelf: "flex-end" },
+    link: { color: c.primary, fontWeight: "600", fontSize: 13 },
+    buttonWrapper: { marginTop: 18, borderRadius: 16, overflow: "hidden" },
+    button: { paddingVertical: 15, alignItems: "center" },
+    buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 15 },
+    row: { flexDirection: "row", justifyContent: "center", marginTop: 16, gap: 5, flexWrap: "wrap" },
+    rowText: { color: "rgba(255,255,255,0.65)", fontSize: 13 },
+    linkBold: { color: c.primary, fontWeight: "bold", fontSize: 13 },
+    organizadorButton: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, paddingVertical: 13, borderRadius: 16, marginTop: 18, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: c.glass },
+    organizadorText: { color: c.warning, fontWeight: "bold", fontSize: 13 },
+    footer: { marginTop: 18, textAlign: "center", fontSize: 11, lineHeight: 18, color: "rgba(255,255,255,0.45)" },
+  });
 }

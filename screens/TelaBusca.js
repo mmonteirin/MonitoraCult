@@ -34,7 +34,12 @@ import { BlurView } from "expo-blur";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getEventos } from "../services/mapaCulturalService";
+import {
+  getCategoriaMapaCultural,
+  getDescricaoMapaCultural,
+  getEventos,
+  getTituloMapaCultural,
+} from "../services/mapaCulturalService";
 import { useBuscaGlobal } from "../hooks/useBuscaGlobal";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
@@ -323,90 +328,14 @@ export default function TelaBusca({ route, navigation }) {
           );
         }
 
-        const linguagens = item?.terms?.linguagem || [];
-        let cat = linguagens.length > 0 ? linguagens[0] : "Cultura";
-
-        if (item?.shortDescription) {
-          const desc = item.shortDescription.toLowerCase();
-          if (desc.includes("jazz")) cat = "Jazz";
-          else if (desc.includes("rock")) cat = "Rock";
-          else if (desc.includes("samba")) cat = "Samba";
-          else if (desc.includes("forró")) cat = "Forró";
-          else if (
-            desc.includes("mpb") ||
-            desc.includes("música popular brasileira")
-          )
-            cat = "MPB";
-          else if (
-            desc.includes("clássica") ||
-            desc.includes("orquestra") ||
-            desc.includes("sinfônica")
-          )
-            cat = "Clássica";
-          else if (
-            desc.includes("eletrônica") ||
-            desc.includes("eletronic") ||
-            desc.includes("dj")
-          )
-            cat = "Eletrônica";
-          else if (desc.includes("concerto")) cat = "Concerto";
-          else if (desc.includes("show") || desc.includes("música"))
-            cat = "Shows";
-          else if (
-            desc.includes("teatro") ||
-            desc.includes("peça") ||
-            desc.includes("drama")
-          )
-            cat = "Teatro";
-          else if (
-            desc.includes("exposição") ||
-            desc.includes("arte") ||
-            desc.includes("galeria")
-          )
-            cat = "Arte";
-          else if (
-            desc.includes("cinema") ||
-            desc.includes("filme") ||
-            desc.includes("sala")
-          )
-            cat = "Cinema";
-          else if (
-            desc.includes("dança") ||
-            desc.includes("ballet") ||
-            desc.includes("coreografia")
-          )
-            cat = "Dança";
-          else if (
-            desc.includes("literatura") ||
-            desc.includes("livro") ||
-            desc.includes("leitura")
-          )
-            cat = "Literatura";
-          else if (
-            desc.includes("gastronomia") ||
-            desc.includes("comida") ||
-            desc.includes("culinária")
-          )
-            cat = "Gastronomia";
-          else if (
-            desc.includes("esporte") ||
-            desc.includes("competição") ||
-            desc.includes("atletismo")
-          )
-            cat = "Esporte";
-          else if (desc.includes("festival") || desc.includes("feira"))
-            cat = "Festival";
-        }
+        const cat = getCategoriaMapaCultural(item);
 
         const imagemFinal = getImagemPorCategoria(cat);
 
         return {
           id: item.id || `mapa-${index}`,
-          titulo: item.name || "Evento Público",
-          descricao:
-            item?.shortDescription ||
-            item?.description ||
-            "Evento cultural público.",
+          titulo: getTituloMapaCultural(item, "Evento público"),
+          descricao: getDescricaoMapaCultural(item, "Evento cultural público."),
           imagem: imagemFinal,
           local: item?.location?.name || "Local não informado",
           categoria: cat,

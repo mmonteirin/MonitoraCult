@@ -40,7 +40,7 @@ import { useThemedStyles } from "../hooks/useThemedStyles";
 export default function PerfilHistorico({
 	navigation,
 }) {
-	const { colors, isDark } = useTheme();
+	const { colors, gradients, isDark } = useTheme();
 	const styles = useThemedStyles(createThemedScreenStyles);
 	const blurTint = isDark ? "dark" : "light";
 	const insets =
@@ -343,7 +343,7 @@ export default function PerfilHistorico({
 				{/* Glow */}
 				<LinearGradient
 					colors={[
-						"rgba(124,58,237,0.22)",
+						isDark ? "rgba(108,92,231,0.15)" : "rgba(108,92,231,0.06)",
 						"transparent",
 					]}
 					style={
@@ -374,7 +374,7 @@ export default function PerfilHistorico({
 										: "alert-circle"
 								}
 								size={14}
-								color="#FFF"
+								color={colors.primary}
 							/>
 
 							<AppText
@@ -463,7 +463,9 @@ export default function PerfilHistorico({
 													n <=
 													item.nota
 														? "#FACC15"
-														: "rgba(255,255,255,0.15)",
+														: isDark
+														? "rgba(255,255,255,0.15)"
+														: "rgba(0,0,0,0.12)",
 											},
 										]}
 									>
@@ -575,15 +577,12 @@ export default function PerfilHistorico({
 	return (
 		<View style={styles.container}>
 			<StatusBar
-				barStyle="light-content"
+				barStyle={isDark ? "light-content" : "dark-content"}
 			/>
 
 			{/* HEADER */}
 			<LinearGradient
-				colors={[
-					"#111827",
-					"#070B14",
-				]}
+				colors={gradients.header}
 				style={[
 					styles.header,
 					{
@@ -609,7 +608,7 @@ export default function PerfilHistorico({
 						<MaterialCommunityIcons
 							name="arrow-left"
 							size={24}
-							color="#FFF"
+							color={colors.textPrimary}
 						/>
 					</TouchableOpacity>
 
@@ -662,12 +661,8 @@ export default function PerfilHistorico({
 						>
 							<LinearGradient
 								colors={
-									tab ===
-									t
-										? [
-												"#7C3AED",
-												"#5B21B6",
-										  ]
+									tab === t
+										? gradients.primaryButton
 										: [
 												"transparent",
 												"transparent",
@@ -688,7 +683,7 @@ export default function PerfilHistorico({
 									color={
 										tab ===
 										t
-											? "#FFF"
+											? colors.onPrimary
 											: colors.textMuted
 									}
 								/>
@@ -799,8 +794,7 @@ function createThemedScreenStyles(c) {
 	return StyleSheet.create({
 		container: {
 			flex: 1,
-			backgroundColor:
-				"#070B14",
+			backgroundColor: c.background,
 		},
 
 		header: {
@@ -817,49 +811,34 @@ function createThemedScreenStyles(c) {
 		backBtn: {
 			width: 46,
 			height: 46,
-
 			borderRadius: 16,
-
-			backgroundColor:
-				"rgba(255,255,255,0.08)",
-
+			backgroundColor: c.glass,
+			borderWidth: 1,
+			borderColor: c.glassBorder,
 			justifyContent: "center",
 			alignItems: "center",
-
 			marginRight: 14,
 		},
 
 		title: {
-			color: "#FFF",
-
+			color: c.textPrimary,
 			fontSize: 26,
-
 			fontWeight: "800",
 		},
 
 		subtitle: {
-			color:
-				"rgba(255,255,255,0.6)",
-
+			color: c.textSecondary,
 			fontSize: 13,
-
 			marginTop: 4,
 		},
 
 		tabsWrapper: {
 			flexDirection: "row",
-
-			backgroundColor:
-				"rgba(255,255,255,0.06)",
-
+			backgroundColor: c.glass,
 			padding: 6,
-
 			borderRadius: 22,
-
 			borderWidth: 1,
-
-			borderColor:
-				"rgba(255,255,255,0.06)",
+			borderColor: c.glassBorder,
 		},
 
 		tab: {
@@ -873,21 +852,15 @@ function createThemedScreenStyles(c) {
 		tabGradient: {
 			flexDirection: "row",
 			alignItems: "center",
-			justifyContent:
-				"center",
-
+			justifyContent: "center",
 			paddingVertical: 14,
-
 			borderRadius: 18,
-
 			gap: 8,
 		},
 
 		tabText: {
 			color: c.textMuted,
-
 			fontSize: 12,
-
 			fontWeight: "700",
 		},
 
@@ -906,27 +879,18 @@ function createThemedScreenStyles(c) {
 
 		card: {
 			borderRadius: 28,
-
 			padding: 18,
-
 			overflow: "hidden",
-
-			backgroundColor:
-				"rgba(255,255,255,0.04)",
-
+			backgroundColor: c.card,
 			borderWidth: 1,
-
-			borderColor:
-				"rgba(255,255,255,0.06)",
+			borderColor: c.border,
 		},
 
 		cardGlow: {
 			position: "absolute",
-
 			top: 0,
 			left: 0,
 			right: 0,
-
 			height: 120,
 		},
 
@@ -938,50 +902,34 @@ function createThemedScreenStyles(c) {
 
 		eventBadge: {
 			alignSelf: "flex-start",
-
 			flexDirection: "row",
 			alignItems: "center",
-
-			backgroundColor:
-				"rgba(124,58,237,0.25)",
-
+			backgroundColor: c.primarySoft,
 			paddingHorizontal: 10,
 			paddingVertical: 6,
-
 			borderRadius: 20,
-
 			marginBottom: 10,
 		},
 
 		eventBadgeText: {
-			color: "#FFF",
-
+			color: c.primary,
 			fontSize: 11,
-
 			fontWeight: "700",
-
 			marginLeft: 6,
 		},
 
 		localText: {
-			color: "#FFF",
-
+			color: c.textPrimary,
 			fontSize: 16,
-
 			fontWeight: "800",
-
 			lineHeight: 22,
 		},
 
 		deleteBtn: {
 			width: 40,
 			height: 40,
-
 			borderRadius: 14,
-
-			backgroundColor:
-				"rgba(239,68,68,0.08)",
-
+			backgroundColor: "rgba(239,68,68,0.08)",
 			justifyContent: "center",
 			alignItems: "center",
 		},
@@ -989,7 +937,6 @@ function createThemedScreenStyles(c) {
 		starsRow: {
 			flexDirection: "row",
 			alignItems: "center",
-
 			marginBottom: 12,
 		},
 
@@ -998,72 +945,46 @@ function createThemedScreenStyles(c) {
 		},
 
 		notaText: {
-			color:
-				"rgba(255,255,255,0.7)",
-
+			color: c.textSecondary,
 			marginLeft: 10,
-
 			fontSize: 13,
-
 			fontWeight: "700",
 		},
 
 		tipoBadge: {
-			backgroundColor:
-				"rgba(255,255,255,0.08)",
-
+			backgroundColor: c.backgroundSecondary,
 			paddingHorizontal: 12,
 			paddingVertical: 6,
-
 			borderRadius: 18,
-
 			alignSelf: "flex-start",
-
 			marginBottom: 12,
 		},
 
 		tipoText: {
-			color: "#FFF",
-
+			color: c.textSecondary,
 			fontSize: 11,
-
 			fontWeight: "700",
-
-			textTransform:
-				"uppercase",
+			textTransform: "uppercase",
 		},
 
 		cardText: {
-			color:
-				"rgba(255,255,255,0.72)",
-
+			color: c.textSecondary,
 			fontSize: 14,
-
 			lineHeight: 24,
 		},
 
 		footerRow: {
 			marginTop: 18,
-
 			paddingTop: 14,
-
 			borderTopWidth: 1,
-
-			borderTopColor:
-				"rgba(255,255,255,0.06)",
-
+			borderTopColor: c.divider,
 			flexDirection: "row",
-
-			justifyContent:
-				"space-between",
-
+			justifyContent: "space-between",
 			alignItems: "center",
 		},
 
 		dataText: {
-			color:
-				"rgba(255,255,255,0.45)",
-
+			color: c.textMuted,
 			fontSize: 12,
 		},
 
@@ -1074,64 +995,43 @@ function createThemedScreenStyles(c) {
 
 		openText: {
 			color: c.primary,
-
 			fontSize: 13,
-
 			fontWeight: "700",
 		},
 
 		loadingBox: {
 			flex: 1,
-
-			justifyContent:
-				"center",
-
+			justifyContent: "center",
 			alignItems: "center",
 		},
 
 		emptyBox: {
 			alignItems: "center",
-
 			marginTop: 90,
-
 			paddingHorizontal: 30,
 		},
 
 		emptyIcon: {
 			width: 90,
 			height: 90,
-
 			borderRadius: 45,
-
-			backgroundColor:
-				"rgba(124,58,237,0.12)",
-
-			justifyContent:
-				"center",
-
+			backgroundColor: c.primarySoft,
+			justifyContent: "center",
 			alignItems: "center",
-
 			marginBottom: 20,
 		},
 
 		emptyTitle: {
-			color: "#FFF",
-
+			color: c.textPrimary,
 			fontSize: 18,
-
 			fontWeight: "800",
-
 			marginBottom: 10,
 		},
 
 		emptyText: {
-			color:
-				"rgba(255,255,255,0.6)",
-
+			color: c.textSecondary,
 			fontSize: 14,
-
 			textAlign: "center",
-
 			lineHeight: 22,
 		},
 	});

@@ -88,6 +88,16 @@ export async function obterPushToken() {
   try {
     const Device = require("expo-device");
     if (!Device.isDevice) return null;
+
+    // A partir do SDK 53 do Expo, notificações push remotas não funcionam no Expo Go.
+    // Verificamos se estamos executando no Expo Go ("storeClient") para evitar avisos ou erros.
+    const Constants = require("expo-constants").default;
+    const isExpoGo = Constants?.executionEnvironment === "storeClient";
+    if (isExpoGo) {
+      console.log("[Notificações] obterPushToken: Notificações push remotas não são suportadas no Expo Go. Use uma build de desenvolvimento (development build) se precisar testá-las.");
+      return null;
+    }
+
     const { status: existente } = await Notifications.getPermissionsAsync();
     let status = existente;
     if (existente !== "granted") {
