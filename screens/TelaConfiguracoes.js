@@ -33,6 +33,7 @@ export default function TelaConfiguracoes({ navigation }) {
   const [activityStatus, setActivityStatus] = useState(true);
   const [loadingLogout, setLoadingLogout] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const nomeUsuario =
     nome || user?.displayName || user?.email?.split("@")[0] || "Usuário";
@@ -272,8 +273,8 @@ export default function TelaConfiguracoes({ navigation }) {
             <Row
               icon="information-outline"
               title="Sobre o aplicativo"
-              subtitle="MonitoraCult v0.6"
-              chevron={false}
+              subtitle="MonitoraCult v1.0.1"
+              onPress={() => setShowAboutModal(true)}
             />
           </Section>
 
@@ -345,6 +346,43 @@ export default function TelaConfiguracoes({ navigation }) {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+          </BlurView>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showAboutModal}
+        transparent
+        animationType="slide"
+        statusBarTranslucent
+        onRequestClose={() => setShowAboutModal(false)}
+      >
+        <View style={styles.aboutModalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setShowAboutModal(false)}
+          />
+          <BlurView intensity={60} tint={blurTint} style={styles.aboutModalCard}>
+            <View style={styles.aboutModalHeader}>
+              <AppText style={styles.aboutModalTitle}>MonitoraCult v1.0.1</AppText>
+              <TouchableOpacity onPress={() => setShowAboutModal(false)}>
+                <MaterialCommunityIcons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.aboutModalContent} showsVerticalScrollIndicator={false}>
+              <AppText style={styles.aboutModalText}>
+                O setor cultural brasileiro enfrenta um desafio estrutural: a ausência de uma plataforma centralizada que conecte de forma eficiente os produtores culturais, os espaços de cultura e o público consumidor. Na cidade de Fortaleza e em todo o estado do Ceará, manifestações artísticas, exposições, espetáculos teatrais, shows e eventos independentes ocorrem diariamente, mas carecem de visibilidade e de ferramentas modernas de gestão e divulgação.
+              </AppText>
+
+              <AppText style={styles.aboutModalText}>
+                O MonitoraCult surge como resposta a essa lacuna, oferecendo uma plataforma mobile completa voltada para a descoberta, divulgação e gestão de experiências culturais. O aplicativo integra dados da API pública do Mapa Cultural do Ceará (mapacultural.secult.ce.gov.br), mantida pela Secretaria da Cultura do Estado (SECULT), com funcionalidades sociais e de engajamento, permitindo ao usuário não apenas encontrar eventos, mas vivenciá-los em comunidade.
+              </AppText>
+
+              <AppText style={styles.aboutModalText}>
+                O público-alvo inclui produtores e criadores culturais independentes, gestores de espaços culturais e o público geral interessado em arte e cultura. A oportunidade de negócio reside na digitalização de toda a jornada cultural — da descoberta ao check-in, da avaliação ao relacionamento com a comunidade —, agregando valor tanto ao consumidor quanto ao produtor cultural.
+              </AppText>
+            </ScrollView>
           </BlurView>
         </View>
       </Modal>
@@ -532,5 +570,43 @@ function createConfiguracoesStyles(c) {
       gap: 8,
     },
     confirmText: { color: c.onPrimary, fontWeight: "800" },
+    aboutModalOverlay: {
+      flex: 1,
+      backgroundColor: c.overlayStronger,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingHorizontal: 20,
+    },
+    aboutModalCard: {
+      width: "100%",
+      maxHeight: "80%",
+      borderRadius: 28,
+      overflow: "hidden",
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.glassBorder,
+    },
+    aboutModalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: c.divider,
+    },
+    aboutModalTitle: {
+      color: c.textPrimary,
+      fontSize: 20,
+      fontWeight: "800",
+    },
+    aboutModalContent: {
+      padding: 20,
+    },
+    aboutModalText: {
+      color: c.textSecondary,
+      fontSize: 14,
+      lineHeight: 22,
+      marginBottom: 16,
+    },
   });
 }

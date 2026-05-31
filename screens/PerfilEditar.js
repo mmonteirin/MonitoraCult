@@ -2,17 +2,67 @@ import React, { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Image,
-	ScrollView,
 	StyleSheet,
 	TextInput,
 	TouchableOpacity,
 	View,
 	Modal,
 	Pressable,
-	KeyboardAvoidingView,
 	Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
+function formatarCPF(value) {
+	const apenasDigitos = value.replace(/\D/g, "");
+	const cpfLimitado = apenasDigitos.substring(0, 11);
+	return cpfLimitado
+		.replace(/(\d{3})(\d)/, "$1.$2")
+		.replace(/(\d{3})(\d)/, "$1.$2")
+		.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+
+function formatarTelefone(value) {
+	const apenasDigitos = value.replace(/\D/g, "");
+	const telLimitado = apenasDigitos.substring(0, 11);
+	if (telLimitado.length <= 10) {
+		return telLimitado
+			.replace(/(\d{2})(\d)/, "($1) $2")
+			.replace(/(\d{4})(\d)/, "$1-$2");
+	} else {
+		return telLimitado
+			.replace(/(\d{2})(\d)/, "($1) $2")
+			.replace(/(\d{5})(\d)/, "$1-$2");
+	}
+}
+
+function validarCPF(cpfStr) {
+	const cpfLimpo = cpfStr.replace(/\D/g, "");
+	if (cpfLimpo.length !== 11) return false;
+	if (/^(\d)\1{10}$/.test(cpfLimpo)) return false;
+	let soma = 0;
+	for (let i = 0; i < 9; i++) soma += parseInt(cpfLimpo.charAt(i)) * (10 - i);
+	let resto = 11 - (soma % 11);
+	let d1 = resto === 10 || resto === 11 ? 0 : resto;
+	if (d1 !== parseInt(cpfLimpo.charAt(9))) return false;
+	soma = 0;
+	for (let i = 0; i < 10; i++) soma += parseInt(cpfLimpo.charAt(i)) * (11 - i);
+	resto = 11 - (soma % 11);
+	let d2 = resto === 10 || resto === 11 ? 0 : resto;
+	if (d2 !== parseInt(cpfLimpo.charAt(10))) return false;
+	return true;
+}
+
+function validarTelefone(telStr) {
+	const telLimpo = telStr.replace(/\D/g, "");
+	return telLimpo.length === 10 || telLimpo.length === 11;
+}
+
+function validarUsername(usernameStr) {
+	const regex = /^[a-z0-9_.]+$/;
+	return regex.test(usernameStr);
+}
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
@@ -26,7 +76,15 @@ import { auth, db } from "../firebaseConfig";
 import { uploadImagem } from "../services/uploadService";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
-import { Status } from "../styles/Colors";
+
+function FormSection({ title, children, styles }) {
+	return (
+		<View style={styles.section}>
+			<AppText style={styles.sectionTitle}>{title}</AppText>
+			<View style={styles.sectionCard}>{children}</View>
+		</View>
+	);
+}
 
 export default function PerfilEditar({ navigation }) {
 	const insets = useSafeAreaInsets();
@@ -34,13 +92,6 @@ export default function PerfilEditar({ navigation }) {
 	const { colors, isDark } = useTheme();
 	const styles = useThemedStyles(createPerfilEditarStyles);
 	const blurTint = isDark ? "dark" : "light";
-
-	const Section = ({ title, children }) => (
-		<View style={styles.section}>
-			<AppText style={styles.sectionTitle}>{title}</AppText>
-			<View style={styles.sectionCard}>{children}</View>
-		</View>
-	);
 
 	const [loading, setLoading] = useState(false);
 	const [nome, setNome] = useState(nomeContext || "");
@@ -71,11 +122,10 @@ export default function PerfilEditar({ navigation }) {
 			try {
 				const ref = doc(db, "users", user.uid);
 				const snap = await getDoc(ref);
-
 				if (snap.exists()) {
 					const data = snap.data();
-					setTelefone(data.telefone || "");
-					setCpf(data.cpf || "");
+					setTelefone(data.telefone ? formatarTelefone(data.telefone) : "");
+					setCpf(data.cpf ? formatarCPF(data.cpf) : "");
 					setUsername(data.username || "");
 					setBio(data.bio || "");
 					setCidade(data.cidade || "");
@@ -90,13 +140,11 @@ export default function PerfilEditar({ navigation }) {
 				console.log(error);
 			}
 		}
-
 		if (user) carregar();
 	}, [user]);
 
 	async function escolherFoto() {
 		const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
 		if (!permissao.granted) {
 			setModalConfig({
 				title: "Permissão necessária",
@@ -109,17 +157,13 @@ export default function PerfilEditar({ navigation }) {
 			setShowModal(true);
 			return;
 		}
-
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
 			quality: 0.5,
 			allowsEditing: true,
 			aspect: [1, 1],
 		});
-
-		if (!result.canceled) {
-			setFoto(result.assets[0].uri);
-		}
+		if (!result.canceled) setFoto(result.assets[0].uri);
 	}
 
 	async function salvar() {
@@ -135,53 +179,69 @@ export default function PerfilEditar({ navigation }) {
 			setShowModal(true);
 			return;
 		}
-
+		if (username.trim() && !validarUsername(username)) {
+			setModalConfig({
+				title: "Username inválido",
+				message: "O username deve conter apenas letras minúsculas, números, sublinhado (_) ou ponto (.).",
+				icon: "at",
+				iconColor: colors.error,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
+			return;
+		}
+		if (cpf.trim() && !validarCPF(cpf)) {
+			setModalConfig({
+				title: "CPF inválido",
+				message: "O CPF informado é inválido. Por favor, digite um CPF correto.",
+				icon: "card-account-details-outline",
+				iconColor: colors.error,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
+			return;
+		}
+		if (telefone.trim() && !validarTelefone(telefone)) {
+			setModalConfig({
+				title: "Telefone inválido",
+				message: "Por favor, insira um telefone válido com DDD (ex: (11) 99999-9999).",
+				icon: "phone-outline",
+				iconColor: colors.error,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
+			return;
+		}
 		try {
 			setLoading(true);
-
 			let fotoFinal = foto;
-
 			if (foto && !foto.startsWith("https")) {
 				fotoFinal = await uploadImagem(foto, user.uid);
 			}
-
 			await updateProfile(auth.currentUser, {
 				displayName: nome,
 				photoURL: fotoFinal,
 			});
-
 			await setDoc(
 				doc(db, "users", user.uid),
 				{
-					nome,
-					username,
-					bio,
-					cidade,
-					telefone,
-					cpf,
-					instagram,
-					facebook,
-					x,
-					spotify,
-					tiktok,
-					website,
-					foto: fotoFinal,
-					email: user.email,
+					nome, username, bio, cidade, telefone, cpf,
+					instagram, facebook, x, spotify, tiktok, website,
+					foto: fotoFinal, email: user.email,
 					updatedAt: serverTimestamp(),
 				},
 				{ merge: true }
 			);
-
 			await refreshProfile();
 			setModalConfig({
 				title: "Sucesso!",
 				message: "Seu perfil foi atualizado com sucesso.",
 				icon: "check-circle",
 				iconColor: colors.success,
-				onConfirm: () => {
-					setShowModal(false);
-					navigation.goBack();
-				},
+				onConfirm: () => { setShowModal(false); navigation.goBack(); },
 				showCancel: false,
 			});
 			setShowModal(true);
@@ -202,13 +262,9 @@ export default function PerfilEditar({ navigation }) {
 	}
 
 	const renderInput = ({
-		icon,
-		label,
-		value,
-		onChangeText,
-		multiline,
-		keyboardType,
-		autoCapitalize = "sentences",
+		icon, label, value, onChangeText,
+		multiline, keyboardType,
+		autoCapitalize = "sentences", maxLength,
 	}) => (
 		<View style={[styles.inputRow, multiline && styles.inputRowMultiline]}>
 			<View style={styles.inputIcon}>
@@ -225,6 +281,10 @@ export default function PerfilEditar({ navigation }) {
 					multiline={multiline}
 					keyboardType={keyboardType}
 					autoCapitalize={autoCapitalize}
+					maxLength={maxLength}
+					// Garante que o teclado não feche ao digitar
+					blurOnSubmit={!multiline}
+					returnKeyType={multiline ? "default" : "next"}
 				/>
 			</View>
 		</View>
@@ -232,17 +292,16 @@ export default function PerfilEditar({ navigation }) {
 
 	return (
 		<View style={styles.container}>
+			{/* Header fixo */}
 			<LinearGradient
-				colors={[colors.backgroundSecondary, colors.surface, colors.background]}
-				style={[styles.header, { paddingTop: insets.top + 12 }]}
+				colors={[colors.backgroundSecondary, colors.surface]}
+				style={[styles.headerCompact, { paddingTop: insets.top + 12 }]}
 			>
 				<View style={styles.headerTop}>
 					<TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
 						<MaterialCommunityIcons name="arrow-left" size={24} color={colors.textPrimary} />
 					</TouchableOpacity>
-
 					<AppText style={styles.headerTitle}>Editar perfil</AppText>
-
 					<TouchableOpacity
 						style={[styles.headerBtn, loading && styles.disabled]}
 						onPress={salvar}
@@ -255,133 +314,78 @@ export default function PerfilEditar({ navigation }) {
 						)}
 					</TouchableOpacity>
 				</View>
-
-				<View style={styles.previewCard}>
-					<View style={styles.avatarWrap}>
-						<Image
-							source={{ uri: foto || "https://i.pravatar.cc/200" }}
-							style={styles.avatar}
-						/>
-						<TouchableOpacity onPress={escolherFoto} style={styles.camera}>
-							<MaterialCommunityIcons name="camera" size={17} color={colors.onPrimary} />
-						</TouchableOpacity>
-					</View>
-
-					<View style={styles.previewCopy}>
-						<AppText style={styles.previewName} numberOfLines={1}>
-							{nome || "Seu nome"}
-						</AppText>
-						<AppText style={styles.previewHandle} numberOfLines={1}>
-							{username ? `@${username}` : user?.email || "@usuario"}
-						</AppText>
-						<AppText style={styles.previewBio} numberOfLines={2}>
-							{bio || "Adicione uma bio para aparecer melhor na Area Social."}
-						</AppText>
-					</View>
-				</View>
 			</LinearGradient>
 
-			<KeyboardAvoidingView
-				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				style={{ flex: 1 }}
+			<KeyboardAwareScrollView
+				style={styles.formScroll}
+				showsVerticalScrollIndicator={false}
+				keyboardShouldPersistTaps="handled"
+				keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+				enableOnAndroid
+				enableAutomaticScroll
+				extraScrollHeight={Platform.OS === "ios" ? 24 : 92}
+				extraHeight={Platform.OS === "ios" ? insets.top + 88 : 120}
+				contentContainerStyle={[
+					styles.scrollContent,
+					{ paddingBottom: insets.bottom + 34 },
+				]}
 			>
-				<ScrollView
-					showsVerticalScrollIndicator={false}
-					keyboardShouldPersistTaps="handled"
-					keyboardDismissMode="on-drag"
-					contentContainerStyle={{ paddingBottom: insets.bottom + 34 }}
-				>
-				<View style={styles.content}>
-					<Section title="Perfil social">
-						{renderInput({
-							icon: "account-outline",
-							label: "Nome",
-							value: nome,
-							onChangeText: setNome,
-						})}
-						{renderInput({
-							icon: "at",
-							label: "Username",
-							value: username,
-							onChangeText: setUsername,
-							autoCapitalize: "none",
-						})}
-						{renderInput({
-							icon: "text-account",
-							label: "Bio",
-							value: bio,
-							onChangeText: setBio,
-							multiline: true,
-						})}
-					</Section>
+					{/* Preview do perfil */}
+					<View style={styles.previewCard}>
+						<View style={styles.avatarWrap}>
+							<Image
+								source={{ uri: foto || "https://i.pravatar.cc/200" }}
+								style={styles.avatar}
+							/>
+							<TouchableOpacity onPress={escolherFoto} style={styles.camera}>
+								<MaterialCommunityIcons name="camera" size={17} color={colors.onPrimary} />
+							</TouchableOpacity>
+						</View>
+						<View style={styles.previewCopy}>
+							<AppText style={styles.previewName} numberOfLines={1}>
+								{nome || "Seu nome"}
+							</AppText>
+							<AppText style={styles.previewHandle} numberOfLines={1}>
+								{username ? `@${username}` : user?.email || "@usuario"}
+							</AppText>
+							<AppText style={styles.previewBio} numberOfLines={2}>
+								{bio || "Adicione uma bio para aparecer melhor na Area Social."}
+							</AppText>
+						</View>
+					</View>
 
-					<Section title="Informações">
+					<FormSection title="Perfil social" styles={styles}>
+						{renderInput({ icon: "account-outline", label: "Nome", value: nome, onChangeText: setNome })}
 						{renderInput({
-							icon: "map-marker-outline",
-							label: "Cidade",
-							value: cidade,
-							onChangeText: setCidade,
+							icon: "at", label: "Username", value: username,
+							onChangeText: (text) => setUsername(text.toLowerCase().replace(/[^a-z0-9_.]/g, "")),
+							autoCapitalize: "none", maxLength: 30,
 						})}
-						{renderInput({
-							icon: "phone-outline",
-							label: "Telefone",
-							value: telefone,
-							onChangeText: setTelefone,
-							keyboardType: "phone-pad",
-						})}
-						{renderInput({
-							icon: "card-account-details-outline",
-							label: "CPF",
-							value: cpf,
-							onChangeText: setCpf,
-							keyboardType: "number-pad",
-						})}
-					</Section>
+						{renderInput({ icon: "text-account", label: "Bio", value: bio, onChangeText: setBio, multiline: true })}
+					</FormSection>
 
-					<Section title="Links sociais">
+					<FormSection title="Informações" styles={styles}>
+						{renderInput({ icon: "map-marker-outline", label: "Cidade", value: cidade, onChangeText: setCidade })}
 						{renderInput({
-							icon: "instagram",
-							label: "Instagram",
-							value: instagram,
-							onChangeText: setInstagram,
-							autoCapitalize: "none",
+							icon: "phone-outline", label: "Telefone", value: telefone,
+							onChangeText: (text) => setTelefone(formatarTelefone(text)),
+							keyboardType: "phone-pad", maxLength: 15,
 						})}
 						{renderInput({
-							icon: "facebook",
-							label: "Facebook",
-							value: facebook,
-							onChangeText: setFacebook,
-							autoCapitalize: "none",
+							icon: "card-account-details-outline", label: "CPF", value: cpf,
+							onChangeText: (text) => setCpf(formatarCPF(text)),
+							keyboardType: "number-pad", maxLength: 14,
 						})}
-						{renderInput({
-							icon: "twitter",
-							label: "X / Twitter",
-							value: x,
-							onChangeText: setX,
-							autoCapitalize: "none",
-						})}
-						{renderInput({
-							icon: "spotify",
-							label: "Spotify",
-							value: spotify,
-							onChangeText: setSpotify,
-							autoCapitalize: "none",
-						})}
-						{renderInput({
-							icon: "music-note",
-							label: "TikTok",
-							value: tiktok,
-							onChangeText: setTiktok,
-							autoCapitalize: "none",
-						})}
-						{renderInput({
-							icon: "web",
-							label: "Website",
-							value: website,
-							onChangeText: setWebsite,
-							autoCapitalize: "none",
-						})}
-					</Section>
+					</FormSection>
+
+					<FormSection title="Links sociais" styles={styles}>
+						{renderInput({ icon: "instagram", label: "Instagram", value: instagram, onChangeText: setInstagram, autoCapitalize: "none" })}
+						{renderInput({ icon: "facebook", label: "Facebook", value: facebook, onChangeText: setFacebook, autoCapitalize: "none" })}
+						{renderInput({ icon: "twitter", label: "X / Twitter", value: x, onChangeText: setX, autoCapitalize: "none" })}
+						{renderInput({ icon: "spotify", label: "Spotify", value: spotify, onChangeText: setSpotify, autoCapitalize: "none" })}
+						{renderInput({ icon: "music-note", label: "TikTok", value: tiktok, onChangeText: setTiktok, autoCapitalize: "none" })}
+						{renderInput({ icon: "web", label: "Website", value: website, onChangeText: setWebsite, autoCapitalize: "none" })}
+					</FormSection>
 
 					<TouchableOpacity
 						onPress={salvar}
@@ -403,10 +407,9 @@ export default function PerfilEditar({ navigation }) {
 							)}
 						</LinearGradient>
 					</TouchableOpacity>
-				</View>
-			</ScrollView>
-			</KeyboardAvoidingView>
+			</KeyboardAwareScrollView>
 
+			{/* Modal de feedback */}
 			<Modal
 				visible={showModal}
 				transparent
@@ -415,10 +418,7 @@ export default function PerfilEditar({ navigation }) {
 				onRequestClose={() => setShowModal(false)}
 			>
 				<View style={styles.modalOverlay}>
-					<Pressable
-						style={StyleSheet.absoluteFillObject}
-						onPress={() => setShowModal(false)}
-					/>
+					<Pressable style={StyleSheet.absoluteFillObject} onPress={() => setShowModal(false)} />
 					<BlurView intensity={60} tint={blurTint} style={styles.modalCard}>
 						<LinearGradient
 							colors={[`${modalConfig.iconColor || colors.primary}1F`, "transparent"]}
@@ -432,9 +432,7 @@ export default function PerfilEditar({ navigation }) {
 								/>
 							</View>
 							<AppText style={styles.modalTitle}>{modalConfig.title}</AppText>
-							<AppText style={styles.modalText}>
-								{modalConfig.message}
-							</AppText>
+							<AppText style={styles.modalText}>{modalConfig.message}</AppText>
 							<View style={styles.modalButtons}>
 								{modalConfig.showCancel && (
 									<TouchableOpacity
@@ -470,181 +468,137 @@ export default function PerfilEditar({ navigation }) {
 
 function createPerfilEditarStyles(c) {
 	return StyleSheet.create({
-	container: { flex: 1, backgroundColor: c.background },
-	header: {
-		paddingHorizontal: 18,
-		paddingBottom: 18,
-		borderBottomLeftRadius: 30,
-		borderBottomRightRadius: 30,
-	},
-	headerTop: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "space-between",
-		marginBottom: 16,
-	},
-	headerBtn: {
-		width: 42,
-		height: 42,
-		borderRadius: 14,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: c.glass,
-		borderWidth: 1,
-		borderColor: c.glassBorder,
-	},
-	headerTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "800" },
-	disabled: { opacity: 0.55 },
-	previewCard: {
-		flexDirection: "row",
-		alignItems: "center",
-		padding: 14,
-		borderRadius: 24,
-		backgroundColor: c.glass,
-		borderWidth: 1,
-		borderColor: c.glassBorder,
-	},
-	avatarWrap: { position: "relative" },
-	avatar: {
-		width: 82,
-		height: 82,
-		borderRadius: 41,
-		borderWidth: 2,
-		borderColor: c.primary,
-		backgroundColor: c.card,
-	},
-	camera: {
-		position: "absolute",
-		right: -2,
-		bottom: 0,
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: c.primary,
-		borderWidth: 2,
-		borderColor: c.surface,
-	},
-	previewCopy: { flex: 1, marginLeft: 14 },
-	previewName: { color: c.textPrimary, fontSize: 19, fontWeight: "800" },
-	previewHandle: { color: c.primaryLight, fontSize: 13, marginTop: 2, fontWeight: "700" },
-	previewBio: { color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
-	content: { paddingHorizontal: 16, paddingTop: 18 },
-	section: { marginBottom: 18 },
-	sectionTitle: {
-		color: c.textMuted,
-		fontSize: 12,
-		fontWeight: "800",
-		textTransform: "uppercase",
-		marginBottom: 10,
-		marginLeft: 4,
-	},
-	sectionCard: {
-		borderRadius: 24,
-		overflow: "hidden",
-		backgroundColor: c.surface,
-		borderWidth: 1,
-		borderColor: c.border,
-	},
-	inputRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		minHeight: 70,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		borderBottomWidth: 1,
-		borderBottomColor: c.divider,
-	},
-	inputRowMultiline: { alignItems: "flex-start" },
-	inputIcon: {
-		width: 42,
-		height: 42,
-		borderRadius: 15,
-		alignItems: "center",
-		justifyContent: "center",
-		backgroundColor: c.primarySoft,
-		marginRight: 12,
-	},
-	inputCopy: { flex: 1 },
-	inputLabel: { color: c.textMuted, fontSize: 12, fontWeight: "700", marginBottom: 3 },
-	input: {
-		color: c.textPrimary,
-		fontSize: 15,
-		paddingVertical: 2,
-	},
-	inputMultiline: {
-		minHeight: 70,
-		textAlignVertical: "top",
-		lineHeight: 20,
-		paddingTop: 2,
-	},
-	saveBtn: {
-		borderRadius: 20,
-		overflow: "hidden",
-		marginTop: 2,
-		marginBottom: 10,
-	},
-	saveGradient: {
-		height: 56,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 9,
-	},
-	saveText: { color: c.onPrimary, fontSize: 16, fontWeight: "800" },
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: c.overlayStronger,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 24,
-	},
-	modalCard: {
-		width: "100%",
-		borderRadius: 28,
-		overflow: "hidden",
-		borderWidth: 1,
-		borderColor: c.glassBorder,
-	},
-	modalGradient: { padding: 24, alignItems: "center" },
-	modalIcon: {
-		width: 72,
-		height: 72,
-		borderRadius: 24,
-		backgroundColor: "rgba(255,255,255,0.1)",
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 16,
-	},
-	modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
-	modalText: {
-		color: c.textSecondary,
-		textAlign: "center",
-		marginTop: 10,
-		fontSize: 14,
-		lineHeight: 22,
-		paddingHorizontal: 12,
-	},
-	modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
-	cancelBtn: {
-		flex: 1,
-		height: 50,
-		borderRadius: 16,
-		backgroundColor: c.glass,
-		justifyContent: "center",
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: c.glassBorder,
-	},
-	cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
-	confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
-	confirmGradient: {
-		flex: 1,
-		flexDirection: "row",
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
-});
+		container: { flex: 1, backgroundColor: c.background },
+		formScroll: { flex: 1 },
+		headerCompact: {
+			paddingHorizontal: 18,
+			paddingBottom: 12,
+			borderBottomLeftRadius: 20,
+			borderBottomRightRadius: 20,
+			borderBottomWidth: 1,
+			borderColor: c.divider,
+		},
+		headerTop: {
+			flexDirection: "row",
+			alignItems: "center",
+			justifyContent: "space-between",
+		},
+		headerBtn: {
+			width: 42, height: 42, borderRadius: 14,
+			alignItems: "center", justifyContent: "center",
+			backgroundColor: c.glass,
+			borderWidth: 1, borderColor: c.glassBorder,
+		},
+		headerTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "800" },
+		disabled: { opacity: 0.55 },
+
+		// Padding no content container preserva o calculo de scroll com teclado.
+		scrollContent: {
+			paddingHorizontal: 16,
+			paddingTop: 18,
+		},
+
+		previewCard: {
+			flexDirection: "row",
+			alignItems: "center",
+			padding: 14,
+			borderRadius: 24,
+			backgroundColor: c.glass,
+			borderWidth: 1, borderColor: c.glassBorder,
+			marginBottom: 18,
+		},
+		avatarWrap: { position: "relative" },
+		avatar: {
+			width: 82, height: 82, borderRadius: 41,
+			borderWidth: 2, borderColor: c.primary,
+			backgroundColor: c.card,
+		},
+		camera: {
+			position: "absolute", right: -2, bottom: 0,
+			width: 32, height: 32, borderRadius: 16,
+			alignItems: "center", justifyContent: "center",
+			backgroundColor: c.primary,
+			borderWidth: 2, borderColor: c.surface,
+		},
+		previewCopy: { flex: 1, marginLeft: 14 },
+		previewName: { color: c.textPrimary, fontSize: 19, fontWeight: "800" },
+		previewHandle: { color: c.primaryLight, fontSize: 13, marginTop: 2, fontWeight: "700" },
+		previewBio: { color: c.textMuted, fontSize: 12, lineHeight: 17, marginTop: 8 },
+
+		section: { marginBottom: 18 },
+		sectionTitle: {
+			color: c.textMuted, fontSize: 12, fontWeight: "800",
+			textTransform: "uppercase", marginBottom: 10, marginLeft: 4,
+		},
+		sectionCard: {
+			borderRadius: 24, overflow: "hidden",
+			backgroundColor: c.surface,
+			borderWidth: 1, borderColor: c.border,
+		},
+		inputRow: {
+			flexDirection: "row",
+			alignItems: "center",
+			minHeight: 70,
+			paddingHorizontal: 14,
+			paddingVertical: 10,
+			borderBottomWidth: 1,
+			borderBottomColor: c.divider,
+		},
+		inputRowMultiline: { alignItems: "flex-start" },
+		inputIcon: {
+			width: 42, height: 42, borderRadius: 15,
+			alignItems: "center", justifyContent: "center",
+			backgroundColor: c.primarySoft,
+			marginRight: 12,
+		},
+		inputCopy: { flex: 1 },
+		inputLabel: { color: c.textMuted, fontSize: 12, fontWeight: "700", marginBottom: 3 },
+		input: { color: c.textPrimary, fontSize: 15, paddingVertical: 2 },
+		inputMultiline: {
+			minHeight: 70, textAlignVertical: "top",
+			lineHeight: 20, paddingTop: 2,
+		},
+
+		saveBtn: { borderRadius: 20, overflow: "hidden", marginTop: 2, marginBottom: 10 },
+		saveGradient: {
+			height: 56, flexDirection: "row",
+			alignItems: "center", justifyContent: "center", gap: 9,
+		},
+		saveText: { color: c.onPrimary, fontSize: 16, fontWeight: "800" },
+
+		modalOverlay: {
+			flex: 1,
+			backgroundColor: c.overlayStronger,
+			justifyContent: "center",
+			alignItems: "center",
+			paddingHorizontal: 24,
+		},
+		modalCard: {
+			width: "100%", borderRadius: 28, overflow: "hidden",
+			borderWidth: 1, borderColor: c.glassBorder,
+		},
+		modalGradient: { padding: 24, alignItems: "center" },
+		modalIcon: {
+			width: 72, height: 72, borderRadius: 24,
+			backgroundColor: "rgba(255,255,255,0.1)",
+			justifyContent: "center", alignItems: "center",
+			marginBottom: 16,
+		},
+		modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
+		modalText: {
+			color: c.textSecondary, textAlign: "center",
+			marginTop: 10, fontSize: 14, lineHeight: 22, paddingHorizontal: 12,
+		},
+		modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
+		cancelBtn: {
+			flex: 1, height: 50, borderRadius: 16,
+			backgroundColor: c.glass,
+			justifyContent: "center", alignItems: "center",
+			borderWidth: 1, borderColor: c.glassBorder,
+		},
+		cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
+		confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+		confirmGradient: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center" },
+		confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
+	});
 }

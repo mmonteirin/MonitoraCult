@@ -470,7 +470,7 @@ export default function MeusIngressos({ navigation }) {
           ) : ingressosFiltrados.length === 0 ? (
             <Animated.View entering={FadeInDown.springify()} style={styles.emptyBox}>
               <LinearGradient
-                colors={[colors.primary + "20", colors.accentCyan + "10"]}
+                colors={["rgba(108,92,231,0.13)", "rgba(34,211,238,0.06)"]}
                 style={styles.emptyIconWrap}
               >
                 <MaterialCommunityIcons name="ticket-confirmation-outline" size={48} color={colors.primary} />

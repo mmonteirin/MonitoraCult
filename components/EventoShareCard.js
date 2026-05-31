@@ -69,7 +69,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import { useTheme } from "../context/ThemeContext";

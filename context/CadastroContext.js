@@ -1,5 +1,4 @@
 import { createContext, useContext } from "react";
-import emailjs from "@emailjs/react-native";
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -23,38 +22,10 @@ const CadastroContext = createContext();
 const gerarCodigo = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
-// ─────────────────────────────────────────────────────────────
-// Envia email de verificação via EmailJS
-// ─────────────────────────────────────────────────────────────
-const enviarEmailVerificacao = async (toEmail, codigo) => {
-  try {
-    const response = await emailjs.send(
-      "MonitoraCult",
-      "verificacaoMonitoraCult",
-      {
-        CODIGO_VERIFICACAO: codigo,
-        TEMPO_VALIDADE: 10,
-        to_email: toEmail,
-      },
-      {
-        publicKey: "re6QctN7UZLA_gLCL",
-      }
-    );
-
-    console.log("Email enviado com sucesso:", response);
-
-    return true;
-  } catch (error) {
-    console.error("Erro ao enviar email:", error);
-
-    throw error;
-  }
-};
-
 export function CadastroProvider({ children }) {
 
   // ─────────────────────────────────────────────────────────────
-  // Envia código de verificação para o email
+  // Gera código de verificação localmente
   // Salva { code, expiry } no Firestore para validação posterior
   // ─────────────────────────────────────────────────────────────
   const sendVerificationCode = async (email) => {
@@ -73,13 +44,10 @@ export function CadastroProvider({ children }) {
         email,
       });
 
-      // Dispara o envio do email
-      await enviarEmailVerificacao(email, code);
-
-      return { success: true };
+      return { success: true, code };
     } catch (error) {
-      console.log("Erro ao enviar código:", error);
-      return { success: false, message: "Não foi possível enviar o código." };
+      console.log("Erro ao gerar código:", error);
+      return { success: false, message: "Não foi possível gerar o código." };
     }
   };
 

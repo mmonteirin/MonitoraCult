@@ -117,7 +117,7 @@ export default function RecommendationSection({
       >
         <BlurView intensity={30} tint={blurTint} style={styles.insightCard}>
           <LinearGradient
-            colors={[`${colors.primary}26`, "transparent"]}
+            colors={["rgba(108,92,231,0.15)", "transparent"]}
             style={styles.insightGlow}
           />
 

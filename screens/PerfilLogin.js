@@ -10,6 +10,7 @@ import {
   StatusBar,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from "react-native";
 
 import { FontAwesome6 } from "@expo/vector-icons";
@@ -152,12 +153,11 @@ export default function PerfilLogin({ navigation }) {
               transition={{ type: "timing", duration: 700 }}
               style={styles.logoContainer}
             >
-              <LinearGradient
-                colors={[colors.primaryLight, colors.primary]}
-                style={styles.logoCircle}
-              >
-                <Feather name="zap" size={30} color="#FFF" />
-              </LinearGradient>
+              <Image
+                source={require("../assets/logo/Logo.png")}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
 
               <AppText style={styles.appName}>MonitoraCult</AppText>
               <AppText style={styles.subtitle}>Entre na sua conta</AppText>
@@ -342,7 +342,7 @@ function createThemedScreenStyles(c) {
   overlay: { flex: 1 },
   container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 20, paddingVertical: 32 },
   logoContainer: { alignItems: "center", marginBottom: 18 },
-  logoCircle: { width: 72, height: 72, borderRadius: 40, justifyContent: "center", alignItems: "center" },
+  logoImage: { width: 110, height: 110, marginBottom: 8 },
   appName: { fontSize: 24, fontWeight: "bold", color: "#FFF", marginTop: 12 },
   subtitle: { marginTop: 4, color: "rgba(255,255,255,0.72)", fontSize: 13 },
   card: { overflow: "hidden", borderRadius: 26, padding: 18, backgroundColor: "rgba(20,20,20,0.35)", borderWidth: 1, borderColor: c.glassStrong },

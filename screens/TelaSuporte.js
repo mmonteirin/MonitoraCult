@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -14,11 +13,13 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Keyboard,
 } from "react-native";
 
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -78,6 +79,30 @@ export default function TelaSuporte({ navigation }) {
   const [newTicketVisible, setNewTicketVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [sending, setSending] = useState(false);
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({
+    title: "",
+    message: "",
+    icon: "",
+    iconColor: colors.primary,
+    onConfirm: null,
+    showCancel: false,
+  });
+
+  const blurTint = isDark ? "dark" : "light";
+
+  const exibirMensagem = (title, message, icon = "alert-circle", iconColor = colors.error, onConfirm = () => setShowModal(false), showCancel = false) => {
+    setModalConfig({
+      title,
+      message,
+      icon,
+      iconColor: iconColor || colors.primary,
+      onConfirm,
+      showCancel,
+    });
+    setShowModal(true);
+  };
 
   const categoriaSelecionada = useMemo(
     () => SUPPORT_CATEGORIES.find((item) => item.id === categoria),
@@ -148,7 +173,7 @@ export default function TelaSuporte({ navigation }) {
 
   const handleCreateTicket = async () => {
     if (!categoria || !mensagem.trim()) {
-      Alert.alert("Campos obrigatórios", "Escolha uma categoria e descreva o problema.");
+      exibirMensagem("Campos obrigatórios", "Escolha uma categoria e descreva o problema.", "alert-circle", colors.warning);
       return;
     }
 
@@ -174,7 +199,7 @@ export default function TelaSuporte({ navigation }) {
     } catch (error) {
       console.log("Erro ao criar chamado:", error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Erro", error.message || "Não foi possível abrir o chamado.");
+      exibirMensagem("Erro", error.message || "Não foi possível abrir o chamado.", "alert-circle", colors.error);
     } finally {
       setSubmitting(false);
     }
@@ -197,7 +222,7 @@ export default function TelaSuporte({ navigation }) {
       setReply("");
     } catch (error) {
       console.log("Erro ao responder chamado:", error);
-      Alert.alert("Erro", error.message || "Não foi possível enviar a mensagem.");
+      exibirMensagem("Erro", error.message || "Não foi possível enviar a mensagem.", "alert-circle", colors.error);
     } finally {
       setSending(false);
     }
@@ -522,6 +547,65 @@ export default function TelaSuporte({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Customizado para Avisos/Erros */}
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <Pressable
+            style={StyleSheet.absoluteFillObject}
+            onPress={() => setShowModal(false)}
+          />
+          <BlurView intensity={60} tint={blurTint} style={styles.alertModalCard}>
+            <LinearGradient
+              colors={[`${modalConfig.iconColor || colors.primary}1F`, "transparent"]}
+              style={styles.modalGradient}
+            >
+              <View style={styles.modalIcon}>
+                <MaterialCommunityIcons
+                  name={modalConfig.icon}
+                  size={34}
+                  color={modalConfig.iconColor}
+                />
+              </View>
+              <Text style={styles.alertModalTitle}>{modalConfig.title}</Text>
+              <Text style={styles.alertModalText}>
+                {modalConfig.message}
+              </Text>
+              <View style={styles.modalButtons}>
+                {modalConfig.showCancel && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={styles.cancelBtn}
+                    onPress={() => setShowModal(false)}
+                  >
+                    <Text style={styles.cancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={styles.confirmBtn}
+                  onPress={modalConfig.onConfirm}
+                >
+                  <LinearGradient
+                    colors={[modalConfig.iconColor || colors.primary, `${modalConfig.iconColor || colors.primary}DD`]}
+                    style={styles.confirmGradient}
+                  >
+                    <Text style={styles.confirmText}>
+                      {modalConfig.showCancel ? "Confirmar" : "OK"}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </BlurView>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -813,5 +897,52 @@ function createThemedScreenStyles(c) {
     justifyContent: "center",
   },
   cancelText: { color: c.textPrimary, fontWeight: "700" },
+  alertModalCard: {
+    width: "100%",
+    borderRadius: 28,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+    backgroundColor: c.card,
+  },
+  modalGradient: { padding: 24, alignItems: "center" },
+  modalIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  alertModalTitle: { color: c.textPrimary, fontSize: 20, fontWeight: "bold", textAlign: "center" },
+  alertModalText: {
+    color: c.textSecondary,
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 14,
+    lineHeight: 22,
+    paddingHorizontal: 12,
+  },
+  modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
+  cancelBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: c.glass,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: c.glassBorder,
+  },
+  cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
+  confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+  confirmGradient: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
 });
 }

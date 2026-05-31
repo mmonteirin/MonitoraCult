@@ -51,6 +51,30 @@ export default function PerfilPublico({ navigation, route }) {
     route?.params?.uid ||
     route?.params?.usuario?.uid;
 
+  // Ocultar dinamicamente o cabeçalho do Drawer ao entrar na tela de perfil público
+  useEffect(() => {
+    let parent = navigation.getParent();
+    let drawer = null;
+    while (parent) {
+      if (parent.openDrawer || parent.getState()?.type === "drawer") {
+        drawer = parent;
+        break;
+      }
+      parent = parent.getParent();
+    }
+
+    if (drawer) {
+      drawer.setOptions({ headerShown: false });
+    }
+
+    return () => {
+      if (drawer) {
+        drawer.setOptions({ headerShown: true });
+      }
+    };
+  }, [navigation]);
+
+
   const [profile, setProfile] = useState(
     route?.params?.usuario || null
   );
@@ -281,7 +305,7 @@ export default function PerfilPublico({ navigation, route }) {
                   <MaterialCommunityIcons
                     name="arrow-left"
                     size={22}
-                    color="#FFF"
+                    color={colors.textPrimary}
                   />
                 </BlurView>
               </TouchableOpacity>

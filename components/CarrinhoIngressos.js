@@ -125,7 +125,7 @@ const CarrinhoIngressos = ({
 
       {/* RESUMO */}
       <LinearGradient
-        colors={[colors.surface + "80", colors.surface]}
+        colors={[colors.surfaceMuted, colors.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.resumo}

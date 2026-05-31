@@ -147,10 +147,33 @@ export const getFollowers = async (userId, limitCount = 50) => {
     const { limit: firestoreLimit } = await import("firebase/firestore");
     const q = query(collection(db, "followers", userId, "followers"), firestoreLimit(limitCount));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
+    
+    // Buscar fotos e nomes reais em tempo real da coleção 'users'
+    const followers = await Promise.all(
+      snapshot.docs.map(async (d) => {
+        const data = d.data();
+        const fId = data.followerId || d.id;
+        try {
+          const userSnap = await getDoc(doc(db, "users", fId));
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            return {
+              id: d.id,
+              ...data,
+              followerName: userData.displayName || userData.nome || data.followerName,
+              followerPhoto: userData.photoURL || userData.foto || data.followerPhoto,
+            };
+          }
+        } catch (e) {
+          console.log("Erro ao buscar dados reais do seguidor:", fId, e);
+        }
+        return {
+          id: d.id,
+          ...data,
+        };
+      })
+    );
+    return followers;
   } catch (error) {
     logger.error("followService", "Erro ao buscar seguidores", error);
     return [];
@@ -165,10 +188,33 @@ export const getFollowing = async (userId, limitCount = 50) => {
     const { limit: firestoreLimit } = await import("firebase/firestore");
     const q = query(collection(db, "followers", userId, "following"), firestoreLimit(limitCount));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
+    
+    // Buscar fotos e nomes reais em tempo real da coleção 'users'
+    const following = await Promise.all(
+      snapshot.docs.map(async (d) => {
+        const data = d.data();
+        const tId = data.targetUserId || d.id;
+        try {
+          const userSnap = await getDoc(doc(db, "users", tId));
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            return {
+              id: d.id,
+              ...data,
+              targetName: userData.displayName || userData.nome || data.targetName,
+              targetPhoto: userData.photoURL || userData.foto || data.targetPhoto,
+            };
+          }
+        } catch (e) {
+          console.log("Erro ao buscar dados reais do seguido:", tId, e);
+        }
+        return {
+          id: d.id,
+          ...data,
+        };
+      })
+    );
+    return following;
   } catch (error) {
     logger.error("followService", "Erro ao buscar following", error);
     return [];
