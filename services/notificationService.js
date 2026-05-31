@@ -96,9 +96,14 @@ export async function obterPushToken() {
     }
     if (status !== "granted") return null;
     await configurarCanaisAndroid();
-    const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: "snack-76330891-d725-4703-84bd-f58504f3c860",
-    });
+    
+    const projectId = process.env.EXPO_PUBLIC_PROJECT_ID;
+    if (!projectId) {
+      console.log("[Notificações] obterPushToken: EXPO_PUBLIC_PROJECT_ID não configurado");
+      return null;
+    }
+    
+    const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
     return tokenData.data;
   } catch (e) {
     console.log("[Notificações] obterPushToken:", e.message);

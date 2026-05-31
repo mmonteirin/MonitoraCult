@@ -268,7 +268,8 @@ service cloud.firestore {
 
     /* 📊 INTERAÇÕES DE EVENTOS */
     match /eventInteractions/{interactionId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin()
+        || (isAuthenticated() && resource.data.usuarioId == request.auth.uid);
       allow create: if isAuthenticated()
         && request.resource.data.usuarioId == request.auth.uid
         && hasOnly([

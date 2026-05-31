@@ -78,10 +78,10 @@ export function NotificationProvider({ children }) {
     return () => {
       // Cleanup listeners
       const Notifications = notificationsModuleRef.current;
-      if (Notifications && notifRecebidaRef.current) {
+      if (Notifications && notifRecebidaRef.current && typeof Notifications.removeNotificationSubscription === 'function') {
         Notifications.removeNotificationSubscription(notifRecebidaRef.current);
       }
-      if (Notifications && notifRespostaRef.current) {
+      if (Notifications && notifRespostaRef.current && typeof Notifications.removeNotificationSubscription === 'function') {
         Notifications.removeNotificationSubscription(notifRespostaRef.current);
       }
     };

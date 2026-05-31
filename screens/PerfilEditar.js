@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from "react";
 import {
 	ActivityIndicator,
-	Alert,
 	Image,
 	ScrollView,
 	StyleSheet,
 	TextInput,
 	TouchableOpacity,
 	View,
+	Modal,
+	Pressable,
+	KeyboardAvoidingView,
+	Platform,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { updateProfile } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -22,12 +26,14 @@ import { auth, db } from "../firebaseConfig";
 import { uploadImagem } from "../services/uploadService";
 import { useTheme } from "../context/ThemeContext";
 import { useThemedStyles } from "../hooks/useThemedStyles";
+import { Status } from "../styles/Colors";
 
 export default function PerfilEditar({ navigation }) {
 	const insets = useSafeAreaInsets();
 	const { user, nome: nomeContext, foto: fotoContext, refreshProfile } = useAuth();
-	const { colors } = useTheme();
+	const { colors, isDark } = useTheme();
 	const styles = useThemedStyles(createPerfilEditarStyles);
+	const blurTint = isDark ? "dark" : "light";
 
 	const Section = ({ title, children }) => (
 		<View style={styles.section}>
@@ -50,6 +56,15 @@ export default function PerfilEditar({ navigation }) {
 	const [spotify, setSpotify] = useState("");
 	const [tiktok, setTiktok] = useState("");
 	const [website, setWebsite] = useState("");
+	const [showModal, setShowModal] = useState(false);
+	const [modalConfig, setModalConfig] = useState({
+		title: "",
+		message: "",
+		icon: "",
+		iconColor: colors.primary,
+		onConfirm: null,
+		showCancel: false,
+	});
 
 	useEffect(() => {
 		async function carregar() {
@@ -83,7 +98,15 @@ export default function PerfilEditar({ navigation }) {
 		const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
 		if (!permissao.granted) {
-			Alert.alert("Permissão necessária");
+			setModalConfig({
+				title: "Permissão necessária",
+				message: "Precisamos de acesso à sua galeria para selecionar uma foto de perfil.",
+				icon: "image-outline",
+				iconColor: colors.warning,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
 			return;
 		}
 
@@ -101,7 +124,15 @@ export default function PerfilEditar({ navigation }) {
 
 	async function salvar() {
 		if (!nome.trim()) {
-			Alert.alert("Informe seu nome");
+			setModalConfig({
+				title: "Nome obrigatório",
+				message: "Por favor, informe seu nome para continuar.",
+				icon: "account-outline",
+				iconColor: colors.warning,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
 			return;
 		}
 
@@ -142,11 +173,29 @@ export default function PerfilEditar({ navigation }) {
 			);
 
 			await refreshProfile();
-			Alert.alert("Sucesso", "Perfil atualizado!");
-			navigation.goBack();
+			setModalConfig({
+				title: "Sucesso!",
+				message: "Seu perfil foi atualizado com sucesso.",
+				icon: "check-circle",
+				iconColor: colors.success,
+				onConfirm: () => {
+					setShowModal(false);
+					navigation.goBack();
+				},
+				showCancel: false,
+			});
+			setShowModal(true);
 		} catch (error) {
 			console.log(error);
-			Alert.alert("Erro", error.message);
+			setModalConfig({
+				title: "Erro",
+				message: error.message || "Não foi possível atualizar seu perfil. Tente novamente.",
+				icon: "alert-circle",
+				iconColor: colors.error,
+				onConfirm: () => setShowModal(false),
+				showCancel: false,
+			});
+			setShowModal(true);
 		} finally {
 			setLoading(false);
 		}
@@ -232,10 +281,16 @@ export default function PerfilEditar({ navigation }) {
 				</View>
 			</LinearGradient>
 
-			<ScrollView
-				showsVerticalScrollIndicator={false}
-				contentContainerStyle={{ paddingBottom: insets.bottom + 34 }}
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={{ flex: 1 }}
 			>
+				<ScrollView
+					showsVerticalScrollIndicator={false}
+					keyboardShouldPersistTaps="handled"
+					keyboardDismissMode="on-drag"
+					contentContainerStyle={{ paddingBottom: insets.bottom + 34 }}
+				>
 				<View style={styles.content}>
 					<Section title="Perfil social">
 						{renderInput({
@@ -350,6 +405,65 @@ export default function PerfilEditar({ navigation }) {
 					</TouchableOpacity>
 				</View>
 			</ScrollView>
+			</KeyboardAvoidingView>
+
+			<Modal
+				visible={showModal}
+				transparent
+				animationType="fade"
+				statusBarTranslucent
+				onRequestClose={() => setShowModal(false)}
+			>
+				<View style={styles.modalOverlay}>
+					<Pressable
+						style={StyleSheet.absoluteFillObject}
+						onPress={() => setShowModal(false)}
+					/>
+					<BlurView intensity={60} tint={blurTint} style={styles.modalCard}>
+						<LinearGradient
+							colors={[`${modalConfig.iconColor}1F`, "transparent"]}
+							style={styles.modalGradient}
+						>
+							<View style={styles.modalIcon}>
+								<MaterialCommunityIcons
+									name={modalConfig.icon}
+									size={34}
+									color={modalConfig.iconColor}
+								/>
+							</View>
+							<AppText style={styles.modalTitle}>{modalConfig.title}</AppText>
+							<AppText style={styles.modalText}>
+								{modalConfig.message}
+							</AppText>
+							<View style={styles.modalButtons}>
+								{modalConfig.showCancel && (
+									<TouchableOpacity
+										activeOpacity={0.8}
+										style={styles.cancelBtn}
+										onPress={() => setShowModal(false)}
+									>
+										<AppText style={styles.cancelText}>Cancelar</AppText>
+									</TouchableOpacity>
+								)}
+								<TouchableOpacity
+									activeOpacity={0.85}
+									style={styles.confirmBtn}
+									onPress={modalConfig.onConfirm}
+								>
+									<LinearGradient
+										colors={[modalConfig.iconColor, `${modalConfig.iconColor}DD`]}
+										style={styles.confirmGradient}
+									>
+										<AppText style={styles.confirmText}>
+											{modalConfig.showCancel ? "Confirmar" : "OK"}
+										</AppText>
+									</LinearGradient>
+								</TouchableOpacity>
+							</View>
+						</LinearGradient>
+					</BlurView>
+				</View>
+			</Modal>
 		</View>
 	);
 }
@@ -479,5 +593,58 @@ function createPerfilEditarStyles(c) {
 		gap: 9,
 	},
 	saveText: { color: c.onPrimary, fontSize: 16, fontWeight: "800" },
+	modalOverlay: {
+		flex: 1,
+		backgroundColor: c.overlayStronger,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: 24,
+	},
+	modalCard: {
+		width: "100%",
+		borderRadius: 28,
+		overflow: "hidden",
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+	},
+	modalGradient: { padding: 24, alignItems: "center" },
+	modalIcon: {
+		width: 72,
+		height: 72,
+		borderRadius: 24,
+		backgroundColor: "rgba(255,255,255,0.1)",
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: 16,
+	},
+	modalTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "bold" },
+	modalText: {
+		color: c.textSecondary,
+		textAlign: "center",
+		marginTop: 10,
+		fontSize: 14,
+		lineHeight: 22,
+		paddingHorizontal: 12,
+	},
+	modalButtons: { flexDirection: "row", marginTop: 24, width: "100%", gap: 12 },
+	cancelBtn: {
+		flex: 1,
+		height: 50,
+		borderRadius: 16,
+		backgroundColor: c.glass,
+		justifyContent: "center",
+		alignItems: "center",
+		borderWidth: 1,
+		borderColor: c.glassBorder,
+	},
+	cancelText: { color: c.textPrimary, fontWeight: "600", fontSize: 14 },
+	confirmBtn: { flex: 1, height: 50, borderRadius: 16, overflow: "hidden" },
+	confirmGradient: {
+		flex: 1,
+		flexDirection: "row",
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	confirmText: { color: c.onPrimary, fontWeight: "bold", fontSize: 14 },
 });
 }

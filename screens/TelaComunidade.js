@@ -70,6 +70,14 @@ const SUGGESTIONS = [
   "Teatro",
 ];
 
+const normalizeFilterText = (value = "") =>
+  value
+    .toString()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
 export default function TelaComunidade({ navigation, route }) {
   const { colors, isDark } = useTheme();
   const styles = useThemedStyles(createThemedScreenStyles);
@@ -128,13 +136,6 @@ export default function TelaComunidade({ navigation, route }) {
     loadInitialData();
   }, []);
 
-  useEffect(() => {
-    loadGroups(
-      selectedGenre === "Todos" ? null : selectedGenre,
-      searchText || null
-    );
-  }, [selectedGenre, searchText]);
-
   const loadInitialData = useCallback(async () => {
     await Promise.all([
       loadGroups(),
@@ -149,28 +150,52 @@ export default function TelaComunidade({ navigation, route }) {
     setRefreshing(false);
   }, [loadInitialData]);
 
-  const groupedByCategory = useMemo(() => {
+  const filteredGroups = useMemo(() => {
     let filtered = groups;
 
     if (selectedGenre !== "Todos") {
+      const genreFilter = normalizeFilterText(selectedGenre);
       filtered = filtered.filter(
-        (g) => g.genre === selectedGenre
+        (g) => normalizeFilterText(g.genre) === genreFilter
       );
     }
 
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter((g) => {
-        const genre = g.genre?.toLowerCase() || "";
+      const categoryFilters = selectedCategories.map(normalizeFilterText);
 
-        return selectedCategories.some((cat) =>
+      filtered = filtered.filter((g) => {
+        const genre = normalizeFilterText(g.genre);
+
+        return categoryFilters.some((cat) =>
           genre.includes(cat)
         );
       });
     }
 
+    if (searchText.trim()) {
+      const term = normalizeFilterText(searchText);
+
+      filtered = filtered.filter((g) => {
+        const searchable = [
+          g.name,
+          g.description,
+          g.genre,
+          ...(Array.isArray(g.tags) ? g.tags : []),
+        ]
+          .map(normalizeFilterText)
+          .join(" ");
+
+        return searchable.includes(term);
+      });
+    }
+
+    return filtered;
+  }, [groups, selectedGenre, selectedCategories, searchText]);
+
+  const groupedByCategory = useMemo(() => {
     const grouped = {};
 
-    filtered.forEach((group) => {
+    filteredGroups.forEach((group) => {
       const genre = group.genre || "Outro";
 
       if (!grouped[genre]) {
@@ -181,7 +206,7 @@ export default function TelaComunidade({ navigation, route }) {
     });
 
     return grouped;
-  }, [groups, selectedGenre, selectedCategories]);
+  }, [filteredGroups]);
 
   const handleCreateCommunity = async () => {
     if (
@@ -295,7 +320,7 @@ export default function TelaComunidade({ navigation, route }) {
       );
     }
 
-    if (!groups.length) {
+    if (!filteredGroups.length) {
       return (
         <View style={styles.emptyStateEmbedded}>
           <MaterialCommunityIcons
@@ -313,7 +338,7 @@ export default function TelaComunidade({ navigation, route }) {
 
     return (
       <View style={styles.embeddedGroupsList}>
-        {groups.map((group) => (
+        {filteredGroups.map((group) => (
           <View key={group.id} style={styles.embeddedCardWrap}>
             <CommunityGroupCard
               {...group}
@@ -326,7 +351,7 @@ export default function TelaComunidade({ navigation, route }) {
         ))}
       </View>
     );
-  }, [loading, groups, colors.primary, colors.textMuted, checkIsMember, navigateToGroup, handleGroupAction]);
+  }, [loading, groups.length, filteredGroups, colors.primary, colors.textMuted, checkIsMember, navigateToGroup, handleGroupAction]);
 
   const renderEmbeddedMeus = useCallback(() => {
     if (!currentUser) {
@@ -463,6 +488,7 @@ export default function TelaComunidade({ navigation, route }) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.embeddedGenreScroll}
             contentContainerStyle={styles.embeddedGenreRow}
           >
             {GENEROS.map((genre) => {
@@ -1367,6 +1393,12 @@ function createThemedScreenStyles(c) {
     paddingHorizontal: isTablet ? 24 : 20,
     paddingVertical: isTablet ? 12 : 10,
     gap: isTablet ? 14 : 12,
+  },
+
+  embeddedGenreScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: isTablet ? 64 : 56,
   },
 
   embeddedGenreChip: {
