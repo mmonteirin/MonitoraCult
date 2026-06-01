@@ -215,7 +215,7 @@ service cloud.firestore {
         allow read: if isAuthenticated();
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes", "createdAt"]);
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
           || isAdmin();
@@ -380,7 +380,7 @@ service cloud.firestore {
         // Expandido com hasOnly contendo todos os parâmetros textuais e fotos do payload do feed
         allow create: if isAuthenticated()
           && request.resource.data.userId == request.auth.uid
-          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes"]);
+          && request.resource.data.keys().hasOnly(["userId", "userName", "userPhoto", "texto", "likes", "createdAt"]);
 
         allow update, delete: if (isAuthenticated()
             && resource.data.userId == request.auth.uid)
