@@ -178,25 +178,25 @@ export default function PerfilDeclararOcorrencia({
 			id: "segurança",
 			label: "Segurança",
 			icon: "shield-alert",
-			color: "#EF4444",
+			color: "#FF4757",
 		},
 		{
 			id: "infraestrutura",
 			label: "Infraestrutura",
 			icon: "hammer-wrench",
-			color: "#F59E0B",
+			color: "#FFA502",
 		},
 		{
 			id: "comportamento",
 			label: "Comportamento",
 			icon: "account-alert",
-			color: "#8B5CF6",
+			color: "#A55EEA",
 		},
 		{
 			id: "outro",
 			label: "Outro",
 			icon: "file-document-edit",
-			color: "#3B82F6",
+			color: "#2ED573",
 		},
 	];
 
@@ -327,7 +327,7 @@ export default function PerfilDeclararOcorrencia({
 				<LinearGradient
 					colors={[
 						"transparent",
-						"rgba(5,8,18,0.95)",
+						colors.overlayStronger,
 					]}
 					style={styles.heroOverlay}
 				/>
@@ -347,7 +347,7 @@ export default function PerfilDeclararOcorrencia({
 					<MaterialCommunityIcons
 						name="arrow-left"
 						size={24}
-						color="#fff"
+						color={colors.textPrimary}
 					/>
 				</TouchableOpacity>
 
@@ -371,7 +371,7 @@ export default function PerfilDeclararOcorrencia({
 						<MaterialCommunityIcons
 							name="alert-circle"
 							size={16}
-							color="#fff"
+							color={colors.error}
 						/>
 
 						<AppText
@@ -538,7 +538,7 @@ export default function PerfilDeclararOcorrencia({
 												color={
 													ativo
 														? tipo.color
-														: "#aaa"
+														: colors.textMuted
 												}
 											/>
 
@@ -598,7 +598,7 @@ export default function PerfilDeclararOcorrencia({
 							multiline
 							maxLength={500}
 							placeholder="Explique detalhadamente o que aconteceu..."
-							placeholderTextColor="#777"
+							placeholderTextColor={colors.textMuted}
 							style={styles.input}
 						/>
 
@@ -644,7 +644,7 @@ export default function PerfilDeclararOcorrencia({
 						<MaterialCommunityIcons
 							name="shield-check"
 							size={18}
-							color="#22C55E"
+							color={colors.success}
 						/>
 
 						<AppText
@@ -685,7 +685,7 @@ export default function PerfilDeclararOcorrencia({
 						<LinearGradient
 							colors={[
 								colors.primary,
-								"#7C3AED",
+								colors.primaryDark,
 							]}
 							style={
 								styles.button
@@ -694,7 +694,7 @@ export default function PerfilDeclararOcorrencia({
 
 							{loading ? (
 
-								<ActivityIndicator color="#fff" />
+								<ActivityIndicator color={colors.textPrimary} />
 
 							) : (
 
@@ -703,7 +703,7 @@ export default function PerfilDeclararOcorrencia({
 									<MaterialCommunityIcons
 										name="send"
 										size={20}
-										color="#fff"
+										color={colors.textPrimary}
 									/>
 
 									<AppText
@@ -754,8 +754,7 @@ function createThemedScreenStyles(c) {
 		width: 46,
 		height: 46,
 		borderRadius: 16,
-		backgroundColor:
-			"rgba(0,0,0,0.35)",
+		backgroundColor: colors.overlayDark,
 		justifyContent: "center",
 		alignItems: "center",
 		zIndex: 10,
@@ -772,30 +771,30 @@ function createThemedScreenStyles(c) {
 		flexDirection: "row",
 		alignItems: "center",
 		alignSelf: "flex-start",
-		backgroundColor:
-			"rgba(239,68,68,0.20)",
+		backgroundColor: `${c.error}25`,
 		paddingHorizontal: 12,
 		paddingVertical: 6,
 		borderRadius: 20,
 		gap: 6,
 		marginBottom: 14,
+		borderWidth: 1,
+		borderColor: `${c.error}30`,
 	},
 
 	badgeText: {
-		color: "#fff",
+		color: colors.error,
 		fontSize: 12,
 		fontWeight: "700",
 	},
 
 	heroTitle: {
-		color: "#fff",
+		color: colors.textPrimary,
 		fontSize: 30,
 		fontWeight: "bold",
 	},
 
 	heroSubtitle: {
-		color:
-			"rgba(255,255,255,0.75)",
+		color: colors.textSecondary,
 		fontSize: 14,
 		lineHeight: 22,
 		marginTop: 8,
@@ -813,10 +812,8 @@ function createThemedScreenStyles(c) {
 		marginBottom: 18,
 		overflow: "hidden",
 		borderWidth: 1,
-		borderColor:
-			"rgba(255,255,255,0.08)",
-		backgroundColor:
-			"rgba(255,255,255,0.03)",
+		borderColor: c.glassBorder,
+		backgroundColor: c.glass,
 	},
 
 	row: {
@@ -827,13 +824,13 @@ function createThemedScreenStyles(c) {
 	},
 
 	label: {
-		color: "#8B93A7",
+		color: c.textMuted,
 		fontSize: 13,
 		marginBottom: 8,
 	},
 
 	evento: {
-		color: "#fff",
+		color: c.textPrimary,
 		fontSize: 20,
 		fontWeight: "bold",
 	},
@@ -842,10 +839,11 @@ function createThemedScreenStyles(c) {
 		width: 56,
 		height: 56,
 		borderRadius: 18,
-		backgroundColor:
-			"rgba(124,58,237,0.18)",
+		backgroundColor: c.primarySoft,
 		justifyContent: "center",
 		alignItems: "center",
+		borderWidth: 1,
+		borderColor: c.primarySoft,
 	},
 
 	grid: {
@@ -860,15 +858,13 @@ function createThemedScreenStyles(c) {
 		paddingVertical: 18,
 		borderRadius: 20,
 		borderWidth: 1,
-		borderColor:
-			"rgba(255,255,255,0.08)",
-		backgroundColor:
-			"rgba(255,255,255,0.03)",
+		borderColor: c.glassBorder,
+		backgroundColor: c.glass,
 		alignItems: "center",
 	},
 
 	tipoText: {
-		color: "#aaa",
+		color: c.textMuted,
 		fontSize: 13,
 		marginTop: 10,
 		fontWeight: "600",
@@ -878,13 +874,11 @@ function createThemedScreenStyles(c) {
 		height: 170,
 		borderRadius: 20,
 		padding: 16,
-		color: "#fff",
+		color: c.textPrimary,
 		fontSize: 15,
-		backgroundColor:
-			"rgba(255,255,255,0.04)",
+		backgroundColor: c.glass,
 		borderWidth: 1,
-		borderColor:
-			"rgba(255,255,255,0.06)",
+		borderColor: c.glassBorder,
 		textAlignVertical: "top",
 	},
 
@@ -894,7 +888,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	counterText: {
-		color: "#777",
+		color: c.textMuted,
 		fontSize: 11,
 	},
 
@@ -902,18 +896,16 @@ function createThemedScreenStyles(c) {
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 10,
-		backgroundColor:
-			"rgba(34,197,94,0.10)",
+		backgroundColor: `${c.success}15`,
 		borderWidth: 1,
-		borderColor:
-			"rgba(34,197,94,0.25)",
+		borderColor: `${c.success}30`,
 		padding: 14,
 		borderRadius: 18,
 		marginBottom: 22,
 	},
 
 	warningText: {
-		color: "#D1D5DB",
+		color: c.textSecondary,
 		fontSize: 12,
 		flex: 1,
 		lineHeight: 18,
@@ -934,7 +926,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	buttonText: {
-		color: "#fff",
+		color: colors.textPrimary,
 		fontSize: 16,
 		fontWeight: "bold",
 	},
