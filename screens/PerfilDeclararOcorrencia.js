@@ -327,7 +327,8 @@ export default function PerfilDeclararOcorrencia({
 				<LinearGradient
 					colors={[
 						"transparent",
-						colors.overlayStronger,
+						colors.background,
+						colors.background,
 					]}
 					style={styles.heroOverlay}
 				/>
@@ -754,7 +755,7 @@ function createThemedScreenStyles(c) {
 		width: 46,
 		height: 46,
 		borderRadius: 16,
-		backgroundColor: colors.overlayDark,
+		backgroundColor: c.overlayDark,
 		justifyContent: "center",
 		alignItems: "center",
 		zIndex: 10,
@@ -782,19 +783,19 @@ function createThemedScreenStyles(c) {
 	},
 
 	badgeText: {
-		color: colors.error,
+		color: c.error,
 		fontSize: 12,
 		fontWeight: "700",
 	},
 
 	heroTitle: {
-		color: colors.textPrimary,
+		color: c.textPrimary,
 		fontSize: 30,
 		fontWeight: "bold",
 	},
 
 	heroSubtitle: {
-		color: colors.textSecondary,
+		color: c.textSecondary,
 		fontSize: 14,
 		lineHeight: 22,
 		marginTop: 8,
@@ -926,7 +927,7 @@ function createThemedScreenStyles(c) {
 	},
 
 	buttonText: {
-		color: colors.textPrimary,
+		color: c.onPrimary,
 		fontSize: 16,
 		fontWeight: "bold",
 	},

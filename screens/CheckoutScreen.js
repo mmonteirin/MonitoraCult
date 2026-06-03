@@ -37,14 +37,10 @@ import {
   obterResumoPagamento,
 } from '../services/paymentService';
 
-import { functions } from 'firebase';
-
 // Inicializar Firebase Functions
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { initializeApp } from 'firebase/app';
-import { firebaseConfig } from '../firebaseConfig';
+import { app } from '../firebaseConfig';
 
-const app = initializeApp(firebaseConfig);
 const functionsInstance = getFunctions(app);
 
 export default function CheckoutScreen({ route, navigation }) {
