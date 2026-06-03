@@ -514,6 +514,294 @@ function buildCSV(evento, metricas, avaliacoes, ocorrencias, alcance) {
   return rows.map((r) => r.join(";")).join("\n");
 }
 
+// ─── Lista de Ocorrências ─────────────────────────────────────────────────────
+
+const OCCURRENCE_TYPES = {
+  segurança: { label: "Segurança", icon: "shield-alert", color: "#FF4757" },
+  infraestrutura: { label: "Infraestrutura", icon: "hammer-wrench", color: "#FFA502" },
+  comportamento: { label: "Comportamento", icon: "account-alert", color: "#A55EEA" },
+  outro: { label: "Outro", icon: "file-document-edit", color: "#2ED573" },
+};
+
+function OccurrenceCard({ ocorrencia }) {
+  const { colors, isDark } = useTheme();
+  const occurrenceStyles = useThemedStyles(createOccurrenceStyles);
+  const blurTint = isDark ? "dark" : "light";
+  const tipoInfo = OCCURRENCE_TYPES[ocorrencia.tipo] || OCCURRENCE_TYPES.outro;
+  const dataOcorrencia = formatDateTime(ocorrencia.createdAt);
+
+  return (
+    <BlurView intensity={20} tint={blurTint} style={occurrenceStyles.card}>
+      <View style={occurrenceStyles.cardHeader}>
+        <View style={[occurrenceStyles.typeBadge, { backgroundColor: `${tipoInfo.color}20` }]}>
+          <MaterialCommunityIcons name={tipoInfo.icon} size={16} color={tipoInfo.color} />
+          <Text style={[occurrenceStyles.typeLabel, { color: tipoInfo.color }]}>
+            {tipoInfo.label}
+          </Text>
+        </View>
+        <Text style={occurrenceStyles.date}>{dataOcorrencia}</Text>
+      </View>
+
+      <View style={occurrenceStyles.userInfo}>
+        <MaterialCommunityIcons name="account" size={14} color={colors.textMuted} />
+        <Text style={occurrenceStyles.userName}>{ocorrencia.nome || "Anônimo"}</Text>
+      </View>
+
+      <Text style={occurrenceStyles.description}>{ocorrencia.descricao}</Text>
+
+      {ocorrencia.local && (
+        <View style={occurrenceStyles.locationInfo}>
+          <MaterialCommunityIcons name="map-marker" size={12} color={colors.textMuted} />
+          <Text style={occurrenceStyles.locationText}>{ocorrencia.local}</Text>
+        </View>
+      )}
+    </BlurView>
+  );
+}
+
+function OccurrencesList({ ocorrencias }) {
+  const { colors, isDark } = useTheme();
+  const occurrenceStyles = useThemedStyles(createOccurrenceStyles);
+  const blurTint = isDark ? "dark" : "light";
+  const [expanded, setExpanded] = useState(false);
+  const [filter, setFilter] = useState("todas");
+
+  const filteredOcorrencias = useMemo(() => {
+    if (filter === "todas") return ocorrencias;
+    return ocorrencias.filter((o) => o.tipo === filter);
+  }, [ocorrencias, filter]);
+
+  const filterOptions = [
+    { key: "todas", label: "Todas" },
+    { key: "segurança", label: "Segurança" },
+    { key: "infraestrutura", label: "Infraestrutura" },
+    { key: "comportamento", label: "Comportamento" },
+    { key: "outro", label: "Outro" },
+  ];
+
+  if (!ocorrencias.length) {
+    return (
+      <BlurView intensity={22} tint={blurTint} style={occurrenceStyles.emptyCard}>
+        <MaterialCommunityIcons name="check-circle-outline" size={32} color="rgba(52,211,153,0.3)" />
+        <Text style={occurrenceStyles.emptyText}>Nenhuma ocorrência registrada</Text>
+      </BlurView>
+    );
+  }
+
+  return (
+    <View style={occurrenceStyles.wrapper}>
+      <View style={occurrenceStyles.header}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setExpanded(!expanded)}
+          style={occurrenceStyles.headerButton}
+        >
+          <View style={occurrenceStyles.headerLeft}>
+            <MaterialCommunityIcons name="alert-circle-outline" size={22} color="#FB7185" />
+            <Text style={occurrenceStyles.title}>Todas as Ocorrências</Text>
+            <View style={[occurrenceStyles.countBadge, { backgroundColor: `${colors.primary}30` }]}>
+              <Text style={occurrenceStyles.countText}>{ocorrencias.length}</Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons
+            name={expanded ? "chevron-up" : "chevron-down"}
+            size={20}
+            color={colors.textMuted}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {expanded && (
+        <View style={occurrenceStyles.expandedContent}>
+          {/* Filtros */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={occurrenceStyles.filterScroll}
+          >
+            {filterOptions.map((option) => {
+              const isActive = filter === option.key;
+              const tipoInfo = OCCURRENCE_TYPES[option.key];
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  activeOpacity={0.8}
+                  onPress={() => setFilter(option.key)}
+                  style={[
+                    occurrenceStyles.filterPill,
+                    isActive && occurrenceStyles.filterPillActive,
+                    isActive && { borderColor: tipoInfo?.color || colors.primary },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      occurrenceStyles.filterPillText,
+                      isActive && occurrenceStyles.filterPillTextActive,
+                      isActive && { color: tipoInfo?.color || colors.primary },
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Lista de ocorrências */}
+          <View style={occurrenceStyles.list}>
+            {filteredOcorrencias.length === 0 ? (
+              <Text style={occurrenceStyles.noFilterText}>
+                Nenhuma ocorrência deste tipo
+              </Text>
+            ) : (
+              filteredOcorrencias.map((ocorrencia) => (
+                <OccurrenceCard key={ocorrencia.id} ocorrencia={ocorrencia} />
+              ))
+            )}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function createOccurrenceStyles(c) {
+  return StyleSheet.create({
+    wrapper: { marginTop: 18 },
+    header: { marginBottom: 14 },
+    headerButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    title: {
+      color: "#FFF",
+      fontSize: 24,
+      fontWeight: "800",
+    },
+    countBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+    },
+    countText: {
+      color: c.primary,
+      fontSize: 12,
+      fontWeight: "800",
+    },
+    expandedContent: { marginTop: 12 },
+    filterScroll: {
+      flexDirection: "row",
+      gap: 8,
+      marginBottom: 16,
+      paddingRight: 8,
+    },
+    filterPill: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.1)",
+      backgroundColor: "rgba(255,255,255,0.05)",
+    },
+    filterPillActive: {
+      backgroundColor: "rgba(255,255,255,0.1)",
+    },
+    filterPillText: {
+      color: "rgba(255,255,255,0.6)",
+      fontSize: 12,
+      fontWeight: "700",
+    },
+    filterPillTextActive: {
+      color: c.primary,
+    },
+    list: { gap: 12 },
+    card: {
+      borderRadius: 20,
+      padding: 16,
+      overflow: "hidden",
+      backgroundColor: "rgba(255,255,255,0.04)",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.07)",
+    },
+    cardHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+    },
+    typeBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+    },
+    typeLabel: {
+      fontSize: 11,
+      fontWeight: "800",
+    },
+    date: {
+      color: "rgba(255,255,255,0.4)",
+      fontSize: 11,
+      fontWeight: "600",
+    },
+    userInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 8,
+    },
+    userName: {
+      color: "rgba(255,255,255,0.7)",
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    description: {
+      color: "#FFF",
+      fontSize: 14,
+      lineHeight: 20,
+      marginBottom: 10,
+    },
+    locationInfo: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    locationText: {
+      color: "rgba(255,255,255,0.5)",
+      fontSize: 11,
+    },
+    emptyCard: {
+      borderRadius: 26,
+      padding: 28,
+      marginTop: 14,
+      overflow: "hidden",
+      backgroundColor: "rgba(255,255,255,0.04)",
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.07)",
+      alignItems: "center",
+      gap: 12,
+    },
+    emptyText: {
+      color: "rgba(255,255,255,0.3)",
+      fontSize: 13,
+    },
+    noFilterText: {
+      color: "rgba(255,255,255,0.4)",
+      fontSize: 14,
+      textAlign: "center",
+      paddingVertical: 20,
+    },
+  });
+}
+
 // ─── Dashboard de Alcance ────────────────────────────────────────────────────
 
 const REACH_STEPS = [
@@ -1422,6 +1710,9 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
             )}
           </BlurView>
         </View>
+
+        {/* OCORRÊNCIAS */}
+        <OccurrencesList ocorrencias={ocorrencias} />
 
         {/* AÇÕES */}
         <View style={styles.section}>
