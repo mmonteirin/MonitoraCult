@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 
 import { auth, db } from "../firebaseConfig";
+import { sendVerificationEmail } from "../services/emailjsService";
 
 const CadastroContext = createContext();
 
@@ -26,7 +27,7 @@ export function CadastroProvider({ children }) {
 
   // ─────────────────────────────────────────────────────────────
   // Gera código de verificação localmente
-  // Salva { code, expiry } no Firestore para validação posterior
+  // Envia o código via EmailJS e salva { code, expiry } no Firestore para validação posterior
   // ─────────────────────────────────────────────────────────────
   const sendVerificationCode = async (email) => {
     try {
@@ -43,6 +44,14 @@ export function CadastroProvider({ children }) {
         expiry,
         email,
       });
+
+      // Envia o código via EmailJS
+      const emailResult = await sendVerificationEmail(email, code);
+
+      if (!emailResult.success) {
+        console.log("Erro ao enviar email:", emailResult.message);
+        return { success: false, message: emailResult.message };
+      }
 
       return { success: true, code };
     } catch (error) {

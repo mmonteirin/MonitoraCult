@@ -12,6 +12,7 @@ import EventoIngresso from "../screens/EventoIngresso";
 import TelaIngressos from "../screens/TelaIngressos";
 import TelaCarrinhoIngressos from "../screens/TelaCarrinhoIngressos";
 import MeusIngressos from "../screens/MeusIngressos";
+import CheckoutScreen from "../screens/CheckoutScreen";
 import PerfilDeclararOcorrencia from "../screens/PerfilDeclararOcorrencia";
 import TelaMapaVivo from "../screens/TelaMapaVivo";
 import MapaVivoEventoDetalhes from "../screens/MapaVivoEventoDetalhes";
@@ -61,6 +62,7 @@ export default function EventoStack() {
       <Stack.Screen name="TelaIngressos" component={TelaIngressos} />
       <Stack.Screen name="TelaCarrinhoIngressos" component={TelaCarrinhoIngressos} />
       <Stack.Screen name="MeusIngressos" component={MeusIngressos} />
+      <Stack.Screen name="CheckoutScreen" component={CheckoutScreen} />
 
       {/* OCORRÊNCIAS */}
       <Stack.Screen name="NovaOcorrencia" component={PerfilDeclararOcorrencia} />

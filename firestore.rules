@@ -755,7 +755,27 @@ service cloud.firestore {
 
 
     /* =====================================================
-       🔒 CATCH-ALL — nega tudo não coberto acima
+       � PAGAMENTOS MERCADO PAGO
+    ===================================================== */
+
+    match /pagamentos/{pagamentoId} {
+      // Usuário pode ler seus próprios pagamentos
+      allow read: if isAuthenticated()
+        && (resource.data.userId == request.auth.uid || isAdmin());
+
+      // Apenas Firebase Functions podem criar (via webhook)
+      allow create: if false;
+
+      // Apenas Firebase Functions podem atualizar (via webhook)
+      allow update: if false;
+
+      // Ninguém pode deletar pagamentos
+      allow delete: if false;
+    }
+
+
+    /* =====================================================
+       �🔒 CATCH-ALL — nega tudo não coberto acima
     ===================================================== */
 
     match /{document=**} {

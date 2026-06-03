@@ -259,32 +259,43 @@ function _EventoIngressoOriginal({ route, navigation }) {
 			return;
 		}
 
-		try {
-			const res = await comprar(
-				eventoId,
-				user.uid,
-				profile?.nome || user.displayName || "Usuário",
-				profile?.email || user.email || "",
-				profile?.foto || user.photoURL || "",
-				"credit_card"
-			);
+		// Se evento for gratuito, processa compra diretamente
+		if (gratuito || total === 0) {
+			try {
+				const res = await comprar(
+					eventoId,
+					user.uid,
+					profile?.nome || user.displayName || "Usuário",
+					profile?.email || user.email || "",
+					profile?.foto || user.photoURL || "",
+					"gratuito"
+				);
 
-			setResultado(res);
-			setModalConfirmacao(true);
-		} catch (err) {
-			const mensagem =
-				err.message?.includes("Capacidade limite")
-					? "Ingressos esgotados. Não há mais vagas disponíveis."
-					: err.message || "Não foi possível concluir a compra. Tente novamente.";
+				setResultado(res);
+				setModalConfirmacao(true);
+			} catch (err) {
+				const mensagem =
+					err.message?.includes("Capacidade limite")
+						? "Ingressos esgotados. Não há mais vagas disponíveis."
+						: err.message || "Não foi possível concluir a compra. Tente novamente.";
 
-			setModalAlerta({
-				visible: true,
-				title: "Erro na compra",
-				message: mensagem,
-				type: "error",
+				setModalAlerta({
+					visible: true,
+					title: "Erro na compra",
+					message: mensagem,
+					type: "error",
+				});
+			}
+		} else {
+			// Se evento for pago, navega para CheckoutScreen
+			navigation.navigate("CheckoutScreen", {
+				evento,
+				carrinho,
+				total,
+				quantidadeTotal,
 			});
 		}
-	}, [user, profile, carrinho, comprar, eventoId]);
+	}, [user, profile, carrinho, comprar, eventoId, gratuito, total, quantidadeTotal, navigation]);
 
 	const handleFecharConfirmacao = () => {
 		setModalConfirmacao(false);
