@@ -118,6 +118,7 @@ export default function PerfilDeclararOcorrencia({
 	const { colors, isDark } = useTheme();
 	const styles = useThemedStyles(createThemedScreenStyles);
 	const blurTint = isDark ? "dark" : "light";
+	const statusBarStyle = isDark ? "light-content" : "dark-content";
 
 	const {
 		eventoId,
@@ -147,20 +148,15 @@ export default function PerfilDeclararOcorrencia({
 		return () => {
 			parent?.setOptions({
 				tabBarStyle: {
-					backgroundColor:
-						"#0B1020",
-
+					backgroundColor: colors.background,
 					borderTopWidth: 0,
-
 					height: 70,
-
 					paddingBottom: 10,
-
 					paddingTop: 10,
 				},
 			});
 		};
-	}, []);
+	}, [colors.background]);
 
 	const [descricao, setDescricao] =
 		useState("");
@@ -306,7 +302,7 @@ export default function PerfilDeclararOcorrencia({
 		<View style={styles.container}>
 
 			<StatusBar
-				barStyle="light-content"
+				barStyle={statusBarStyle}
 				translucent
 				backgroundColor="transparent"
 			/>
@@ -318,7 +314,9 @@ export default function PerfilDeclararOcorrencia({
 					source={{
 						uri:
 							imagemEvento ||
-							"https://placehold.co/600x400/111827/ffffff?text=Evento",
+							(isDark
+								? "https://placehold.co/600x400/111827/ffffff?text=Evento"
+								: "https://placehold.co/600x400/f3f4f6/1f2937?text=Evento"),
 					}}
 					style={styles.heroImage}
 					resizeMode="cover"
@@ -759,6 +757,11 @@ function createThemedScreenStyles(c) {
 		justifyContent: "center",
 		alignItems: "center",
 		zIndex: 10,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.3,
+		shadowRadius: 4,
+		elevation: 5,
 	},
 
 	heroContent: {
@@ -792,6 +795,9 @@ function createThemedScreenStyles(c) {
 		color: c.textPrimary,
 		fontSize: 30,
 		fontWeight: "bold",
+		textShadowColor: "rgba(0,0,0,0.3)",
+		textShadowOffset: { width: 0, height: 2 },
+		textShadowRadius: 4,
 	},
 
 	heroSubtitle: {
@@ -799,6 +805,9 @@ function createThemedScreenStyles(c) {
 		fontSize: 14,
 		lineHeight: 22,
 		marginTop: 8,
+		textShadowColor: "rgba(0,0,0,0.2)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 
 	content: {
@@ -815,6 +824,11 @@ function createThemedScreenStyles(c) {
 		borderWidth: 1,
 		borderColor: c.glassBorder,
 		backgroundColor: c.glass,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.1,
+		shadowRadius: 8,
+		elevation: 3,
 	},
 
 	row: {
@@ -845,6 +859,11 @@ function createThemedScreenStyles(c) {
 		alignItems: "center",
 		borderWidth: 1,
 		borderColor: c.primarySoft,
+		shadowColor: c.primary,
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.2,
+		shadowRadius: 4,
+		elevation: 2,
 	},
 
 	grid: {
@@ -862,6 +881,11 @@ function createThemedScreenStyles(c) {
 		borderColor: c.glassBorder,
 		backgroundColor: c.glass,
 		alignItems: "center",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.08,
+		shadowRadius: 4,
+		elevation: 2,
 	},
 
 	tipoText: {
@@ -881,6 +905,11 @@ function createThemedScreenStyles(c) {
 		borderWidth: 1,
 		borderColor: c.glassBorder,
 		textAlignVertical: "top",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.05,
+		shadowRadius: 3,
+		elevation: 1,
 	},
 
 	counter: {
@@ -903,6 +932,11 @@ function createThemedScreenStyles(c) {
 		padding: 14,
 		borderRadius: 18,
 		marginBottom: 22,
+		shadowColor: c.success,
+		shadowOffset: { width: 0, height: 1 },
+		shadowOpacity: 0.15,
+		shadowRadius: 4,
+		elevation: 2,
 	},
 
 	warningText: {
@@ -915,6 +949,11 @@ function createThemedScreenStyles(c) {
 	buttonContainer: {
 		borderRadius: 24,
 		overflow: "hidden",
+		shadowColor: c.primary,
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.3,
+		shadowRadius: 8,
+		elevation: 5,
 	},
 
 	button: {

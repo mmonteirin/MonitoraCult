@@ -13,6 +13,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  StatusBar,
 } from "react-native";
 
 import { Image } from "expo-image";
@@ -1196,6 +1197,7 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
   blurTint = themeContext.isDark ? "dark" : "light";
   styles = useThemedStyles(createThemedScreenStyles);
   const { nome, foto } = useAuth();
+  const statusBarStyle = themeContext.isDark ? "light-content" : "dark-content";
 
   const eventoId = route?.params?.eventoId || route?.params?.evento?.id;
 
@@ -1431,8 +1433,9 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle={statusBarStyle} />
         <LinearGradient
-          colors={["#05060A", "#0B1020", "#111827"]}
+          colors={[colors.background, colors.backgroundDark || colors.background]}
           style={StyleSheet.absoluteFillObject}
         />
         <View style={styles.loadingState}>
@@ -1447,12 +1450,13 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
   if (semPermissao) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar barStyle={statusBarStyle} />
         <LinearGradient
-          colors={["#05060A", "#0B1020", "#111827"]}
+          colors={[colors.background, colors.backgroundDark || colors.background]}
           style={StyleSheet.absoluteFillObject}
         />
         <View style={styles.errorState}>
-          <MaterialCommunityIcons name="lock-outline" size={64} color="#EF4444" />
+          <MaterialCommunityIcons name="lock-outline" size={64} color={colors.error} />
           <Text style={styles.errorTitle}>Acesso Negado</Text>
           <Text style={styles.errorText}>
             Você não tem permissão para visualizar as métricas deste evento.
@@ -1471,8 +1475,9 @@ export default function AdmEventoDashIndividual({ navigation, route }) {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={statusBarStyle} />
       <LinearGradient
-        colors={["#05060A", "#0B1020", "#111827"]}
+        colors={[colors.background, colors.backgroundDark || colors.background]}
         style={StyleSheet.absoluteFillObject}
       />
 
@@ -1825,14 +1830,14 @@ function createThemedScreenStyles(c) {
   },
   errorState: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 },
   errorTitle: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "800",
     marginTop: 20,
     marginBottom: 12,
   },
   errorText: {
-    color: "rgba(255,255,255,0.65)",
+    color: c.textSecondary,
     fontSize: 15,
     textAlign: "center",
     lineHeight: 22,
@@ -1843,9 +1848,14 @@ function createThemedScreenStyles(c) {
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 16,
+    shadowColor: c.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   errorButtonText: {
-    color: "#FFF",
+    color: c.onPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -1855,7 +1865,12 @@ function createThemedScreenStyles(c) {
     overflow: "hidden",
     backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: c.glass,
+    borderColor: c.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   profileRow: { flexDirection: "row", alignItems: "center" },
   backButton: {
@@ -1866,16 +1881,21 @@ function createThemedScreenStyles(c) {
     justifyContent: "center",
     backgroundColor: c.glassStrong,
     marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   avatar: {
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: "#1F2937",
+    backgroundColor: c.surfaceMuted,
   },
   profileInfo: { flex: 1, marginLeft: 14 },
-  userName: { color: "#FFF", fontSize: 21, fontWeight: "800" },
-  userRole: { color: "rgba(255,255,255,0.55)", fontSize: 13, marginTop: 4 },
+  userName: { color: c.textPrimary, fontSize: 21, fontWeight: "800" },
+  userRole: { color: c.textSecondary, fontSize: 13, marginTop: 4 },
   notificationButton: {
     width: 42,
     height: 42,
@@ -1883,6 +1903,11 @@ function createThemedScreenStyles(c) {
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: c.glassStrong,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   eventCard: {
     marginTop: 22,
@@ -1890,28 +1915,30 @@ function createThemedScreenStyles(c) {
     overflow: "hidden",
     flexDirection: "row",
     backgroundColor: c.glass,
+    borderWidth: 1,
+    borderColor: c.glassBorder,
   },
   eventImage: { width: 110, height: 110, backgroundColor: c.surfaceMuted },
   eventContent: { flex: 1, padding: 14, justifyContent: "center" },
-  eventTitle: { color: "#FFF", fontSize: 22, fontWeight: "800" },
-  eventLocation: { color: "rgba(255,255,255,0.72)", fontSize: 14, marginTop: 6 },
+  eventTitle: { color: c.textPrimary, fontSize: 22, fontWeight: "800" },
+  eventLocation: { color: c.textSecondary, fontSize: 14, marginTop: 6 },
   eventDateRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
-  eventDate: { color: "rgba(255,255,255,0.58)", fontSize: 12, marginLeft: 6 },
-  salesCard: { marginTop: 16, borderRadius: 30, padding: 22 },
+  eventDate: { color: c.textMuted, fontSize: 12, marginLeft: 6 },
+  salesCard: { marginTop: 16, borderRadius: 30, padding: 22, shadowColor: c.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 4 },
   salesHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  salesLabel: { color: "rgba(255,255,255,0.72)", fontSize: 14, fontWeight: "700" },
+  salesLabel: { color: c.textSecondary, fontSize: 14, fontWeight: "700" },
   salesValue: {
-    color: "#FFF",
+    color: c.onPrimary,
     fontSize: 38,
     fontWeight: "900",
     marginTop: 12,
     letterSpacing: -1,
   },
-  salesGrowth: { color: "rgba(255,255,255,0.72)", fontSize: 13, marginTop: 8 },
+  salesGrowth: { color: c.textSecondary, fontSize: 13, marginTop: 8 },
   exportButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -1921,7 +1948,7 @@ function createThemedScreenStyles(c) {
     borderRadius: 12,
     backgroundColor: c.glassStrong,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
+    borderColor: c.glassBorder,
   },
   exportIconCircle: {
     width: 28,
@@ -1933,7 +1960,7 @@ function createThemedScreenStyles(c) {
   exportLabel: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#FFF",
+    color: c.textPrimary,
   },
   exportChevron: {
     opacity: 0.5,
@@ -1950,9 +1977,14 @@ function createThemedScreenStyles(c) {
     padding: 18,
     marginBottom: 16,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: c.glass,
+    borderColor: c.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statIconWrap: {
     width: 42,
@@ -1963,10 +1995,10 @@ function createThemedScreenStyles(c) {
     backgroundColor: c.glassStrong,
     marginBottom: 14,
   },
-  statLabel: { color: "rgba(255,255,255,0.55)", fontSize: 13 },
-  statValue: { color: "#FFF", fontSize: 28, fontWeight: "900", marginTop: 8 },
+  statLabel: { color: c.textSecondary, fontSize: 13 },
+  statValue: { color: c.textPrimary, fontSize: 28, fontWeight: "900", marginTop: 8 },
   statSmall: {
-    color: "#FFF",
+    color: c.textPrimary,
     fontSize: 24,
     fontWeight: "800",
     marginTop: 8,
@@ -1979,29 +2011,39 @@ function createThemedScreenStyles(c) {
     justifyContent: "space-between",
     marginBottom: 14,
   },
-  sectionTitle: { color: "#FFF", fontSize: 24, fontWeight: "800" },
+  sectionTitle: { color: c.textPrimary, fontSize: 24, fontWeight: "800" },
   viewButton: {
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 16,
     backgroundColor: c.primary,
+    shadowColor: c.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  viewButtonText: { color: "#FFF", fontSize: 12, fontWeight: "800" },
+  viewButtonText: { color: c.onPrimary, fontSize: 12, fontWeight: "800" },
   ratingCard: {
     borderRadius: 28,
     padding: 20,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: c.glass,
+    borderColor: c.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   ratingHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  ratingLabel: { color: "rgba(255,255,255,0.65)", fontSize: 16 },
-  ratingValue: { color: "#FFF", fontSize: 26, fontWeight: "900" },
+  ratingLabel: { color: c.textSecondary, fontSize: 16 },
+  ratingValue: { color: c.textPrimary, fontSize: 26, fontWeight: "900" },
   starsRow: { flexDirection: "row", marginTop: 16 },
   progressRow: { marginTop: 18 },
   progressTrack: {
@@ -2011,15 +2053,20 @@ function createThemedScreenStyles(c) {
     backgroundColor: c.glassStrong,
   },
   progressFill: { width: 0, height: "100%", borderRadius: 999 },
-  progressText: { color: "rgba(255,255,255,0.55)", fontSize: 12, marginTop: 8 },
+  progressText: { color: c.textSecondary, fontSize: 12, marginTop: 8 },
   problemCard: {
     borderRadius: 26,
     padding: 20,
     marginTop: 14,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.05)",
+    backgroundColor: c.glass,
     borderWidth: 1,
-    borderColor: c.glass,
+    borderColor: c.glassBorder,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
   problemRow: { flexDirection: "row", alignItems: "center", marginBottom: 14 },
   problemDot: {
@@ -2029,7 +2076,7 @@ function createThemedScreenStyles(c) {
     backgroundColor: "#FB7185",
     marginRight: 12,
   },
-  problemText: { color: "#FFF", fontSize: 15 },
+  problemText: { color: c.textPrimary, fontSize: 15 },
   emptyText: { color: c.textMuted, fontSize: 14, lineHeight: 20 },
   actionsGrid: {
     flexDirection: "row",
@@ -2049,6 +2096,11 @@ function createThemedScreenStyles(c) {
     borderWidth: 1,
     borderColor: c.glassBorder,
     gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   actionIconCircle: {
     width: 40,
