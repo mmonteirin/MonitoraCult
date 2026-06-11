@@ -1,7 +1,7 @@
 /**
- * 💳 TELA DE CHECKOUT - MERCADO PAGO
+ * Tela de checkout - Stripe
  * 
- * Permite escolha entre PIX e Boleto, exibe QR Code e status do pagamento
+ * Abre o Stripe Checkout hospedado e acompanha o status do pagamento.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -14,9 +14,9 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
-  Image,
   Linking,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -27,7 +27,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useThemedStyles } from '../hooks/useThemedStyles';
-import AppText from '../components/AppText';
 
 import {
   METODOS_PAGAMENTO,
@@ -37,20 +36,14 @@ import {
   obterResumoPagamento,
 } from '../services/paymentService';
 
-// Inicializar Firebase Functions
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { app } from '../firebaseConfig';
-
-const functionsInstance = getFunctions(app);
-
 export default function CheckoutScreen({ route, navigation }) {
   const { evento, carrinho, total, quantidadeTotal } = route.params;
   const { user, profile } = useAuth();
   const { colors, isDark } = useTheme();
-  const styles = useThemedStyles(createThemedStyles);
+  const styles = useThemedStyles(createThemedScreenStyles);
   const insets = useSafeAreaInsets();
 
-  const [metodoSelecionado, setMetodoSelecionado] = useState(METODOS_PAGAMENTO.PIX);
+  const [metodoSelecionado] = useState(METODOS_PAGAMENTO.STRIPE_CHECKOUT);
   const [loading, setLoading] = useState(false);
   const [pagamentoCriado, setPagamentoCriado] = useState(false);
   const [preferenciaData, setPreferenciaData] = useState(null);
@@ -61,7 +54,7 @@ export default function CheckoutScreen({ route, navigation }) {
 
   // Verificar status do pagamento periodicamente
   useEffect(() => {
-    if (!pagamentoCriado || !preferenciaData?.preferenciaId) return;
+    if (!pagamentoCriado || !preferenciaData?.sessionId) return;
 
     const interval = setInterval(async () => {
       if (statusPagamento === STATUS_PAGAMENTO.APROVADO) {
@@ -71,16 +64,18 @@ export default function CheckoutScreen({ route, navigation }) {
 
       try {
         setVerificando(true);
-        const verificarStatus = httpsCallable(functionsInstance, 'verificarStatusPagamento');
-        const result = await verificarStatus({ pagamentoId: preferenciaData.preferenciaId });
+        const result = await verificarStatusPagamento({
+          sessionId: preferenciaData.sessionId,
+          pagamentoId: preferenciaData.pagamentoId,
+        });
         
-        if (result.data.status === STATUS_PAGAMENTO.APROVADO) {
+        if (result.status === STATUS_PAGAMENTO.APROVADO) {
           setStatusPagamento(STATUS_PAGAMENTO.APROVADO);
           clearInterval(interval);
           
           setTimeout(() => {
             Alert.alert(
-              'Pagamento Confirmado! 🎉',
+              'Pagamento confirmado',
               'Seus ingressos foram gerados com sucesso.',
               [
                 {
@@ -96,7 +91,7 @@ export default function CheckoutScreen({ route, navigation }) {
       } finally {
         setVerificando(false);
       }
-    }, 5000); // Verificar a cada 5 segundos
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [pagamentoCriado, preferenciaData, statusPagamento]);
@@ -115,23 +110,28 @@ export default function CheckoutScreen({ route, navigation }) {
         tipo: item.tipo,
         quantidade: item.quantidade,
         precoUnitario: item.precoUnitario,
+        desconto: item.desconto,
       }));
 
-      // Chamar Firebase Function para criar preferência
-      const criarPreferencia = httpsCallable(functionsInstance, 'criarPreferenciaPagamento');
-      const result = await criarPreferencia({
+      const result = await criarPreferenciaPagamento({
         eventoId: evento.id || evento.eventoId,
         eventoNome: evento.tituloEvento,
         valorTotal: resumo.valorFinal,
         userId: user.uid,
         userEmail: profile?.email || user.email,
+        userName: profile?.nome || user.displayName || user.email,
+        userPhoto: profile?.foto || user.photoURL || '',
         metodoPagamento: metodoSelecionado,
         ingressos: ingressosFormatados,
       });
 
-      setPreferenciaData(result.data);
+      setPreferenciaData(result);
       setPagamentoCriado(true);
       setStatusPagamento(STATUS_PAGAMENTO.PENDENTE);
+
+      if (result.checkoutUrl) {
+        await WebBrowser.openBrowserAsync(result.checkoutUrl);
+      }
 
     } catch (error) {
       console.error('Erro ao criar pagamento:', error);
@@ -144,130 +144,44 @@ export default function CheckoutScreen({ route, navigation }) {
     }
   }, [user, profile, carrinho, evento, metodoSelecionado, resumo]);
 
-  const handleCopiarQRCode = () => {
-    if (preferenciaData?.qrCode) {
-      // Copiar QR Code para área de transferência
-      // (precisaria importar Clipboard do expo-clipboard)
-      Alert.alert('QR Code', 'Código copiado para a área de transferência');
-    }
-  };
-
-  const handleAbrirBoleto = async () => {
-    if (preferenciaData?.ticketUrl) {
+  const handleAbrirCheckout = async () => {
+    if (preferenciaData?.checkoutUrl) {
       try {
-        const supported = await Linking.canOpenURL(preferenciaData.ticketUrl);
+        const supported = await Linking.canOpenURL(preferenciaData.checkoutUrl);
         if (supported) {
-          await Linking.openURL(preferenciaData.ticketUrl);
+          await WebBrowser.openBrowserAsync(preferenciaData.checkoutUrl);
         } else {
-          Alert.alert('Erro', 'Não foi possível abrir o link do boleto');
+          Alert.alert('Erro', 'Não foi possível abrir o checkout');
         }
       } catch (error) {
-        console.error('Erro ao abrir boleto:', error);
+        console.error('Erro ao abrir checkout:', error);
       }
     }
   };
 
-  const renderMetodoPagamento = (metodo, icon, label, descricao) => {
-    const selecionado = metodoSelecionado === metodo;
-    
-    return (
-      <TouchableOpacity
-        key={metodo}
-        style={[styles.metodoCard, selecionado && styles.metodoCardSelecionado]}
-        onPress={() => setMetodoSelecionado(metodo)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.metodoIcon}>
-          <MaterialCommunityIcons
-            name={icon}
-            size={28}
-            color={selecionado ? colors.primary : colors.textMuted}
-          />
-        </View>
-        
-        <View style={styles.metodoInfo}>
-          <Text style={[styles.metodoLabel, selecionado && { color: colors.primary }]}>
-            {label}
-          </Text>
-          <Text style={styles.metodoDescricao}>{descricao}</Text>
-        </View>
-
-        {selecionado && (
-          <MaterialCommunityIcons
-            name="check-circle"
-            size={24}
-            color={colors.primary}
-          />
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderQRCode = () => {
-    if (!preferenciaData?.qrCodeBase64) return null;
-
+  const renderCheckoutInfo = () => {
     return (
       <MotiView
-        from={{ opacity: 0, scale: 0.9 }}
+        from={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', damping: 15 }}
-        style={styles.qrContainer}
+        style={styles.checkoutContainer}
       >
-        <Text style={styles.qrTitle}>Escaneie o QR Code</Text>
-        
-        <Image
-          source={{ uri: `data:image/png;base64,${preferenciaData.qrCodeBase64}` }}
-          style={styles.qrImage}
-          resizeMode="contain"
-        />
+        <MaterialCommunityIcons name="credit-card-check-outline" size={48} color={colors.primary} />
 
-        <TouchableOpacity
-          style={styles.copyButton}
-          onPress={handleCopiarQRCode}
-        >
-          <MaterialCommunityIcons name="content-copy" size={20} color={colors.primary} />
-          <Text style={styles.copyButtonText}>Copiar código</Text>
-        </TouchableOpacity>
+        <Text style={styles.checkoutTitle}>Checkout Stripe iniciado</Text>
 
-        <Text style={styles.qrInstructions}>
-          Abra o app do seu banco e escaneie o QR Code para pagar
-        </Text>
-      </MotiView>
-    );
-  };
-
-  const renderBoleto = () => {
-    if (!preferenciaData?.ticketUrl) return null;
-
-    return (
-      <MotiView
-        from={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: 'spring', damping: 15 }}
-        style={styles.boletoContainer}
-      >
-        <MaterialCommunityIcons
-          name="barcode"
-          size={48}
-          color={colors.primary}
-        />
-
-        <Text style={styles.boletoTitle}>Boleto Bancário</Text>
-        
-        <Text style={styles.boletoInstructions}>
-          O boleto será gerado após a confirmação. Você poderá pagar em qualquer banco ou lotérica.
+        <Text style={styles.checkoutInstructions}>
+          Conclua o pagamento na página segura do Stripe. Ao finalizar, voltaremos a verificar a confirmação automaticamente.
         </Text>
 
         <TouchableOpacity
-          style={styles.boletoButton}
-          onPress={handleAbrirBoleto}
+          style={styles.checkoutButton}
+          onPress={handleAbrirCheckout}
         >
-          <Text style={styles.boletoButtonText}>Abrir Boleto</Text>
+          <MaterialCommunityIcons name="open-in-new" size={20} color="#FFF" />
+          <Text style={styles.checkoutButtonText}>Abrir checkout</Text>
         </TouchableOpacity>
-
-        <Text style={styles.boletoWarning}>
-          O pagamento pode levar até 3 dias úteis para ser processado
-        </Text>
       </MotiView>
     );
   };
@@ -332,30 +246,40 @@ export default function CheckoutScreen({ route, navigation }) {
           </View>
         </BlurView>
 
-        {/* MÉTODOS DE PAGAMENTO */}
+        {/* MÉTODO DE PAGAMENTO */}
         {!pagamentoCriado && (
           <BlurView intensity={45} tint={isDark ? 'dark' : 'light'} style={styles.card}>
             <Text style={styles.cardTitle}>Método de Pagamento</Text>
 
-            {renderMetodoPagamento(
-              METODOS_PAGAMENTO.PIX,
-              'qrcode',
-              'PIX',
-              'Pagamento instantâneo via QR Code'
-            )}
+            <View style={[styles.metodoCard, styles.metodoCardSelecionado]}>
+              <View style={styles.metodoIcon}>
+                <MaterialCommunityIcons
+                  name="shield-check-outline"
+                  size={28}
+                  color={colors.primary}
+                />
+              </View>
+              
+              <View style={styles.metodoInfo}>
+                <Text style={[styles.metodoLabel, { color: colors.primary }]}>
+                  Stripe Checkout
+                </Text>
+                <Text style={styles.metodoDescricao}>
+                  Pagamento seguro com métodos disponíveis na sua conta Stripe
+                </Text>
+              </View>
 
-            {renderMetodoPagamento(
-              METODOS_PAGAMENTO.BOLETO,
-              'barcode',
-              'Boleto',
-              'Pague em até 3 dias úteis'
-            )}
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={24}
+                color={colors.primary}
+              />
+            </View>
           </BlurView>
         )}
 
-        {/* QR CODE / BOLETO */}
-        {pagamentoCriado && metodoSelecionado === METODOS_PAGAMENTO.PIX && renderQRCode()}
-        {pagamentoCriado && metodoSelecionado === METODOS_PAGAMENTO.BOLETO && renderBoleto()}
+        {/* CHECKOUT STRIPE */}
+        {pagamentoCriado && renderCheckoutInfo()}
 
         {/* STATUS DO PAGAMENTO */}
         {pagamentoCriado && (
@@ -424,7 +348,7 @@ export default function CheckoutScreen({ route, navigation }) {
         {/* POLÍTICA */}
         <Text style={styles.politica}>
           Ao continuar, você concorda com nossos termos de uso e política de privacidade.
-          Pagamentos processados via Mercado Pago.
+          Pagamentos processados via Stripe.
         </Text>
       </ScrollView>
     </View>
@@ -582,76 +506,37 @@ function createThemedScreenStyles(c) {
       fontSize: 13,
       color: c.textMuted,
     },
-    qrContainer: {
+    checkoutContainer: {
       alignItems: 'center',
       padding: 24,
     },
-    qrTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: c.textPrimary,
-      marginBottom: 16,
-    },
-    qrImage: {
-      width: 200,
-      height: 200,
-      marginBottom: 16,
-    },
-    copyButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      borderRadius: 12,
-      backgroundColor: `${c.primary}15`,
-      marginBottom: 12,
-    },
-    copyButtonText: {
-      marginLeft: 8,
-      fontSize: 14,
-      fontWeight: '600',
-      color: c.primary,
-    },
-    qrInstructions: {
-      fontSize: 13,
-      color: c.textMuted,
-      textAlign: 'center',
-      lineHeight: 18,
-    },
-    boletoContainer: {
-      alignItems: 'center',
-      padding: 32,
-    },
-    boletoTitle: {
+    checkoutTitle: {
       fontSize: 18,
       fontWeight: 'bold',
       color: c.textPrimary,
       marginTop: 16,
-      marginBottom: 12,
+      marginBottom: 16,
     },
-    boletoInstructions: {
+    checkoutInstructions: {
       fontSize: 14,
       color: c.textSecondary,
       textAlign: 'center',
       lineHeight: 20,
       marginBottom: 20,
     },
-    boletoButton: {
-      backgroundColor: c.primary,
-      paddingHorizontal: 32,
-      paddingVertical: 14,
+    checkoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingVertical: 12,
       borderRadius: 12,
-      marginBottom: 12,
+      backgroundColor: c.primary,
     },
-    boletoButtonText: {
+    checkoutButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
       color: '#FFF',
-      fontSize: 16,
-      fontWeight: 'bold',
-    },
-    boletoWarning: {
-      fontSize: 12,
-      color: c.textMuted,
-      textAlign: 'center',
     },
     statusRow: {
       flexDirection: 'row',

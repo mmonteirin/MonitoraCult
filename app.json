@@ -2,6 +2,7 @@
   "expo": {
     "name": "MonitoraCult",
     "slug": "snack-76330891-d725-4703-84bd-f58504f3c860",
+    "scheme": "monitoracult",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",

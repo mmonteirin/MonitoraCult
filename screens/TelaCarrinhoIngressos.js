@@ -90,10 +90,20 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
       return;
     }
 
+    if (!gratuito) {
+      navigation.navigate("CheckoutScreen", {
+        evento,
+        carrinho,
+        total,
+        quantidadeTotal,
+      });
+      return;
+    }
+
     setProcessando(true);
 
     try {
-      const res = await comprar(
+      await comprar(
         evento.id,
         user.uid,
         profile?.nome || user.displayName || user.email,
@@ -102,7 +112,6 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
         gratuito ? "gratuito" : "credit_card"
       );
 
-      // Navegar para MeusIngressos após compra bem-sucedida
       navigation.navigate("MeusIngressos");
     } catch (err) {
       const msg =
@@ -113,7 +122,7 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
     } finally {
       setProcessando(false);
     }
-  }, [user, profile, carrinho, comprar, evento, gratuito, temVagas, navigation]);
+  }, [user, profile, carrinho, comprar, evento, gratuito, temVagas, navigation, total, quantidadeTotal]);
 
   if (!evento) {
     return (
@@ -226,7 +235,7 @@ export default function TelaCarrinhoIngressos({ route, navigation }) {
             <>
               <MaterialCommunityIcons name="check-circle" size={20} color="#FFF" />
               <Text style={styles.btnComprarText}>
-                {gratuito ? "Confirmar Reserva" : "Confirmar Compra"}
+                {gratuito ? "Confirmar Reserva" : "Ir para Pagamento"}
               </Text>
             </>
           )}
