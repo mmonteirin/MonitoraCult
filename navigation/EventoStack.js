@@ -19,6 +19,7 @@ import MapaVivoEventoDetalhes from "../screens/MapaVivoEventoDetalhes";
 import MapaVivoCheckIn from "../screens/MapaVivoCheckIn";
 import PerfilPublico from "../screens/PerfilPublico";
 import TelaAgendaEventos from "../screens/TelaAgendaEventos";
+import EventosEsportivos from "../screens/EventosEsportivos";
 
 import { useTheme } from "../context/ThemeContext";
 
@@ -40,6 +41,7 @@ export default function EventoStack() {
       {/* LISTAGENS */}
       <Stack.Screen name="EventosApp" component={EventoApp} />
       <Stack.Screen name="EventosPublicos" component={EventosPublicos} />
+      <Stack.Screen name="EventosEsportivos" component={EventosEsportivos} />
 
       {/* DETALHES E AÇÕES */}
       <Stack.Screen 

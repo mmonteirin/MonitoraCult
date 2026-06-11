@@ -168,6 +168,7 @@ const eventoParaFormulario = (evento) => {
 	return {
 		tipoEvento: evento?.tipoEvento || "gratuito",
 		classificacao: evento?.classificacao || "Livre",
+		categoriaEvento: evento?.categoriaEvento || "cultural",
 		tituloEvento: evento?.tituloEvento || "",
 		descricao: evento?.descricao || "",
 		categoria: evento?.categoria || "",
@@ -343,6 +344,7 @@ export default function AdmCadastroEvento({
 	const [form, setForm] = useState({
 		tipoEvento: "gratuito",
 		classificacao: "Livre",
+		categoriaEvento: "cultural",
 
 		tituloEvento: "",
 		descricao: "",
@@ -441,6 +443,16 @@ export default function AdmCadastroEvento({
 			}));
 		}
 	};
+
+	// Resetar categoria quando tipo de evento mudar
+	useEffect(() => {
+		if (form.categoriaEvento) {
+			setForm((prev) => ({
+				...prev,
+				categoria: "",
+			}));
+		}
+	}, [form.categoriaEvento]);
 
 	const pickImage = async () => {
 		try {
@@ -701,6 +713,9 @@ export default function AdmCadastroEvento({
 
 				localEvento:
 					form.localEvento.trim(),
+
+				categoriaEvento:
+					form.categoriaEvento,
 
 				categoria:
 					form.categoria,
@@ -1059,22 +1074,51 @@ export default function AdmCadastroEvento({
 						}
 					/>
 
+					{/* CATEGORY EVENTO */}
+					<SelectModal
+						label="Tipo de Evento"
+						value={
+							form.categoriaEvento
+						}
+						options={[
+							"Cultural",
+							"Esportivo",
+						]}
+						onSelect={(v) =>
+							setField("categoriaEvento", v)
+						}
+					/>
+
 					{/* CATEGORY */}
 					<SelectModal
 						label="Categoria"
 						value={
 							form.categoria
 						}
-						options={[
-							"Shows",
-							"Teatro",
-							"Cinema",
-							"Dança",
-							"Literatura",
-							"Fotografia",
-							"Gastronomia",
-							"Outro",
-						]}
+						options={
+							form.categoriaEvento === "esportivo"
+								? [
+									"Futebol",
+									"Basquete",
+									"Vôlei",
+									"Tênis",
+									"Atletismo",
+									"Natação",
+									"Corrida",
+									"Ciclismo",
+									"Outro",
+								]
+								: [
+									"Shows",
+									"Teatro",
+									"Cinema",
+									"Dança",
+									"Literatura",
+									"Fotografia",
+									"Gastronomia",
+									"Outro",
+								]
+						}
 						onSelect={(v) =>
 							setField(
 								"categoria",

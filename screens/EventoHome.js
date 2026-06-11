@@ -421,7 +421,7 @@ export default function EventoHome({ navigation }) {
 								</TouchableOpacity>
 							</MotiView>
 
-							{/* EXPLORE */}
+							{/* EVENTOS ESPORTIVOS */}
 							<MotiView
 								from={{
 									opacity: 0,
@@ -433,6 +433,85 @@ export default function EventoHome({ navigation }) {
 								}}
 								transition={{
 									delay: 700,
+									duration: 800,
+								}}
+							>
+								<TouchableOpacity
+									activeOpacity={0.92}
+									style={[styles.card, { backgroundColor: colors.glass, borderColor: colors.borderLight, shadowColor: colors.success, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.18, shadowRadius: 16, elevation: 10 }]}
+									onPress={() => navigation.navigate("EventosEsportivos")}
+								>
+									<LinearGradient
+										colors={gradients.surface}
+										style={styles.cardGlow}
+									/>
+
+									<LinearGradient
+										colors={[colors.success, colors.primary]}
+										style={styles.iconBox}
+									>
+										<MaterialCommunityIcons
+											name="trophy"
+											size={32}
+											color={colors.onPrimary}
+										/>
+									</LinearGradient>
+
+									<View style={styles.textContainer}>
+										<View style={styles.cardTopRow}>
+											<Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+												Eventos Esportivos
+											</Text>
+
+											<View style={[styles.sportBadge, { backgroundColor: colors.success + "29" }]}>
+												<MaterialCommunityIcons
+													name="run"
+													size={12}
+													color={colors.success}
+												/>
+												<Text style={[styles.sportText, { color: colors.success }]}>
+													SPORT
+												</Text>
+											</View>
+										</View>
+
+										<Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
+											Jogos, competições e atividades esportivas na sua região.
+										</Text>
+
+										<View style={styles.cardFooter}>
+											<MaterialCommunityIcons
+												name="basketball"
+												size={15}
+												color={colors.success}
+											/>
+
+											<Text style={[styles.footerText, { color: colors.textMuted }]}>
+												Próximos jogos e competições
+											</Text>
+										</View>
+									</View>
+
+									<MaterialCommunityIcons
+										name="chevron-right"
+										size={28}
+										color={colors.primary}
+									/>
+								</TouchableOpacity>
+							</MotiView>
+
+							{/* EXPLORE */}
+							<MotiView
+								from={{
+									opacity: 0,
+									translateY: 30,
+								}}
+								animate={{
+									opacity: 1,
+									translateY: 0,
+								}}
+								transition={{
+									delay: 860,
 									duration: 800,
 								}}
 							>
@@ -719,6 +798,20 @@ const styles = StyleSheet.create({
 	},
 
 	heatText: {
+		fontSize: 11,
+		fontFamily: "PoppinsSemiBold",
+	},
+
+	sportBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		gap: 4,
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 22,
+	},
+
+	sportText: {
 		fontSize: 11,
 		fontFamily: "PoppinsSemiBold",
 	},

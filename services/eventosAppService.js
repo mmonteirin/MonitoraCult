@@ -18,16 +18,16 @@ import { db } from "../firebaseConfig";
 import { registrarVisitaLocal } from "./localVisitadoService";
 import logger from "../utils/logger";
 
-export async function getEventosApp() {
+export async function getEventosApp(categoria = null) {
   try {
-    const q = query(
+    let q = query(
       collection(db, "eventos"),
       orderBy("createdAt", "desc")
     );
 
     const snapshot = await getDocs(q);
 
-    return snapshot.docs
+    const eventos = snapshot.docs
       .map((document) => {
         const data = document.data();
 
@@ -45,6 +45,13 @@ export async function getEventosApp() {
         };
       })
       .filter((item) => item.ativo !== false);
+
+    // Filtrar por categoria se especificada
+    if (categoria) {
+      return eventos.filter(item => item.categoriaEvento === categoria);
+    }
+
+    return eventos;
   } catch (error) {
     logger.error("eventosAppService", "Erro ao buscar eventos", error);
     return [];

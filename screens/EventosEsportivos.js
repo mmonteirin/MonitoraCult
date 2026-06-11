@@ -1,0 +1,755 @@
+import React, { useEffect, useState } from "react";
+
+import {
+	View,
+	Text,
+	Image,
+	FlatList,
+	TouchableOpacity,
+	Animated,
+	Alert,
+	StyleSheet,
+	StatusBar,
+	ImageBackground,
+	ActivityIndicator,
+} from "react-native";
+
+import {
+	collection,
+	query,
+	where,
+	orderBy,
+	onSnapshot,
+	deleteDoc,
+	doc,
+} from "firebase/firestore";
+
+import { db } from "../firebaseConfig";
+
+import { useAuth } from "../context/AuthContext";
+
+import { useNavigation } from "@react-navigation/native";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+import { Swipeable } from "react-native-gesture-handler";
+
+import { LinearGradient } from "expo-linear-gradient";
+
+import { BlurView } from "expo-blur";
+
+import { MotiView } from "moti";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+
+import { useTheme } from "../context/ThemeContext";
+import { useThemedStyles } from "../hooks/useThemedStyles";
+
+
+export default function EventosEsportivos() {
+	const { colors, isDark } = useTheme();
+	const styles = useThemedStyles((c) => createThemedScreenStyles(c, isDark));
+	const blurTint = isDark ? "dark" : "light";
+	const { user, nome, foto } = useAuth();
+
+	const navigation = useNavigation();
+
+	const insets = useSafeAreaInsets();
+
+	const tabBarHeight = useBottomTabBarHeight();
+
+	const [eventos, setEventos] = useState([]);
+
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		if (!user?.uid) return;
+
+		const q = query(
+			collection(db, "users", user.uid, "subscribedEvents"),
+			where("categoriaEvento", "==", "esportivo"),
+			orderBy("dataEventoTimestamp", "asc")
+		);
+
+		const unsubscribe = onSnapshot(q, (snapshot) => {
+			const lista = snapshot.docs.map((doc) => ({
+				id: doc.id,
+				...doc.data(),
+			}));
+
+			setEventos(lista);
+      setLoading(false);
+		});
+
+		return unsubscribe;
+	}, [user?.uid]);
+
+	const cancelarInscricao = (id) => {
+		Alert.alert(
+			"Cancelar inscrição",
+			"Deseja cancelar sua inscrição neste evento esportivo?",
+			[
+				{
+					text: "Não",
+					style: "cancel",
+				},
+
+				{
+					text: "Sim",
+
+					style: "destructive",
+
+					onPress: async () => {
+						try {
+							await deleteDoc(
+								doc(db, "users", user.uid, "subscribedEvents", id)
+							);
+						} catch (error) {
+							Alert.alert("Erro", "Não foi possível cancelar.");
+						}
+					},
+				},
+			]
+		);
+	};
+
+	const renderRightActions = (id, progress) => {
+		const scale = progress.interpolate({
+			inputRange: [0, 1],
+
+			outputRange: [0.7, 1],
+		});
+
+		return (
+			<Animated.View
+				style={[
+					styles.swipeDelete,
+
+					{
+						transform: [
+							{
+								scale,
+							},
+						],
+					},
+				]}
+			>
+				<TouchableOpacity onPress={() => cancelarInscricao(id)}>
+					<MaterialCommunityIcons name="trash-can" size={28} color="#FFF" />
+				</TouchableOpacity>
+			</Animated.View>
+		);
+	};
+
+	const renderItem = ({ item, index }) => {
+		return (
+			<Swipeable
+				overshootRight={false}
+				renderRightActions={(progress) => renderRightActions(item.id, progress)}
+			>
+				<MotiView
+					from={{
+						opacity: 0,
+						translateY: 20,
+					}}
+					animate={{
+						opacity: 1,
+						translateY: 0,
+					}}
+					transition={{
+						type: "timing",
+						duration: 500,
+						delay: index * 80,
+					}}
+				>
+					<View style={styles.card}>
+						{/* IMAGEM */}
+						<ImageBackground
+							source={{
+								uri:
+									item.imagemEvento ||
+									"https://images.unsplash.com/photo-1461896836934-voices-8b1f6a6?q=80&w=1200",
+							}}
+							style={styles.image}
+						>
+						</ImageBackground>
+
+						{/* CONTENT */}
+						<BlurView intensity={50} tint={blurTint} style={styles.content}>
+							<View style={styles.categoryBadge}>
+								<MaterialCommunityIcons
+									name="trophy"
+									size={14}
+									color={colors.primary}
+								/>
+								<Text style={styles.categoryText}>Esportivo</Text>
+							</View>
+
+							<Text style={styles.titulo} numberOfLines={1}>
+								{item.tituloEvento}
+							</Text>
+
+							{/* DATA */}
+							<View style={styles.infoRow}>
+								<MaterialCommunityIcons
+									name="calendar"
+									size={17}
+									color={colors.primary}
+								/>
+
+								<Text style={styles.infoText}>{item.dataEvento}</Text>
+							</View>
+
+							{/* LOCAL */}
+							<View style={styles.infoRow}>
+								<MaterialCommunityIcons
+									name="map-marker"
+									size={17}
+									color={colors.primary}
+								/>
+
+								<Text style={styles.infoText} numberOfLines={1}>
+									{item.localEvento}
+								</Text>
+							</View>
+
+							{/* BUTTONS */}
+							<View style={styles.actions}>
+								<TouchableOpacity
+									activeOpacity={0.85}
+									onPress={() =>
+										navigation.navigate("Detalhes", {
+											evento: item,
+										})
+									}
+								>
+									<LinearGradient
+										colors={["#10B981", "#059669"]}
+										style={styles.eventBtn}
+									>
+										<MaterialCommunityIcons name="eye" size={18} color="#FFF" />
+
+										<Text style={styles.eventBtnText}>Ver Evento</Text>
+									</LinearGradient>
+								</TouchableOpacity>
+
+								<TouchableOpacity onPress={() => cancelarInscricao(item.id)}>
+									<Text style={styles.cancelar}>Cancelar</Text>
+								</TouchableOpacity>
+							</View>
+						</BlurView>
+					</View>
+				</MotiView>
+			</Swipeable>
+		);
+	};
+
+	if (loading) {
+		return (
+			<View style={styles.loading}>
+				<ActivityIndicator size="large" color={colors.primary} />
+
+				<Text style={styles.loadingText}>Carregando eventos esportivos...</Text>
+			</View>
+		);
+	}
+
+	return (
+		<View style={styles.container}>
+			<StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+		{/* HEADER */}
+		<LinearGradient
+			colors={isDark 
+				? ["#0F172A", "#111827", "#1E1B4B"] 
+				: ["#F5F3FF", "#F3EFFF", "#EBE5FF"]}
+			style={[
+				styles.header,
+				{
+					paddingTop: insets.top + 10,
+				},
+			]}
+		>
+			<TouchableOpacity
+				style={[
+					styles.backBtn,
+					!isDark && { backgroundColor: colors.glass }
+				]}
+				onPress={() => navigation.goBack()}
+			>
+				<MaterialCommunityIcons name="arrow-left" size={24} color={isDark ? "#FFF" : colors.primary} />
+			</TouchableOpacity>
+
+			<Text style={[
+				styles.headerTitle,
+				!isDark && { color: colors.textPrimary }
+			]}>Eventos Esportivos</Text>
+
+			<TouchableOpacity
+				style={[
+					styles.calendarBtn,
+					!isDark && { backgroundColor: colors.glass }
+				]}
+				onPress={() =>
+					navigation.navigate("AgendaEventos")
+				}
+			>
+				<MaterialCommunityIcons
+					name="calendar-month"
+					size={22}
+					color={isDark ? "#FFF" : colors.primary}
+				/>
+			</TouchableOpacity>
+			</LinearGradient>
+
+			{/* PERFIL */}
+			<MotiView
+				from={{
+					opacity: 0,
+					scale: 0.9,
+				}}
+				animate={{
+					opacity: 1,
+					scale: 1,
+				}}
+				transition={{
+					type: "timing",
+					duration: 600,
+				}}
+			>
+				<BlurView intensity={60} tint={blurTint} style={styles.profileCard}>
+					{/* LEFT */}
+					<View style={styles.profileLeft}>
+						<LinearGradient
+							colors={["#10B981", "#059669"]}
+							style={styles.avatarBorder}
+						>
+							<Image
+								source={{
+									uri: foto || "https://i.pravatar.cc/150",
+								}}
+								style={styles.avatar}
+							/>
+						</LinearGradient>
+
+						<View style={styles.profileInfo}>
+							<Text style={styles.nome}>{nome}</Text>
+
+							<Text style={styles.subtitle}>Eventos esportivos inscritos</Text>
+						</View>
+					</View>
+
+					{/* RIGHT */}
+					<View style={styles.profileBadge}>
+						<MaterialCommunityIcons
+							name="trophy"
+							size={18}
+							color="#10B981"
+						/>
+
+						<Text style={styles.profileBadgeText}>{eventos.length}</Text>
+					</View>
+				</BlurView>
+			</MotiView>
+
+			{/* LISTA */}
+			<FlatList
+				data={eventos}
+				keyExtractor={(item) => item.id}
+				renderItem={renderItem}
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{
+					padding: 20,
+					paddingTop: 10,
+					paddingBottom: tabBarHeight + 40,
+					flexGrow: 1,
+				}}
+				ListEmptyComponentStyle={{
+					flex: 1,
+					justifyContent: "center",
+				}}
+				ListEmptyComponent={
+					<View style={styles.emptyContainer}>
+						<MaterialCommunityIcons
+							name="trophy-outline"
+							size={70}
+							color={isDark ? "rgba(255,255,255,0.2)" : "rgba(16,185,129,0.2)"}
+						/>
+
+						<Text style={styles.empty}>
+							Você ainda não se inscreveu em eventos esportivos
+						</Text>
+					</View>
+				}
+			/>
+		</View>
+	);
+}
+
+function createThemedScreenStyles(c, isDark) {
+  return StyleSheet.create({
+	container: {
+		flex: 1,
+		backgroundColor: c.background,
+	},
+
+	/* HEADER */
+	header: {
+		paddingBottom: 24,
+		paddingHorizontal: 20,
+
+		flexDirection: "row",
+		alignItems: "center",
+
+		borderBottomLeftRadius: 32,
+		borderBottomRightRadius: 32,
+	},
+
+	backBtn: {
+		width: 46,
+		height: 46,
+
+		borderRadius: 18,
+
+		backgroundColor: c.glassStrong,
+
+		justifyContent: "center",
+		alignItems: "center",
+	},
+
+	headerTitle: {
+		color: isDark ? "#FFF" : c.textPrimary,
+
+		fontSize: 22,
+
+		fontFamily: "PoppinsBold",
+
+		marginLeft: 16,
+
+		flex: 1,
+	},
+
+	calendarBtn: {
+		width: 46,
+		height: 46,
+		borderRadius: 18,
+		backgroundColor: c.glassStrong,
+		justifyContent: "center",
+		alignItems: "center",
+		marginLeft: 12,
+	},
+
+	/* PROFILE */
+	profileCard: {
+		marginHorizontal: 20,
+		marginTop: 20,
+		marginBottom: 10,
+
+		borderRadius: 28,
+
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+
+		paddingVertical: 20,
+		paddingHorizontal: 18,
+
+		overflow: "hidden",
+
+		borderWidth: 1,
+
+		borderColor: isDark ? c.glass : "#D8CCFF",
+
+		backgroundColor: isDark ? c.glass : "#FAFAF9",
+		
+		shadowColor: c.shadow,
+		shadowOpacity: isDark ? 0.15 : 0.08,
+		shadowRadius: 12,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 4 : 3,
+	},
+
+	profileLeft: {
+		flexDirection: "row",
+		alignItems: "center",
+		flex: 1,
+	},
+
+	profileInfo: {
+		marginLeft: 16,
+		flex: 1,
+	},
+
+	profileBadge: {
+		width: 54,
+		height: 54,
+
+		borderRadius: 18,
+
+		backgroundColor: isDark ? "rgba(16,185,129,0.16)" : "rgba(16,185,129,0.12)",
+
+		justifyContent: "center",
+		alignItems: "center",
+
+		borderWidth: 1,
+
+		borderColor: isDark ? c.glass : "#E0D4FF",
+	},
+
+	profileBadgeText: {
+		color: isDark ? "#FFF" : c.primary,
+
+		marginTop: 2,
+
+		fontSize: 12,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	avatarBorder: {
+		padding: 4,
+		borderRadius: 60,
+	},
+
+	avatar: {
+		width: 74,
+		height: 74,
+		borderRadius: 40,
+	},
+
+	nome: {
+		color: isDark ? "#FFF" : c.textPrimary,
+
+		fontSize: 22,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	subtitle: {
+		color: isDark ? "rgba(255,255,255,0.65)" : "#7C7C7C",
+
+		marginTop: 4,
+
+		fontFamily: "PoppinsRegular",
+	},
+
+	/* CARD */
+	card: {
+		marginBottom: 22,
+
+		borderRadius: 28,
+
+		overflow: "hidden",
+
+		backgroundColor: isDark ? c.glass : "#FFFFFF",
+
+		borderWidth: 1,
+
+		borderColor: isDark ? c.glass : "#E5DEFF",
+		
+		shadowColor: c.shadow,
+		shadowOpacity: isDark ? 0.2 : 0.1,
+		shadowRadius: 12,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 5 : 4,
+	},
+
+	image: {
+		height: 190,
+		justifyContent: "flex-end",
+	},
+
+	overlay: {
+		flex: 1,
+		justifyContent: "flex-end",
+		padding: 16,
+	},
+
+	content: {
+		padding: 18,
+		backgroundColor: isDark ? "transparent" : "#F8F5FF",
+	},
+
+	categoryBadge: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "rgba(16,185,129,0.15)",
+		paddingHorizontal: 10,
+		paddingVertical: 5,
+		borderRadius: 12,
+		alignSelf: "flex-start",
+		marginBottom: 10,
+	},
+
+	categoryText: {
+		color: isDark ? "#10B981" : "#059669",
+		fontSize: 11,
+		fontFamily: "PoppinsSemiBold",
+		marginLeft: 4,
+	},
+
+	titulo: {
+		color: isDark ? "#FFF" : c.textPrimary,
+
+		fontSize: 20,
+
+		marginBottom: 14,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	infoRow: {
+		flexDirection: "row",
+		alignItems: "center",
+
+		marginBottom: 10,
+	},
+
+	infoText: {
+		color: isDark ? "rgba(255,255,255,0.72)" : "#5A5A5A",
+
+		marginLeft: 8,
+
+		fontSize: 13,
+
+		flex: 1,
+
+		fontFamily: "PoppinsRegular",
+	},
+
+	/* STATUS */
+	statusConfirmado: {
+		alignSelf: "flex-start",
+
+		backgroundColor: "rgba(34,197,94,0.95)",
+
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+
+		borderRadius: 18,
+	},
+
+	statusPendente: {
+		alignSelf: "flex-start",
+
+		backgroundColor: "rgba(245,158,11,0.95)",
+
+		paddingHorizontal: 12,
+		paddingVertical: 7,
+
+		borderRadius: 18,
+	},
+
+	statusText: {
+		color: "#FFF",
+
+		fontSize: 12,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	/* ACTIONS */
+	actions: {
+		marginTop: 18,
+
+		flexDirection: "row",
+
+		justifyContent: "space-between",
+
+		alignItems: "center",
+	},
+
+	eventBtn: {
+		flexDirection: "row",
+		alignItems: "center",
+
+		paddingVertical: 12,
+		paddingHorizontal: 18,
+
+		borderRadius: 18,
+
+		gap: 8,
+
+		shadowColor: "#10B981",
+		shadowOpacity: isDark ? 0.4 : 0.15,
+		shadowRadius: 8,
+		shadowOffset: { width: 0, height: 4 },
+		elevation: isDark ? 5 : 3,
+	},
+
+	eventBtnText: {
+		color: "#FFF",
+
+		fontSize: 13,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	cancelar: {
+		color: isDark ? "#FF6B6B" : "#DC2626",
+
+		fontSize: 14,
+
+		fontFamily: "PoppinsBold",
+	},
+
+	/* SWIPE */
+	swipeDelete: {
+		justifyContent: "center",
+		alignItems: "center",
+
+		width: 90,
+
+		borderRadius: 24,
+
+		backgroundColor: "#DC2626",
+
+		marginBottom: 22,
+	},
+
+	/* EMPTY */
+	emptyContainer: {
+		flex: 1,
+
+		justifyContent: "center",
+		alignItems: "center",
+
+		paddingTop: 40,
+		paddingBottom: 80,
+	},
+
+	empty: {
+		color: isDark ? "rgba(255,255,255,0.55)" : "#888888",
+
+		marginTop: 16,
+
+		fontSize: 15,
+
+		textAlign: "center",
+
+		fontFamily: "PoppinsRegular",
+	},
+
+	/* LOADING */
+	loading: {
+		flex: 1,
+
+		justifyContent: "center",
+		alignItems: "center",
+
+		backgroundColor: c.background,
+	},
+
+	loadingText: {
+		color: isDark ? "rgba(255,255,255,0.7)" : c.textSecondary,
+
+		marginTop: 16,
+
+		fontSize: 15,
+
+		fontFamily: "PoppinsRegular",
+	},
+  });
+}
